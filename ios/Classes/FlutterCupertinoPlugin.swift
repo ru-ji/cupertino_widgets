@@ -23,6 +23,10 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
         registrar.register(
             sliderFactory, withId: "com.example.flutter_cupertino/cupertino_native_slider")
 
+        let tabViewFactory = NativeTabViewFactory(messenger: registrar.messenger())
+        registrar.register(
+            tabViewFactory, withId: "com.example.flutter_cupertino/cupertino_native_tabview")
+
         let channel = FlutterMethodChannel(
             name: "com.example.flutter_cupertino/alert", binaryMessenger: registrar.messenger())
         let instance = FlutterCupertinoPlugin()

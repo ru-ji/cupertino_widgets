@@ -16,12 +16,43 @@ class _MyAppState extends State<MyApp> {
   String _lastAction = 'None';
   bool _isMapEnabled = false;
   double _sliderValue = 0.5;
+  String _tabSelection = 'home';
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(title: const Text('Native CupertinoNative Menu')),
+        bottomNavigationBar: SizedBox(
+          height: 80,
+          child: CupertinoNativeTabView(
+            accentColor: Colors.orange,
+            tabs: const [
+              CupertinoNativeTab(
+                title: 'Home',
+                systemImage: 'house.fill',
+                id: 'home',
+              ),
+              CupertinoNativeTab(
+                title: 'Search',
+                systemImage: 'magnifyingglass',
+                id: 'search',
+              ),
+              CupertinoNativeTab(
+                title: 'Settings',
+                systemImage: 'gear',
+                id: 'settings',
+              ),
+            ],
+            initialSelection: _tabSelection,
+            onSelectionChanged: (id) {
+              setState(() {
+                _tabSelection = id;
+                _lastAction = "Tab: $id";
+              });
+            },
+          ),
+        ),
         body: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
