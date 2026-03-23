@@ -23,8 +23,9 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(title: const Text('Native CupertinoNative Menu')),
-        bottomNavigationBar: SizedBox(
+        bottomNavigationBar: Container(
           height: 80,
+          color: Colors.pink,
           child: CupertinoNativeTabView(
             accentColor: Colors.orange,
             tabs: const [

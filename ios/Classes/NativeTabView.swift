@@ -28,10 +28,11 @@ class NativeTabViewFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
-class NativeTabView: NSObject, FlutterPlatformView {
+class NativeTabView: NSObject, FlutterPlatformView, UITabBarDelegate {
     private var _view: UIView
-    private var channel: FlutterMethodChannel?
-    private var hostingController: UIViewController?
+    private var tabBar: UITabBar
+    private var channel: FlutterMethodChannel
+    private var config: TabViewConfig?
 
     init(
         frame: CGRect,
@@ -39,28 +40,32 @@ class NativeTabView: NSObject, FlutterPlatformView {
         arguments args: Any?,
         messenger: FlutterBinaryMessenger
     ) {
-        _view = UIView()
-        super.init()
-
+        _view = UIView(frame: frame)
+        tabBar = UITabBar(frame: .zero)
         channel = FlutterMethodChannel(
             name: "flutter_cupertino/tabview_\(viewId)", binaryMessenger: messenger)
-        channel?.setMethodCallHandler({
+
+        super.init()
+
+        _view.backgroundColor = .clear
+        tabBar.translatesAutoresizingMaskIntoConstraints = false
+        tabBar.delegate = self
+        _view.addSubview(tabBar)
+
+        NSLayoutConstraint.activate([
+            tabBar.leadingAnchor.constraint(equalTo: _view.leadingAnchor),
+            tabBar.trailingAnchor.constraint(equalTo: _view.trailingAnchor),
+            tabBar.bottomAnchor.constraint(equalTo: _view.bottomAnchor),
+            tabBar.topAnchor.constraint(equalTo: _view.topAnchor),
+        ])
+
+        channel.setMethodCallHandler({
             [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             self?.handle(call, result: result)
         })
 
-        if let argsMap = args as? [String: Any],
-            let config = decodeConfig(from: argsMap)
-        {
-            if #available(iOS 14.0, *) {
-                setupSwiftUI(with: config)
-            } else {
-                // Fallback for iOS < 14 if needed (TabView exists but onChange doesn't)
-                // For now, we only support iOS 14+ efficiently or gracefully degrade.
-                // Since AdaptiveMenuView had fallback, we might need one here.
-                // But TabView is iOS 13+.
-                // However, our AdaptiveTabView uses onChange which is iOS 14.
-            }
+        if let argsMap = args as? [String: Any] {
+            update(with: argsMap)
         }
     }
 
@@ -70,16 +75,43 @@ class NativeTabView: NSObject, FlutterPlatformView {
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         if call.method == "updateTabView" {
-            if let argsMap = call.arguments as? [String: Any],
-                let config = decodeConfig(from: argsMap)
-            {
-                if #available(iOS 14.0, *) {
-                    setupSwiftUI(with: config)
-                }
+            if let argsMap = call.arguments as? [String: Any] {
+                update(with: argsMap)
             }
             result(nil)
         } else {
             result(FlutterMethodNotImplemented)
+        }
+    }
+
+    private func update(with args: [String: Any]) {
+        guard let config = decodeConfig(from: args) else { return }
+        self.config = config
+
+        var items: [UITabBarItem] = []
+        for (index, tab) in config.tabs.enumerated() {
+            let item: UITabBarItem
+            if let role = tab.role, role == "search" {
+                item = UITabBarItem(tabBarSystemItem: .search, tag: index)
+            } else {
+                item = UITabBarItem(
+                    title: tab.title, image: UIImage(systemName: tab.systemImage ?? ""), tag: index)
+            }
+            items.append(item)
+        }
+        tabBar.setItems(items, animated: true)
+
+        if let accentColor = config.accentColor {
+            tabBar.tintColor = UIColor(
+                red: CGFloat((accentColor >> 16) & 0xFF) / 255.0,
+                green: CGFloat((accentColor >> 8) & 0xFF) / 255.0,
+                blue: CGFloat(accentColor & 0xFF) / 255.0,
+                alpha: CGFloat((accentColor >> 24) & 0xFF) / 255.0
+            )
+        }
+
+        if let index = config.tabs.firstIndex(where: { $0.id == config.selection }) {
+            tabBar.selectedItem = tabBar.items?[index]
         }
     }
 
@@ -94,32 +126,12 @@ class NativeTabView: NSObject, FlutterPlatformView {
         }
     }
 
-    @available(iOS 14.0, *)
-    private func setupSwiftUI(with config: TabViewConfig) {
-        let tabView = AdaptiveTabView(config: config) { [weak self] selection in
-            self?.channel?.invokeMethod("onSelectionChanged", arguments: ["selection": selection])
-        }
-
-        if let host = hostingController as? UIHostingController<AdaptiveTabView> {
-            host.rootView = tabView
-            // Ensure view is laid out
-            host.view.setNeedsLayout()
-        } else {
-            let host = UIHostingController(rootView: tabView)
-            host.view.backgroundColor = .clear
-            // Important: if we want the standard Tab Bar look, we might not want clear background for the tab bar itself,
-            // but the content area should be clear.
-            // TabView usually manages its own background.
-
-            _view.addSubview(host.view)
-            host.view.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                host.view.topAnchor.constraint(equalTo: _view.topAnchor),
-                host.view.bottomAnchor.constraint(equalTo: _view.bottomAnchor),
-                host.view.leadingAnchor.constraint(equalTo: _view.leadingAnchor),
-                host.view.trailingAnchor.constraint(equalTo: _view.trailingAnchor),
-            ])
-            hostingController = host
+    // UITabBarDelegate
+    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        let index = item.tag
+        if let config = config, index < config.tabs.count {
+            let tabId = config.tabs[index].id
+            channel.invokeMethod("onSelectionChanged", arguments: ["selection": tabId])
         }
     }
 }
