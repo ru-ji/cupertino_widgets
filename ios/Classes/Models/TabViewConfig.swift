@@ -4,6 +4,7 @@ struct TabViewConfig: Codable {
     let tabs: [TabItemConfig]
     var selection: String
     let accentColor: Int?
+    let entryPoint: String?
 }
 
 struct TabItemConfig: Codable, Identifiable {

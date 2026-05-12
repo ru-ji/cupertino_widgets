@@ -2,7 +2,7 @@ import Flutter
 import SwiftUI
 import UIKit
 
-class NativeTabViewFactory: NSObject, FlutterPlatformViewFactory {
+class NativeFullscreenTabViewFactory: NSObject, FlutterPlatformViewFactory {
     private var messenger: FlutterBinaryMessenger
 
     init(messenger: FlutterBinaryMessenger) {
@@ -15,7 +15,7 @@ class NativeTabViewFactory: NSObject, FlutterPlatformViewFactory {
         viewIdentifier viewId: Int64,
         arguments args: Any?
     ) -> FlutterPlatformView {
-        return NativeTabView(
+        return NativeFullscreenTabView(
             frame: frame,
             viewIdentifier: viewId,
             arguments: args,
@@ -28,11 +28,13 @@ class NativeTabViewFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
-class NativeTabView: NSObject, FlutterPlatformView {
+class NativeFullscreenTabView: NSObject, FlutterPlatformView {
     private var _view: UIView
     private var channel: FlutterMethodChannel
     private var config: TabViewConfig?
     private var hostingController: UIHostingController<AnyView>?
+    private var engineGroup: FlutterEngineGroup
+    private var engines: [String: FlutterEngine] = [:]
 
     init(
         frame: CGRect,
@@ -43,19 +45,22 @@ class NativeTabView: NSObject, FlutterPlatformView {
         _view = UIView(frame: frame)
         _view.backgroundColor = .clear
         channel = FlutterMethodChannel(
-            name: "flutter_cupertino/tabview_\(viewId)", binaryMessenger: messenger)
+            name: "flutter_cupertino/fullscreen_tabview_\(viewId)",
+            binaryMessenger: messenger
+        )
+        engineGroup = FlutterEngineGroup(name: "fullscreen_tabview_\(viewId)", project: nil)
 
         super.init()
 
-        channel.setMethodCallHandler({
-            [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        channel.setMethodCallHandler { [weak self] call, result in
             self?.handle(call, result: result)
-        })
+        }
 
         if let argsMap = args as? [String: Any],
             let config = decodeConfig(from: argsMap)
         {
             self.config = config
+            createEngines(for: config)
             createSwiftUIView(config: config)
         }
     }
@@ -64,13 +69,31 @@ class NativeTabView: NSObject, FlutterPlatformView {
         return _view
     }
 
+    private func createEngines(for config: TabViewConfig) {
+        guard let entryPoint = config.entryPoint, !entryPoint.isEmpty else { return }
+        for tab in config.tabs {
+            let engine = engineGroup.makeEngine(
+                withEntrypoint: entryPoint, libraryURI: nil, initialRoute: tab.id)
+            engines[tab.id] = engine
+        }
+    }
+
+    private func destroyEngines() {
+        for (_, engine) in engines {
+            engine.destroyContext()
+        }
+        engines.removeAll()
+    }
+
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
-        case "updateTabView":
+        case "updateFullscreenTabView":
             if let argsMap = call.arguments as? [String: Any],
                 let config = decodeConfig(from: argsMap)
             {
                 self.config = config
+                destroyEngines()
+                createEngines(for: config)
                 updateSwiftUIView(config: config)
             }
             result(nil)
@@ -80,9 +103,10 @@ class NativeTabView: NSObject, FlutterPlatformView {
     }
 
     private func createSwiftUIView(config: TabViewConfig) {
-        if #available(iOS 14.0, *) {
-            let swiftUIView = AdaptiveTabView(
+        if #available(iOS 26.0, *) {
+            let swiftUIView = FullscreenTabView(
                 config: config,
+                engines: engines,
                 onSelectionChanged: { [weak self] newSelection in
                     self?.channel.invokeMethod(
                         "onSelectionChanged", arguments: ["selection": newSelection])
@@ -90,18 +114,8 @@ class NativeTabView: NSObject, FlutterPlatformView {
             )
             hostingController = UIHostingController(rootView: AnyView(swiftUIView))
         } else {
-            // Fallback: plain UITabBar for iOS < 14
-            let fallback = buildLegacyTabBar(config: config)
-            hostingController = nil
-            _view.addSubview(fallback)
-            fallback.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                fallback.leadingAnchor.constraint(equalTo: _view.leadingAnchor),
-                fallback.trailingAnchor.constraint(equalTo: _view.trailingAnchor),
-                fallback.topAnchor.constraint(equalTo: _view.topAnchor),
-                fallback.bottomAnchor.constraint(equalTo: _view.bottomAnchor),
-            ])
-            return
+            hostingController = UIHostingController(
+                rootView: AnyView(Text("FullscreenTabView requires iOS 26.0+")))
         }
 
         if let hostView = hostingController?.view {
@@ -118,10 +132,11 @@ class NativeTabView: NSObject, FlutterPlatformView {
     }
 
     private func updateSwiftUIView(config: TabViewConfig) {
-        if #available(iOS 14.0, *) {
+        if #available(iOS 26.0, *) {
             hostingController?.rootView = AnyView(
-                AdaptiveTabView(
+                FullscreenTabView(
                     config: config,
+                    engines: engines,
                     onSelectionChanged: { [weak self] newSelection in
                         self?.channel.invokeMethod(
                             "onSelectionChanged", arguments: ["selection": newSelection])
@@ -130,47 +145,13 @@ class NativeTabView: NSObject, FlutterPlatformView {
         }
     }
 
-    // Legacy UITabBar for iOS < 14
-    private func buildLegacyTabBar(config: TabViewConfig) -> UITabBar {
-        let tabBar = UITabBar()
-        var items: [UITabBarItem] = []
-        for (index, tab) in config.tabs.enumerated() {
-            let item: UITabBarItem
-            if let role = tab.role, role == "search" {
-                item = UITabBarItem(tabBarSystemItem: .search, tag: index)
-            } else {
-                item = UITabBarItem(
-                    title: tab.title,
-                    image: UIImage(systemName: tab.systemImage ?? ""),
-                    tag: index
-                )
-            }
-            items.append(item)
-        }
-        tabBar.setItems(items, animated: false)
-
-        if let accentColor = config.accentColor {
-            tabBar.tintColor = UIColor(
-                red: CGFloat((accentColor >> 16) & 0xFF) / 255.0,
-                green: CGFloat((accentColor >> 8) & 0xFF) / 255.0,
-                blue: CGFloat(accentColor & 0xFF) / 255.0,
-                alpha: CGFloat((accentColor >> 24) & 0xFF) / 255.0
-            )
-        }
-
-        if let index = config.tabs.firstIndex(where: { $0.id == config.selection }) {
-            tabBar.selectedItem = tabBar.items?[index]
-        }
-        return tabBar
-    }
-
     private func decodeConfig(from args: [String: Any]) -> TabViewConfig? {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: args, options: [])
             let config = try JSONDecoder().decode(TabViewConfig.self, from: jsonData)
             return config
         } catch {
-            print("Error decoding TabView config: \(error)")
+            print("Error decoding FullscreenTabView config: \(error)")
             return nil
         }
     }

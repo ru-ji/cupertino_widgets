@@ -30,7 +30,8 @@ class _CupertinoNativeTabViewState extends State<CupertinoNativeTabView> {
   void didUpdateWidget(covariant CupertinoNativeTabView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.tabs, widget.tabs) ||
-        oldWidget.accentColor != widget.accentColor) {
+        oldWidget.accentColor != widget.accentColor ||
+        oldWidget.initialSelection != widget.initialSelection) {
       _updateTabView();
     }
   }

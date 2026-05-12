@@ -9,4 +9,5 @@ export 'src/cupertino_native_slider.dart';
 export 'src/cupertino_native_alert.dart';
 export 'src/cupertino_native_progress.dart';
 export 'src/cupertino_native_tab_view.dart';
+export 'src/cupertino_native_fullscreen_tab_view.dart';
 export 'src/models/cupertino_native_tab.dart';

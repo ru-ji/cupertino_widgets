@@ -5,8 +5,6 @@ class CupertinoNativeTab {
   final String? systemImage;
   final String id;
   final CupertinoNativeTabRole? role;
-  // Optional: Badge count?
-
   const CupertinoNativeTab({
     required this.title,
     required this.id,

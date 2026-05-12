@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 
 public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let menuFactory = NativeMenuFactory(messenger: registrar.messenger())
         registrar.register(
@@ -27,10 +28,17 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
         registrar.register(
             tabViewFactory, withId: "com.example.flutter_cupertino/cupertino_native_tabview")
 
+        let fullscreenTabViewFactory = NativeFullscreenTabViewFactory(
+            messenger: registrar.messenger())
+        registrar.register(
+            fullscreenTabViewFactory,
+            withId: "com.example.flutter_cupertino/cupertino_native_fullscreen_tabview")
+
         let channel = FlutterMethodChannel(
             name: "com.example.flutter_cupertino/alert", binaryMessenger: registrar.messenger())
         let instance = FlutterCupertinoPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+
         let progressFactory = NativeProgressFactory(messenger: registrar.messenger())
         registrar.register(
             progressFactory, withId: "com.example.flutter_cupertino/cupertino_native_progress")
