@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'internal/native_platform_view_mixin.dart';
 
 enum CupertinoNativeProgressStyle { automatic, linear, circular }
 
@@ -37,22 +38,20 @@ class CupertinoNativeProgressIndicator extends StatefulWidget {
 }
 
 class _CupertinoNativeProgressIndicatorState
-    extends State<CupertinoNativeProgressIndicator> {
-  MethodChannel? _channel;
-
+    extends State<CupertinoNativeProgressIndicator>
+    with NativePlatformViewStateMixin {
   Map<String, dynamic> _toMap() {
     return {
       'value': widget.value,
       'total': widget.total,
       'label': widget.label,
       'style': widget.style.index,
-      // ignore: deprecated_member_use
-      'color': widget.color?.value,
+      'color': widget.color?.toARGB32(),
     };
   }
 
   void _onPlatformViewCreated(int id) {
-    _channel = MethodChannel('flutter_cupertino/progress_$id');
+    setUpChannel(id, 'flutter_cupertino/progress_$id');
   }
 
   @override
@@ -63,7 +62,7 @@ class _CupertinoNativeProgressIndicatorState
         widget.label != oldWidget.label ||
         widget.style != oldWidget.style ||
         widget.color != oldWidget.color) {
-      _channel?.invokeMethod('updateProgress', _toMap());
+      updateNativeView('updateProgress', _toMap(), refreshIntrinsicSize: false);
     }
   }
 

@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'internal/native_platform_view_mixin.dart';
 
 class CupertinoNativeToggle extends StatefulWidget {
   final bool value;
@@ -26,11 +29,8 @@ class CupertinoNativeToggle extends StatefulWidget {
   State<CupertinoNativeToggle> createState() => _CupertinoNativeToggleState();
 }
 
-class _CupertinoNativeToggleState extends State<CupertinoNativeToggle> {
-  MethodChannel? _channel;
-  double? _intrinsicWidth;
-  double? _intrinsicHeight;
-
+class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
+    with NativePlatformViewStateMixin {
   @override
   void didUpdateWidget(covariant CupertinoNativeToggle oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -38,32 +38,7 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle> {
         oldWidget.label != widget.label ||
         oldWidget.activeColor != widget.activeColor ||
         oldWidget.textStyle != widget.textStyle) {
-      _updateToggle();
-    }
-  }
-
-  void _updateToggle() {
-    _channel?.invokeMethod('updateToggle', _toMap()).then((_) {
-      _requestIntrinsicSize();
-    });
-  }
-
-  Future<void> _requestIntrinsicSize() async {
-    if (_channel == null) return;
-    try {
-      final result = await _channel!.invokeMethod<Map>('getIntrinsicSize');
-      if (result != null && mounted) {
-        final w = (result['width'] as num?)?.toDouble();
-        final h = (result['height'] as num?)?.toDouble();
-        if (w != null && h != null && w > 0 && h > 0) {
-          setState(() {
-            _intrinsicWidth = w;
-            _intrinsicHeight = h;
-          });
-        }
-      }
-    } catch (e) {
-      // Ignore errors
+      updateNativeView('updateToggle', _toMap());
     }
   }
 
@@ -71,20 +46,21 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle> {
     return {
       'value': widget.value,
       'label': widget.label,
-      // ignore: deprecated_member_use
-      'color': widget.activeColor?.value,
+      'color': widget.activeColor?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.index,
-      // ignore: deprecated_member_use
-      'textColor': widget.textStyle?.color?.value,
+      'textColor': widget.textStyle?.color?.toARGB32(),
     };
   }
 
   Future<void> _onPlatformViewCreated(int id) async {
-    _channel = MethodChannel('flutter_cupertino/toggle_$id');
-    _channel?.setMethodCallHandler(_handleMethodCall);
+    setUpChannel(
+      id,
+      'flutter_cupertino/toggle_$id',
+      onMethodCall: _handleMethodCall,
+    );
     await Future.delayed(const Duration(milliseconds: 50));
-    _requestIntrinsicSize();
+    requestIntrinsicSize();
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -103,6 +79,12 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle> {
         creationParams: _toMap(),
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
+        // Claim drags immediately so press-and-slide reaches the native
+        // switch instead of being taken by Flutter's gesture arena.
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
       );
 
       // If explicit width/height provided, use them
@@ -119,11 +101,11 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final double width = constraints.maxWidth.isInfinite
-                ? (_intrinsicWidth ?? 200.0)
+                ? (intrinsicWidth ?? 200.0)
                 : constraints.maxWidth;
             return SizedBox(
               width: width,
-              height: _intrinsicHeight ?? 44.0,
+              height: intrinsicHeight ?? 44.0,
               child: platformView,
             );
           },
@@ -133,8 +115,8 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle> {
       // Use intrinsic size from native view, with defaults until size is received
       // Default: 51x31 for bare toggle
       return SizedBox(
-        width: _intrinsicWidth ?? 51.0,
-        height: _intrinsicHeight ?? 31.0,
+        width: intrinsicWidth ?? 51.0,
+        height: intrinsicHeight ?? 31.0,
         child: platformView,
       );
     }

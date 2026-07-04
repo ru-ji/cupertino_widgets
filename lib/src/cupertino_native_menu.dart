@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_menu_item.dart';
 import 'models/cupertino_native_button_style.dart';
 
@@ -32,11 +33,8 @@ class CupertinoNativeMenu extends StatefulWidget {
   State<CupertinoNativeMenu> createState() => _CupertinoNativeMenuState();
 }
 
-class _CupertinoNativeMenuState extends State<CupertinoNativeMenu> {
-  MethodChannel? _channel;
-  double? _intrinsicWidth;
-  double? _intrinsicHeight;
-
+class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
+    with NativePlatformViewStateMixin {
   @override
   void didUpdateWidget(covariant CupertinoNativeMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -46,32 +44,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu> {
         oldWidget.style != widget.style ||
         oldWidget.color != widget.color ||
         oldWidget.textStyle != widget.textStyle) {
-      _updateMenu();
-    }
-  }
-
-  void _updateMenu() {
-    _channel?.invokeMethod('updateMenu', _toMap()).then((_) {
-      _requestIntrinsicSize();
-    });
-  }
-
-  Future<void> _requestIntrinsicSize() async {
-    if (_channel == null) return;
-    try {
-      final result = await _channel!.invokeMethod<Map>('getIntrinsicSize');
-      if (result != null && mounted) {
-        final w = (result['width'] as num?)?.toDouble();
-        final h = (result['height'] as num?)?.toDouble();
-        if (w != null && h != null && w > 0 && h > 0) {
-          setState(() {
-            _intrinsicWidth = w;
-            _intrinsicHeight = h;
-          });
-        }
-      }
-    } catch (e) {
-      // Ignore errors
+      updateNativeView('updateMenu', _toMap());
     }
   }
 
@@ -81,20 +54,21 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu> {
       'systemImage': widget.systemImage,
       'items': widget.items.map((e) => e.toMap()).toList(),
       'style': widget.style.name,
-      // ignore: deprecated_member_use
-      'color': widget.color?.value,
+      'color': widget.color?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.index,
-      // ignore: deprecated_member_use
-      'textColor': widget.textStyle?.color?.value,
+      'textColor': widget.textStyle?.color?.toARGB32(),
     };
   }
 
   Future<void> _onPlatformViewCreated(int id) async {
-    _channel = MethodChannel('flutter_cupertino/menu_$id');
-    _channel?.setMethodCallHandler(_handleMethodCall);
+    setUpChannel(
+      id,
+      'flutter_cupertino/menu_$id',
+      onMethodCall: _handleMethodCall,
+    );
     await Future.delayed(const Duration(milliseconds: 50));
-    _requestIntrinsicSize();
+    requestIntrinsicSize();
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -128,8 +102,8 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu> {
       // Use intrinsic size from native view, with defaults until size is received
       // Default: 100x44 for menu button
       return SizedBox(
-        width: _intrinsicWidth ?? 100,
-        height: _intrinsicHeight ?? 44,
+        width: intrinsicWidth ?? 100,
+        height: intrinsicHeight ?? 44,
         child: platformView,
       );
     }

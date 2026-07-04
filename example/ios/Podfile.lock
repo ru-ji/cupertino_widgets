@@ -1,21 +1,15 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_cupertino (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_cupertino (from `.symlinks/plugins/flutter_cupertino/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_cupertino:
-    :path: ".symlinks/plugins/flutter_cupertino/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_cupertino: cca48bbf8b7a47c8d6330bdaa6a6e8d832a489bf
 
 PODFILE CHECKSUM: 53a6aebc29ccee84c41f92f409fc20cd4ca011f1
 

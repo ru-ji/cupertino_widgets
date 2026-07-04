@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'internal/native_platform_view_mixin.dart';
 
 class CupertinoNativeSlider extends StatefulWidget {
   const CupertinoNativeSlider({
@@ -29,9 +30,8 @@ class CupertinoNativeSlider extends StatefulWidget {
   State<CupertinoNativeSlider> createState() => _CupertinoNativeSliderState();
 }
 
-class _CupertinoNativeSliderState extends State<CupertinoNativeSlider> {
-  late MethodChannel _channel;
-
+class _CupertinoNativeSliderState extends State<CupertinoNativeSlider>
+    with NativePlatformViewStateMixin {
   @override
   Widget build(BuildContext context) {
     const String viewType =
@@ -41,12 +41,8 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider> {
       'min': widget.min,
       'max': widget.max,
       'divisions': widget.divisions,
-      // ignore: deprecated_member_use
-      'activeColor': widget.activeColor?.value,
-      'thumbColor': widget
-          .thumbColor
-          // ignore: deprecated_member_use
-          ?.value,
+      'activeColor': widget.activeColor?.toARGB32(),
+      'thumbColor': widget.thumbColor?.toARGB32(),
       'isEnabled': widget.onChanged != null,
     };
 
@@ -79,8 +75,11 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider> {
   }
 
   void _onPlatformViewCreated(int id) {
-    _channel = MethodChannel('adaptive_slider_$id');
-    _channel.setMethodCallHandler(_handleMethodCall);
+    setUpChannel(
+      id,
+      'adaptive_slider_$id',
+      onMethodCall: _handleMethodCall,
+    );
   }
 
   Future<void> _handleMethodCall(MethodCall call) async {
@@ -100,29 +99,14 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider> {
         oldWidget.max != widget.max ||
         oldWidget.activeColor != widget.activeColor ||
         oldWidget.onChanged != widget.onChanged) {
-      _updateNativeView();
-    }
-  }
-
-  void _updateNativeView() {
-    // In a real implementation, we would send the updated props to the native side
-    // via the method channel to update the SwiftUI view state efficiently.
-    // For now, simple implementation assumes state sync or rebuild.
-    // However, since we are using SwiftUI embedded in generic platform view,
-    // we might need a method to update props.
-    try {
-      _channel.invokeMethod('updateProps', {
+      updateNativeView('updateProps', {
         'value': widget.value,
         'min': widget.min,
         'max': widget.max,
-        // ignore: deprecated_member_use
-        'activeColor': widget.activeColor?.value,
-        // ignore: deprecated_member_use
-        'thumbColor': widget.thumbColor?.value,
+        'activeColor': widget.activeColor?.toARGB32(),
+        'thumbColor': widget.thumbColor?.toARGB32(),
         'isEnabled': widget.onChanged != null,
-      });
-    } catch (e) {
-      // Channel might not be ready
+      }, refreshIntrinsicSize: false);
     }
   }
 }
