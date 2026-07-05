@@ -12,6 +12,11 @@ enum CupertinoNativeTabBarMinimizeBehavior {
   never,
 }
 
+/// iOS 26 Liquid Glass scroll-edge-effect style. Used both by the standalone
+/// [CupertinoNativeTabBar] (mapped to the bar's background material) and by
+/// `CupertinoNativeScaffold`'s native scroll views. No effect below iOS 26.
+enum CupertinoNativeScrollEdgeEffect { automatic, soft, hard }
+
 /// A native iOS tab bar rendered by a bare `UITabBar` in a transparent
 /// container — no UITabBarController, so Flutter content stays visible
 /// around and behind the bar.
@@ -44,6 +49,11 @@ class CupertinoNativeTabBar extends StatefulWidget {
   /// Only meaningful when this config is passed to `CupertinoNativeScaffold`.
   final CupertinoNativeTabBarMinimizeBehavior minimizeBehavior;
 
+  /// iOS 26 Liquid Glass scroll-edge-effect style for the bar's background.
+  /// `soft`/`automatic` use the translucent default; `hard` uses an opaque
+  /// background. No effect below iOS 26.
+  final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
+
   const CupertinoNativeTabBar({
     super.key,
     required this.tabs,
@@ -57,6 +67,7 @@ class CupertinoNativeTabBar extends StatefulWidget {
     this.splitSpacing = 8.0,
     this.shrinkCentered = true,
     this.minimizeBehavior = CupertinoNativeTabBarMinimizeBehavior.automatic,
+    this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
   });
 
   /// Serialized form consumed by `CupertinoNativeScaffold` (which renders its
@@ -67,6 +78,7 @@ class CupertinoNativeTabBar extends StatefulWidget {
       'selection': selection,
       'accentColor': accentColor?.toARGB32(),
       'minimizeBehavior': minimizeBehavior.name,
+      'scrollEdgeEffect': scrollEdgeEffect.name,
     };
   }
 
@@ -81,6 +93,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
   int? _lastIndex;
   int? _lastTint;
   int? _lastBg;
+  String? _lastScrollEdgeEffect;
   bool? _lastIsDark;
   List<String>? _lastLabels;
   List<String>? _lastSymbols;
@@ -126,6 +139,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     _lastIndex = _selectedIndex;
     _lastTint = widget.accentColor?.toARGB32();
     _lastBg = widget.backgroundColor?.toARGB32();
+    _lastScrollEdgeEffect = widget.scrollEdgeEffect.name;
     _lastIsDark = _isDark;
     _lastLabels = _labels;
     _lastSymbols = _symbols;
@@ -169,6 +183,11 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     if (_lastBg != bg && bg != null) {
       style['backgroundColor'] = bg;
       _lastBg = bg;
+    }
+    final scrollEdge = widget.scrollEdgeEffect.name;
+    if (_lastScrollEdgeEffect != scrollEdge) {
+      style['scrollEdgeEffect'] = scrollEdge;
+      _lastScrollEdgeEffect = scrollEdge;
     }
     if (style.isNotEmpty) {
       await channel.invokeMethod('setStyle', style);
@@ -266,6 +285,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
       'split': widget.split,
       'rightCount': widget.rightCount,
       'splitSpacing': widget.splitSpacing,
+      'scrollEdgeEffect': widget.scrollEdgeEffect.name,
     };
 
     final platformView = UiKitView(

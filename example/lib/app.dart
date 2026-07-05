@@ -38,57 +38,71 @@ class _MyAppState extends State<MyApp> {
         builder: (context) {
           return Scaffold(
             appBar: AppBar(title: const Text('Native CupertinoNative Menu')),
-            body: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Last Action: $_lastAction'),
-                  ToggleDemo(
-                    isMapEnabled: _isMapEnabled,
-                    onMapEnabledChanged: _onMapEnabledChanged,
-                    onAction: _onAction,
-                  ),
-                  SegmentedControlDemo(onAction: _onAction),
-                  SliderDemo(
-                    value: _sliderValue,
-                    onChanged: (v) => setState(() => _sliderValue = v),
-                  ),
-                  MenuDemo(
-                    isMapEnabled: _isMapEnabled,
-                    onMapEnabledChanged: _onMapEnabledChanged,
-                    onAction: _onAction,
-                  ),
-                  AlertDemo(onAction: _onAction),
-                  const Divider(height: 40),
-                  const ProgressDemo(),
-                  const Divider(height: 40),
-                  ButtonDemo(onAction: _onAction),
-                  const Divider(height: 40),
-                  const TextFieldDemo(),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const StandaloneTabBarDemoPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Standalone TabBar'),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const NativeScaffoldDemoPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Native Scaffold'),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+            // Tap-outside-to-dismiss for the native text fields: a real tap
+            // anywhere on the page unfocuses (the FocusNode bridge then
+            // resigns the native first responder, closing the keyboard).
+            // Unlike TapRegion/onTapOutside this does NOT trigger on
+            // scroll-start, because onTap only fires for completed taps.
+            body: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Last Action: $_lastAction'),
+                    ToggleDemo(
+                      isMapEnabled: _isMapEnabled,
+                      onMapEnabledChanged: _onMapEnabledChanged,
+                      onAction: _onAction,
+                    ),
+                    SegmentedControlDemo(onAction: _onAction),
+                    SliderDemo(
+                      value: _sliderValue,
+                      onChanged: (v) => setState(() => _sliderValue = v),
+                    ),
+
+                    MenuDemo(
+                      isMapEnabled: _isMapEnabled,
+                      onMapEnabledChanged: _onMapEnabledChanged,
+                      onAction: _onAction,
+                    ),
+                    AlertDemo(onAction: _onAction),
+                    const Divider(height: 40),
+                    const ProgressDemo(),
+                    const Divider(height: 40),
+                    ButtonDemo(onAction: _onAction),
+                    const TextField(
+                      decoration: InputDecoration(labelText: 'TextField'),
+                    ),
+                    const Divider(height: 40),
+                    const TextFieldDemo(),
+                    const SizedBox(height: 20),
+
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const StandaloneTabBarDemoPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Standalone TabBar'),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NativeScaffoldDemoPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Native Scaffold'),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           );

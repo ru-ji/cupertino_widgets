@@ -33,42 +33,42 @@ class _StandaloneTabBarDemoPageState extends State<StandaloneTabBarDemoPage> {
       appBar: AppBar(title: const Text('Standalone Tab Bar')),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: padding.bottom + 60),
-              child: _body(),
-            ),
+          SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: padding.bottom + 60),
+            child: _body(),
           ),
-          // Floating native tab bar, split so Search detaches on the right.
-          // Sits low like the system pill: a small gap above the home
-          // indicator instead of a full safe-area inset.
           Align(
             alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.only(
-                  bottom: padding.bottom > 0 ? padding.bottom - 18 : 12),
-              child: CupertinoNativeTabBar(
-                selection: _selectedTab,
-                accentColor: Colors.blue,
-                split: true,
-                rightCount: 1,
-                tabs: const [
-                  CupertinoNativeTab(
-                      title: 'Home', systemImage: 'house.fill', id: 'home'),
-                  CupertinoNativeTab(
-                      title: 'Profile',
-                      systemImage: 'person.fill',
-                      id: 'profile'),
-                  CupertinoNativeTab(
-                      title: 'Settings', systemImage: 'gear', id: 'settings'),
-                  CupertinoNativeTab(
-                      title: '',
-                      systemImage: 'magnifyingglass',
-                      id: 'search',
-                      role: CupertinoNativeTabRole.search),
-                ],
-                onSelectionChanged: (id) => setState(() => _selectedTab = id),
-              ),
+            child: CupertinoNativeTabBar(
+              selection: _selectedTab,
+              accentColor: Colors.blue,
+              scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
+              split: true,
+              rightCount: 1,
+              tabs: const [
+                CupertinoNativeTab(
+                  title: 'Home',
+                  systemImage: 'house.fill',
+                  id: 'home',
+                ),
+                CupertinoNativeTab(
+                  title: 'Profile',
+                  systemImage: 'person.fill',
+                  id: 'profile',
+                ),
+                CupertinoNativeTab(
+                  title: 'Settings',
+                  systemImage: 'gear',
+                  id: 'settings',
+                ),
+                CupertinoNativeTab(
+                  title: '',
+                  systemImage: 'magnifyingglass',
+                  id: 'search',
+                  role: CupertinoNativeTabRole.search,
+                ),
+              ],
+              onSelectionChanged: (id) => setState(() => _selectedTab = id),
             ),
           ),
         ],

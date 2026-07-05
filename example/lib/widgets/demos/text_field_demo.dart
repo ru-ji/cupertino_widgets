@@ -36,6 +36,7 @@ class _TextFieldDemoState extends State<TextFieldDemo> {
             textInputAction: TextInputAction.done,
             onChanged: (v) => setState(() => _typed = v),
             onSubmitted: (v) => debugPrint('submitted: $v'),
+            onTap: () => debugPrint('field tapped'),
           ),
           const SizedBox(height: 4),
           Text('You typed: $_typed'),

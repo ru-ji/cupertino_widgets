@@ -182,7 +182,8 @@ class NativeScaffoldView: NativeHostingView {
                     ScaffoldView(model: model) { [weak self] route, actionId in
                         self?.channel.invokeMethod(
                             "onBarAction", arguments: ["route": route, "id": actionId])
-                    }))
+                    }),
+                keyboardAvoidance: true)
         } else {
             attach(AnyView(Text("CupertinoNativeScaffold requires iOS 16.0+")))
         }

@@ -38,10 +38,6 @@ class CupertinoNativeScaffoldController {
   }
 }
 
-/// Which iOS 26 Liquid Glass scroll-edge-effect style the scaffold's native
-/// scroll views use (no effect below iOS 26).
-enum CupertinoNativeScrollEdgeEffect { automatic, soft, hard }
-
 /// A pure SwiftUI scaffold: native NavigationStack (+ optional TabView) whose
 /// pages are Flutter bodies embedded in native ScrollViews.
 ///

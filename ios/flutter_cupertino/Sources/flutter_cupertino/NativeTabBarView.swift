@@ -40,6 +40,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
     private var isSplit = false
     private var rightCountVal = 1
     private var splitSpacingVal: CGFloat = 8
+    private var scrollEdgeEffectVal = "automatic"
     private var currentLabels: [String] = []
     private var currentSymbols: [String] = []
 
@@ -74,6 +75,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
             if let sp = dict["splitSpacing"] as? NSNumber {
                 splitSpacingVal = CGFloat(truncating: sp)
             }
+            if let se = dict["scrollEdgeEffect"] as? String { scrollEdgeEffectVal = se }
         }
 
         super.init()
@@ -117,11 +119,23 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
         bar.delegate = self
         if let bg = backgroundColor { bar.barTintColor = bg }
         if let tint = tint { bar.tintColor = tint }
+        applyAppearance(to: bar)
+        return bar
+    }
+
+    /// Maps the `scrollEdgeEffect` style to the bar's background material:
+    /// `hard` uses an opaque background, everything else the translucent
+    /// default (the closest standalone-UIKit equivalent of the iOS 26 effect).
+    private func applyAppearance(to bar: UITabBar) {
         let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
+        switch scrollEdgeEffectVal {
+        case "hard":
+            appearance.configureWithOpaqueBackground()
+        default:
+            appearance.configureWithDefaultBackground()
+        }
         bar.standardAppearance = appearance
         bar.scrollEdgeAppearance = appearance
-        return bar
     }
 
     /// (Re)creates the bar hierarchy for the current items and layout mode.
@@ -279,6 +293,12 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
                     tabBar?.barTintColor = c
                     tabBarLeft?.barTintColor = c
                     tabBarRight?.barTintColor = c
+                }
+                if let se = args["scrollEdgeEffect"] as? String {
+                    scrollEdgeEffectVal = se
+                    [tabBar, tabBarLeft, tabBarRight].forEach { bar in
+                        if let bar = bar { applyAppearance(to: bar) }
+                    }
                 }
                 result(nil)
             } else {

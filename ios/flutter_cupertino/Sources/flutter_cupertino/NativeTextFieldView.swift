@@ -38,6 +38,10 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
     private var maxLength: Int?
     private var readOnly = false
 
+    /// Vertical breathing room so the selection handles/magnifier — which draw
+    /// above and below the text — aren't clipped by the field's bounds.
+    private let verticalInset: CGFloat = 8
+
     init(
         frame: CGRect,
         viewIdentifier viewId: Int64,
@@ -51,17 +55,24 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         super.init()
 
         container.backgroundColor = .clear
+        // Let the selection handles / magnifier draw outside the field bounds.
+        container.clipsToBounds = false
+        textField.clipsToBounds = false
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.borderStyle = .roundedRect
         container.addSubview(textField)
         NSLayoutConstraint.activate([
             textField.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            textField.topAnchor.constraint(equalTo: container.topAnchor),
-            textField.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            textField.topAnchor.constraint(
+                equalTo: container.topAnchor, constant: verticalInset),
+            textField.bottomAnchor.constraint(
+                equalTo: container.bottomAnchor, constant: -verticalInset),
         ])
 
         textField.addTarget(self, action: #selector(editingChanged), for: .editingChanged)
+        textField.addTarget(self, action: #selector(editingDidBegin), for: .editingDidBegin)
+        textField.addTarget(self, action: #selector(editingDidEnd), for: .editingDidEnd)
         textField.delegate = self
 
         if let dict = args as? [String: Any],
@@ -121,6 +132,14 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         channel.invokeMethod("onChanged", arguments: ["text": textField.text ?? ""])
     }
 
+    @objc private func editingDidBegin() {
+        channel.invokeMethod("onFocusChange", arguments: ["focused": true])
+    }
+
+    @objc private func editingDidEnd() {
+        channel.invokeMethod("onFocusChange", arguments: ["focused": false])
+    }
+
     // MARK: - UITextFieldDelegate
 
     func textField(
@@ -151,7 +170,7 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
             let size = textField.intrinsicContentSize
             result([
                 "width": Double(max(size.width, 100)),
-                "height": Double(max(size.height, 36)),
+                "height": Double(max(size.height, 36) + verticalInset * 2),
             ])
         case "updateTextField":
             if let dict = call.arguments as? [String: Any],
