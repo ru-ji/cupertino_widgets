@@ -37,6 +37,7 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
     private let textField = UITextField()
     private var maxLength: Int?
     private var readOnly = false
+    private var selectionActive = false
 
     /// Vertical breathing room so the selection handles/magnifier — which draw
     /// above and below the text — aren't clipped by the field's bounds.
@@ -138,6 +139,17 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
 
     @objc private func editingDidEnd() {
         channel.invokeMethod("onFocusChange", arguments: ["focused": false])
+        notifySelectionActive(false)
+    }
+
+    /// Tells Dart whether a non-empty selection (with its draggable handles)
+    /// is currently on screen, so the Flutter-side gesture recognizer can
+    /// claim every touch during that window — otherwise grabbing a handle
+    /// looks like a scroll drag and gets ceded to the page.
+    private func notifySelectionActive(_ active: Bool) {
+        guard active != selectionActive else { return }
+        selectionActive = active
+        channel.invokeMethod("onSelectionActive", arguments: ["active": active])
     }
 
     // MARK: - UITextFieldDelegate
@@ -153,6 +165,16 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         guard let r = Range(range, in: current) else { return true }
         let updated = current.replacingCharacters(in: r, with: string)
         return updated.count <= maxLength
+    }
+
+    func textFieldDidChangeSelection(_ textField: UITextField) {
+        let active: Bool
+        if let range = textField.selectedTextRange, !range.isEmpty {
+            active = textField.isFirstResponder
+        } else {
+            active = false
+        }
+        notifySelectionActive(active)
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

@@ -11,7 +11,7 @@ class AlertManager {
         result: @escaping FlutterResult
     ) {
         // Find the top-most view controller to present the alert
-        guard let window = Self.keyWindow(),
+        guard let window = Self.keyWindow(), 
             let rootVC = window.rootViewController
         else {
             result(FlutterError(code: "NO_WINDOW", message: "No key window found", details: nil))

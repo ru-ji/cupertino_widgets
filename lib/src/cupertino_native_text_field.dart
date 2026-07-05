@@ -20,6 +20,15 @@ import 'internal/native_platform_view_mixin.dart';
 /// released quickly, as a plain tap), it accepts so the native `UITextField`
 /// gets the full gesture (selection, handle-dragging, or tap-to-focus/caret).
 class _NativeTextFieldGestureRecognizer extends OneSequenceGestureRecognizer {
+  _NativeTextFieldGestureRecognizer({required this.isSelectionActive});
+
+  /// Whether the native field currently shows a non-empty selection (reported
+  /// by the platform side). Selection handles are on screen during that
+  /// window, and grabbing one is an immediate drag — indistinguishable from a
+  /// scroll by the slop/timeout heuristic — so every touch is claimed for the
+  /// native field instead. Scrolling from elsewhere on the page still works.
+  final bool Function() isSelectionActive;
+
   static const Duration _holdTimeout = Duration(milliseconds: 300);
   static const double _slop = 12.0;
 
@@ -29,6 +38,10 @@ class _NativeTextFieldGestureRecognizer extends OneSequenceGestureRecognizer {
   @override
   void addAllowedPointer(PointerDownEvent event) {
     startTrackingPointer(event.pointer, event.transform);
+    if (isSelectionActive()) {
+      resolve(GestureDisposition.accepted);
+      return;
+    }
     _downPosition = event.position;
     _timer = Timer(_holdTimeout, () => resolve(GestureDisposition.accepted));
   }
@@ -172,12 +185,21 @@ class CupertinoNativeTextField extends StatefulWidget {
 
 class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
     with NativePlatformViewStateMixin, WidgetsBindingObserver {
+  /// Whether the native field is showing a non-empty selection (and thus its
+  /// draggable handles). Kept current by the `onSelectionActive` callback.
+  bool _selectionActive = false;
+
   /// Claims a press-and-hold for native text selection while ceding a quick
-  /// drag to an ancestor `Scrollable` — see
+  /// drag to an ancestor `Scrollable`; while [_selectionActive], claims every
+  /// touch so handle drags reach the native field — see
   /// [_NativeTextFieldGestureRecognizer].
-  static final Set<Factory<OneSequenceGestureRecognizer>> _gestureRecognizers =
+  late final Set<Factory<OneSequenceGestureRecognizer>> _gestureRecognizers =
       <Factory<OneSequenceGestureRecognizer>>{
-    Factory<OneSequenceGestureRecognizer>(_NativeTextFieldGestureRecognizer.new),
+    Factory<OneSequenceGestureRecognizer>(
+      () => _NativeTextFieldGestureRecognizer(
+        isSelectionActive: () => _selectionActive,
+      ),
+    ),
   };
 
   /// The text native currently holds — used to break the controller<->native
@@ -363,6 +385,9 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         break;
       case 'onEditingComplete':
         widget.onEditingComplete?.call();
+        break;
+      case 'onSelectionActive':
+        _selectionActive = (call.arguments['active'] as bool?) ?? false;
         break;
       case 'onFocusChange':
         final focused = (call.arguments['focused'] as bool?) ?? false;
