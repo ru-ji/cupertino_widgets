@@ -12,6 +12,9 @@ dependencies:
     sdk: flutter
   flutter_cupertino:
     path: ../
+  # Bundles the CupertinoIcons font so CupertinoIcons glyphs can render
+  # natively (the native side loads bundled icon fonts by family name).
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:

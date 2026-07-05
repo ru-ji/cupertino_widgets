@@ -24,9 +24,9 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
         registrar.register(
             sliderFactory, withId: "com.example.flutter_cupertino/cupertino_native_slider")
 
-        let appBarFactory = NativeAppBarFactory(messenger: registrar.messenger())
+        let textFieldFactory = NativeTextFieldFactory(messenger: registrar.messenger())
         registrar.register(
-            appBarFactory, withId: "com.example.flutter_cupertino/cupertino_native_appbar")
+            textFieldFactory, withId: "com.example.flutter_cupertino/cupertino_native_text_field")
 
         let tabBarFactory = NativeTabBarFactory(messenger: registrar.messenger())
         registrar.register(

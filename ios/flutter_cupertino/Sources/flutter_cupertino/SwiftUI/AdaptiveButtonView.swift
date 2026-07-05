@@ -13,9 +13,15 @@ struct AdaptiveButtonView: View {
         // Using standard SwiftUI Button with Label to preserve system behaviors
 
         let button = Button(action: onPressed) {
-            if let sysImg = config.systemImage {
-                applyCustomTextColor(to: Label(config.title, systemImage: sysImg).font(customFont))
-                    .applyExpand(config.expand ?? false)
+            if let icon = config.icon {
+                applyCustomTextColor(
+                    to: Label {
+                        Text(config.title).font(customFont)
+                    } icon: {
+                        IconView(icon: icon)
+                    }
+                )
+                .applyExpand(config.expand ?? false)
             } else {
                 applyCustomTextColor(to: Text(config.title).font(customFont))
                     .applyExpand(config.expand ?? false)

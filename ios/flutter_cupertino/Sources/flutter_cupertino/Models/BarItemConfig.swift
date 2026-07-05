@@ -1,16 +1,9 @@
 import Foundation
 
-/// An SF Symbol reference with optional point size and ARGB color.
-struct SymbolConfig: Codable, Hashable {
-    let name: String
-    let size: Double?
-    let color: Int?
-}
-
 /// A single toolbar button that reports taps back to Dart via `actionId`.
 struct BarItemConfig: Codable, Hashable {
     let title: String?
-    let icon: SymbolConfig?
+    let icon: IconConfig?
     let actionId: String
 }
 
@@ -20,7 +13,7 @@ struct BarItemConfig: Codable, Hashable {
 struct BarEntryConfig: Codable, Hashable {
     let type: String
     let title: String?
-    let icon: SymbolConfig?
+    let icon: IconConfig?
     let actionId: String?
     let items: [BarItemConfig]?
 

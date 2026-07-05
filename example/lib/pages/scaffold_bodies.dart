@@ -31,13 +31,14 @@ class ScaffoldHomeBody extends StatelessWidget {
           label: const Text('Open Details'),
           onPressed: () {
             CupertinoNativeScaffold.push(
-              const CupertinoNativeScaffoldPage(
+              CupertinoNativeScaffoldPage(
                 route: 'details',
                 appBar: CupertinoNativeAppBar(
                   title: 'Details',
                   trailing: [
                     CupertinoNativeBarItem(
-                      icon: CupertinoNativeSymbol('square.and.arrow.up'),
+                      icon: CupertinoNativeIcon.symbol(
+                          CupertinoSymbols.squareAndArrowUp),
                       actionId: 'share_details',
                     ),
                   ],

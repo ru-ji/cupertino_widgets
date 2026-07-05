@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'pages/native_scaffold_demo_page.dart';
-import 'pages/standalone_bars_demo_page.dart';
+import 'pages/standalone_tab_bar_demo_page.dart';
 import 'widgets/demos/alert_demo.dart';
 import 'widgets/demos/button_demo.dart';
 import 'widgets/demos/menu_demo.dart';
 import 'widgets/demos/progress_demo.dart';
 import 'widgets/demos/segmented_control_demo.dart';
 import 'widgets/demos/slider_demo.dart';
+import 'widgets/demos/text_field_demo.dart';
 import 'widgets/demos/toggle_demo.dart';
 
 class MyApp extends StatefulWidget {
@@ -62,16 +63,18 @@ class _MyAppState extends State<MyApp> {
                   const ProgressDemo(),
                   const Divider(height: 40),
                   ButtonDemo(onAction: _onAction),
+                  const Divider(height: 40),
+                  const TextFieldDemo(),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const StandaloneBarsDemoPage(),
+                          builder: (_) => const StandaloneTabBarDemoPage(),
                         ),
                       );
                     },
-                    child: const Text('Standalone AppBar & TabBar'),
+                    child: const Text('Standalone TabBar'),
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(

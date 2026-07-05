@@ -1,0 +1,282 @@
+import Flutter
+import UIKit
+
+class NativeTextFieldFactory: NSObject, FlutterPlatformViewFactory {
+    private var messenger: FlutterBinaryMessenger
+
+    init(messenger: FlutterBinaryMessenger) {
+        self.messenger = messenger
+        super.init()
+    }
+
+    func create(
+        withFrame frame: CGRect,
+        viewIdentifier viewId: Int64,
+        arguments args: Any?
+    ) -> FlutterPlatformView {
+        return NativeTextFieldView(
+            frame: frame,
+            viewIdentifier: viewId,
+            arguments: args,
+            messenger: messenger
+        )
+    }
+
+    public func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
+        return FlutterStandardMessageCodec.sharedInstance()
+    }
+}
+
+/// A native single-line `UITextField` embedded as a Flutter platform view.
+/// Reports edits back to Dart via the method channel and enforces `maxLength`
+/// / `readOnly` through its delegate, so `CupertinoNativeTextField` can offer
+/// Flutter-`TextField`-level customization.
+class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
+    private let channel: FlutterMethodChannel
+    private let container: UIView
+    private let textField = UITextField()
+    private var maxLength: Int?
+    private var readOnly = false
+
+    init(
+        frame: CGRect,
+        viewIdentifier viewId: Int64,
+        arguments args: Any?,
+        messenger: FlutterBinaryMessenger
+    ) {
+        channel = FlutterMethodChannel(
+            name: "flutter_cupertino/textfield_\(viewId)", binaryMessenger: messenger)
+        container = UIView(frame: frame)
+
+        super.init()
+
+        container.backgroundColor = .clear
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.borderStyle = .roundedRect
+        container.addSubview(textField)
+        NSLayoutConstraint.activate([
+            textField.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textField.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textField.topAnchor.constraint(equalTo: container.topAnchor),
+            textField.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        textField.addTarget(self, action: #selector(editingChanged), for: .editingChanged)
+        textField.delegate = self
+
+        if let dict = args as? [String: Any],
+            let config = decodeConfig(TextFieldConfig.self, from: dict)
+        {
+            apply(config)
+        }
+
+        channel.setMethodCallHandler { [weak self] call, result in
+            self?.handle(call, result: result)
+        }
+    }
+
+    func view() -> UIView { container }
+
+    // MARK: - Configuration
+
+    private func apply(_ c: TextFieldConfig) {
+        if let text = c.text, text != textField.text {
+            textField.text = text
+        }
+        textField.placeholder = c.placeholder
+        textField.isSecureTextEntry = c.obscureText ?? false
+        textField.autocorrectionType = (c.autocorrect ?? true) ? .yes : .no
+        textField.spellCheckingType = (c.enableSuggestions ?? true) ? .yes : .no
+        textField.keyboardType = keyboardType(c.keyboardType)
+        textField.returnKeyType = returnKeyType(c.textInputAction)
+        textField.autocapitalizationType = autocapitalization(c.textCapitalization)
+        textField.textAlignment = alignment(c.textAlign)
+        textField.isEnabled = c.enabled ?? true
+        textField.clearButtonMode = clearButtonMode(c.clearButtonMode)
+        readOnly = c.readOnly ?? false
+        maxLength = c.maxLength
+
+        textField.textContentType = c.textContentType.flatMap(contentType(_:))
+
+        let size = CGFloat(c.fontSize ?? 17)
+        if let weightIndex = c.fontWeight {
+            textField.font = .systemFont(ofSize: size, weight: uiFontWeight(weightIndex))
+        } else {
+            textField.font = .systemFont(ofSize: size)
+        }
+        if let textColor = c.textColor {
+            textField.textColor = UIColor(argb: textColor)
+        }
+        if let cursorColor = c.cursorColor {
+            textField.tintColor = UIColor(argb: cursorColor)
+        }
+        if c.autofocus == true {
+            DispatchQueue.main.async { [weak self] in
+                self?.textField.becomeFirstResponder()
+            }
+        }
+    }
+
+    @objc private func editingChanged() {
+        channel.invokeMethod("onChanged", arguments: ["text": textField.text ?? ""])
+    }
+
+    // MARK: - UITextFieldDelegate
+
+    func textField(
+        _ textField: UITextField,
+        shouldChangeCharactersIn range: NSRange,
+        replacementString string: String
+    ) -> Bool {
+        if readOnly { return false }
+        guard let maxLength = maxLength else { return true }
+        let current = textField.text ?? ""
+        guard let r = Range(range, in: current) else { return true }
+        let updated = current.replacingCharacters(in: r, with: string)
+        return updated.count <= maxLength
+    }
+
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        channel.invokeMethod("onEditingComplete", arguments: nil)
+        channel.invokeMethod("onSubmitted", arguments: ["text": textField.text ?? ""])
+        textField.resignFirstResponder()
+        return true
+    }
+
+    // MARK: - Method channel
+
+    private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        switch call.method {
+        case "getIntrinsicSize":
+            let size = textField.intrinsicContentSize
+            result([
+                "width": Double(max(size.width, 100)),
+                "height": Double(max(size.height, 36)),
+            ])
+        case "updateTextField":
+            if let dict = call.arguments as? [String: Any],
+                let config = decodeConfig(TextFieldConfig.self, from: dict)
+            {
+                apply(config)
+                result(nil)
+            } else {
+                result(FlutterError(code: "bad_args", message: "Missing config", details: nil))
+            }
+        case "setText":
+            if let args = call.arguments as? [String: Any],
+                let text = args["text"] as? String
+            {
+                if textField.text != text { textField.text = text }
+                result(nil)
+            } else {
+                result(FlutterError(code: "bad_args", message: "Missing text", details: nil))
+            }
+        case "focus":
+            textField.becomeFirstResponder()
+            result(nil)
+        case "unfocus":
+            textField.resignFirstResponder()
+            result(nil)
+        default:
+            result(FlutterMethodNotImplemented)
+        }
+    }
+
+    // MARK: - Mapping helpers
+
+    private func keyboardType(_ name: String?) -> UIKeyboardType {
+        switch name {
+        case "number", "numberWithOptions": return .numbersAndPunctuation
+        case "phone": return .phonePad
+        case "datetime": return .numbersAndPunctuation
+        case "emailAddress": return .emailAddress
+        case "url": return .URL
+        case "visiblePassword": return .asciiCapable
+        case "name": return .namePhonePad
+        case "streetAddress": return .default
+        case "none": return .default
+        default: return .default
+        }
+    }
+
+    private func returnKeyType(_ name: String?) -> UIReturnKeyType {
+        switch name {
+        case "go": return .go
+        case "search": return .search
+        case "send": return .send
+        case "next": return .next
+        case "done": return .done
+        case "continueAction": return .continue
+        case "join": return .join
+        case "route": return .route
+        case "emergencyCall": return .emergencyCall
+        case "newline": return .default
+        default: return .default
+        }
+    }
+
+    private func autocapitalization(_ name: String?) -> UITextAutocapitalizationType {
+        switch name {
+        case "words": return .words
+        case "sentences": return .sentences
+        case "characters": return .allCharacters
+        default: return .none
+        }
+    }
+
+    private func alignment(_ name: String?) -> NSTextAlignment {
+        switch name {
+        case "left": return .left
+        case "right": return .right
+        case "center": return .center
+        case "end": return .right
+        case "justify": return .justified
+        default: return .natural  // "start"
+        }
+    }
+
+    private func clearButtonMode(_ name: String?) -> UITextField.ViewMode {
+        switch name {
+        case "whileEditing": return .whileEditing
+        case "unlessEditing": return .unlessEditing
+        case "always": return .always
+        default: return .never
+        }
+    }
+
+    /// Maps friendly content-type names to `UITextContentType`, so callers pass
+    /// e.g. `"password"` rather than the raw UIKit constant. Falls back to the
+    /// raw value for anything not listed.
+    private func contentType(_ name: String) -> UITextContentType? {
+        switch name {
+        case "password": return .password
+        case "newPassword": return .newPassword
+        case "username": return .username
+        case "emailAddress": return .emailAddress
+        case "oneTimeCode": return .oneTimeCode
+        case "name": return .name
+        case "givenName": return .givenName
+        case "familyName": return .familyName
+        case "telephoneNumber": return .telephoneNumber
+        case "URL", "url": return .URL
+        case "fullStreetAddress": return .fullStreetAddress
+        case "postalCode": return .postalCode
+        default: return UITextContentType(rawValue: name)
+        }
+    }
+
+    private func uiFontWeight(_ index: Int) -> UIFont.Weight {
+        switch index {
+        case 0: return .ultraLight
+        case 1: return .thin
+        case 2: return .light
+        case 3: return .regular
+        case 4: return .medium
+        case 5: return .semibold
+        case 6: return .bold
+        case 7: return .heavy
+        case 8: return .black
+        default: return .regular
+        }
+    }
+}

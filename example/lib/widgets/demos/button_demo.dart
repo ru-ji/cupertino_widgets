@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_cupertino/flutter_cupertino.dart';
 
-/// Showcases [CupertinoNativeButton]: styles, control sizes/expand, and
-/// border-shape variations (circle, capsule).
+/// Showcases [CupertinoNativeButton]: styles, control sizes/expand,
+/// border-shape variations (circle, capsule), and icons from both SF Symbols
+/// and Flutter [IconData].
 class ButtonDemo extends StatelessWidget {
   const ButtonDemo({super.key, required this.onAction});
 
@@ -100,6 +102,45 @@ class ButtonDemo extends StatelessWidget {
               width: 120,
               height: 50,
               onPressed: () => onAction("Call Capsule"),
+            ),
+          ],
+        ),
+        const Text("Icons: SF Symbol enum vs Flutter IconData"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Typed SF Symbol with a hierarchical rendering mode.
+            CupertinoNativeButton(
+              title: "Star",
+              icon: CupertinoNativeIcon.symbol(
+                CupertinoSymbols.starFill,
+                renderingMode: CupertinoSymbolRenderingMode.hierarchical,
+              ),
+              style: CupertinoNativeButtonStyle.tinted,
+              color: Colors.orange,
+              onPressed: () => onAction("SF Symbol Star"),
+            ),
+            const SizedBox(width: 12),
+            // A Flutter Cupertino IconData rendered natively via its font.
+            CupertinoNativeButton(
+              title: "Heart",
+              icon: CupertinoNativeIcon.flutter(CupertinoIcons.heart_fill),
+              style: CupertinoNativeButtonStyle.tinted,
+              color: Colors.pink,
+              onPressed: () => onAction("Flutter Cupertino Heart"),
+            ),
+            const SizedBox(width: 12),
+            // A Material IconData rendered natively; icon-only.
+            CupertinoNativeButton(
+              title: "Favorite",
+              icon: CupertinoNativeIcon.flutter(Icons.favorite),
+              labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
+              style: CupertinoNativeButtonStyle.filled,
+              borderShape: CupertinoNativeButtonBorderShape.circle,
+              controlSize: CupertinoNativeControlSize.large,
+              color: Colors.red,
+              onPressed: () => onAction("Material Favorite"),
             ),
           ],
         ),

@@ -112,6 +112,22 @@ class NativeScaffoldView: NativeHostingView {
 
         createRootEngines()
         attachContent()
+        applyStandardLayoutMargins()
+    }
+
+    /// The scaffold's SwiftUI `NavigationStack` is hosted in a *detached*
+    /// `UIHostingController` (added as a subview, not a child view controller).
+    /// Detached controllers report zero `systemMinimumLayoutMargins`, which
+    /// makes the large navigation title sit flush against the screen's leading
+    /// edge instead of the standard inset used by system apps like Files.
+    /// Forcing the hosting view's directional layout margins restores that inset
+    /// on the large title without insetting the Flutter body (SwiftUI content
+    /// lays out against the safe area, not the layout-margins guide).
+    private func applyStandardLayoutMargins() {
+        guard let host = hostingController else { return }
+        host.viewRespectsSystemMinimumLayoutMargins = false
+        host.view.directionalLayoutMargins = NSDirectionalEdgeInsets(
+            top: 0, leading: 16, bottom: 0, trailing: 16)
     }
 
     // MARK: - Engines

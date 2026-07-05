@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_cupertino/flutter_cupertino.dart';
 
@@ -14,16 +15,18 @@ class NativeScaffoldDemoPage extends StatelessWidget {
     return Scaffold(
       body: CupertinoNativeScaffold(
         scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
-        appBar: const CupertinoNativeAppBar(
+        appBar: CupertinoNativeAppBar(
           title: 'Library',
-          largeTitle: true,
+          titleDisplayMode: CupertinoNativeToolbarTitleDisplayMode.large,
           trailing: [
-            // One shared glass capsule with two buttons:
+            // One shared glass capsule with two buttons: an SF Symbol and a
+            // Flutter icon, side by side, to show both render natively.
             CupertinoNativeBarItemGroup(items: [
               CupertinoNativeBarItem(
-                  icon: CupertinoNativeSymbol('plus'), actionId: 'add'),
+                  icon: CupertinoNativeIcon.symbol(CupertinoSymbols.plus),
+                  actionId: 'add'),
               CupertinoNativeBarItem(
-                  icon: CupertinoNativeSymbol('ellipsis.circle'),
+                  icon: CupertinoNativeIcon.flutter(CupertinoIcons.ellipsis_circle),
                   actionId: 'more'),
             ]),
           ],

@@ -2,7 +2,7 @@ import Foundation
 
 struct ButtonConfig: Codable {
     let title: String
-    let systemImage: String?
+    let icon: IconConfig?  // SF Symbol or Flutter glyph
     let style: String  // "automatic", "filled", etc.
     let color: Int?  // ARGB Int
     let controlSize: String?  // "mini", "small", "regular", "large", "extraLarge"

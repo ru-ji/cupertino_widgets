@@ -62,24 +62,17 @@ struct AppBarToolbar: ToolbarContent {
         } label: {
             if let icon = item.icon {
                 if let title = item.title {
-                    Label(title, systemImage: icon.name)
+                    Label {
+                        Text(title)
+                    } icon: {
+                        IconView(icon: icon)
+                    }
                 } else {
-                    symbolImage(icon)
+                    IconView(icon: icon)
                 }
             } else {
                 Text(item.title ?? "")
             }
-        }
-    }
-
-    @ViewBuilder
-    private func symbolImage(_ icon: SymbolConfig) -> some View {
-        let image = Image(systemName: icon.name)
-        let sized = icon.size != nil ? AnyView(image.font(.system(size: icon.size!))) : AnyView(image)
-        if let color = icon.color {
-            sized.foregroundStyle(Color(argb: color))
-        } else {
-            sized
         }
     }
 }
@@ -93,10 +86,32 @@ extension View {
         if let config = config {
             self
                 .navigationTitle(config.title)
-                .navigationBarTitleDisplayMode(config.displayMode == "large" ? .large : .inline)
+                .applyTitleDisplayMode(config.displayMode)
                 .toolbar { AppBarToolbar(config: config, onAction: onAction) }
         } else {
             self
+        }
+    }
+
+    /// Applies the four title display modes. Uses SwiftUI's
+    /// `.toolbarTitleDisplayMode(...)` on iOS 17+, falling back to
+    /// `.navigationBarTitleDisplayMode` below that.
+    @available(iOS 16.0, *)
+    @ViewBuilder
+    func applyTitleDisplayMode(_ mode: String?) -> some View {
+        if #available(iOS 17.0, *) {
+            switch mode {
+            case "inline": self.toolbarTitleDisplayMode(.inline)
+            case "inlineLarge": self.toolbarTitleDisplayMode(.inlineLarge)
+            case "large": self.toolbarTitleDisplayMode(.large)
+            default: self.toolbarTitleDisplayMode(.automatic)
+            }
+        } else {
+            switch mode {
+            case "inline": self.navigationBarTitleDisplayMode(.inline)
+            case "large", "inlineLarge": self.navigationBarTitleDisplayMode(.large)
+            default: self.navigationBarTitleDisplayMode(.automatic)
+            }
         }
     }
 }

@@ -4,9 +4,18 @@ import 'package:flutter/widgets.dart';
 import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_button_style.dart';
 import 'models/cupertino_native_button_extra_options.dart';
+import 'models/cupertino_native_icon.dart';
 
 class CupertinoNativeButton extends StatefulWidget {
   final String title;
+
+  /// The button's icon. Accepts an SF Symbol ([CupertinoNativeIcon.symbol] /
+  /// [CupertinoNativeIcon.named]) or a Flutter [IconData]
+  /// ([CupertinoNativeIcon.flutter]). Takes precedence over [systemImage].
+  final CupertinoNativeIcon? icon;
+
+  /// Convenience for a raw SF Symbol name. Ignored when [icon] is set. Prefer
+  /// [icon] for typed symbols or Flutter icons.
   final String? systemImage;
   final CupertinoNativeButtonStyle style;
   final CupertinoNativeControlSize controlSize;
@@ -22,6 +31,7 @@ class CupertinoNativeButton extends StatefulWidget {
   const CupertinoNativeButton({
     super.key,
     required this.title,
+    this.icon,
     this.systemImage,
     this.style = CupertinoNativeButtonStyle.automatic,
     this.controlSize = CupertinoNativeControlSize.regular,
@@ -41,10 +51,19 @@ class CupertinoNativeButton extends StatefulWidget {
 
 class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
     with NativePlatformViewStateMixin {
+  /// The icon actually sent to native: [CupertinoNativeButton.icon] wins,
+  /// falling back to [CupertinoNativeButton.systemImage] as a raw SF Symbol.
+  CupertinoNativeIcon? get _effectiveIcon =>
+      widget.icon ??
+      (widget.systemImage != null
+          ? CupertinoNativeIcon.named(widget.systemImage!)
+          : null);
+
   @override
   void didUpdateWidget(covariant CupertinoNativeButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.title != widget.title ||
+        oldWidget.icon != widget.icon ||
         oldWidget.systemImage != widget.systemImage ||
         oldWidget.style != widget.style ||
         oldWidget.controlSize != widget.controlSize ||
@@ -60,7 +79,7 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
   Map<String, dynamic> _toMap() {
     return {
       'title': widget.title,
-      'systemImage': widget.systemImage,
+      'icon': _effectiveIcon?.toMap(),
       'style': widget.style.name,
       'controlSize': widget.controlSize.name,
       'borderShape': widget.borderShape.name,
