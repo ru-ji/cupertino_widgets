@@ -11,7 +11,7 @@ class AlertManager {
         result: @escaping FlutterResult
     ) {
         // Find the top-most view controller to present the alert
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+        guard let window = Self.keyWindow(),
             let rootVC = window.rootViewController
         else {
             result(FlutterError(code: "NO_WINDOW", message: "No key window found", details: nil))
@@ -47,6 +47,23 @@ class AlertManager {
             let topController = self.getTopViewController(base: rootVC)
             topController?.present(alertController, animated: true, completion: nil)
         }
+    }
+
+    /// Scene-based key-window lookup (`UIApplication.windows` is deprecated
+    /// since iOS 15). Prefers the key window of a foreground-active scene,
+    /// falling back to any connected scene's key window.
+    private static func keyWindow() -> UIWindow? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        let ordered =
+            scenes.filter { $0.activationState == .foregroundActive }
+            + scenes.filter { $0.activationState != .foregroundActive }
+        for scene in ordered {
+            if let window = scene.windows.first(where: { $0.isKeyWindow }) {
+                return window
+            }
+        }
+        return ordered.first?.windows.first
     }
 
     private func getTopViewController(base: UIViewController?) -> UIViewController? {
