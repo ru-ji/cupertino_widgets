@@ -43,7 +43,13 @@ class NativeHostingView: NSObject, FlutterPlatformView {
         let host = UIHostingController(rootView: content)
         if !keyboardAvoidance {
             if #available(iOS 16.4, *) {
-                host.safeAreaRegions = SafeAreaRegions.container
+                // Embedded controls are sized and positioned entirely by
+                // Flutter, so no safe-area region may influence their layout:
+                // .keyboard would shift content up inside the box when the
+                // keyboard opens, and .container insets content away from the
+                // screen edge when the box scrolls near it (content visibly
+                // overflowing onto neighboring Flutter widgets).
+                host.safeAreaRegions = []
             }
         }
         host.view.backgroundColor = .clear
