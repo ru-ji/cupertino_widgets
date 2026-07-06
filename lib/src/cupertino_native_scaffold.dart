@@ -242,6 +242,12 @@ class _DynamicEnvWrapperState extends State<_DynamicEnvWrapper>
 
 class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
     with NativePlatformViewStateMixin {
+  /// Number of routes on the current native stack (root route + pushed pages).
+  /// When > 1, a page is pushed on the native NavigationStack and the Flutter
+  /// route's iOS swipe-back gesture is suppressed so it doesn't compete with
+  /// the native back-swipe.
+  int _nativeStackDepth = 1;
+
   Map<String, dynamic> _toMap() {
     return {
       'entryPoint': widget.entryPoint,
@@ -296,6 +302,10 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
       case 'onRouteChanged':
         final List<dynamic>? routes = call.arguments['routes'];
         if (routes != null) {
+          final depth = routes.length;
+          if (depth != _nativeStackDepth) {
+            setState(() => _nativeStackDepth = depth);
+          }
           widget.onRouteChanged?.call(routes.cast<String>());
         }
         break;
@@ -308,12 +318,21 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
       return const Center(child: Text('CupertinoNativeScaffold is iOS only'));
     }
 
-    return UiKitView(
+    final platformView = UiKitView(
       viewType: 'com.example.flutter_cupertino/cupertino_native_scaffold',
       layoutDirection: TextDirection.ltr,
       creationParams: _toMap(),
       creationParamsCodec: const StandardMessageCodec(),
       onPlatformViewCreated: _onPlatformViewCreated,
+    );
+
+    // When a page is pushed on the native NavigationStack, suppress the
+    // Flutter route's iOS back-swipe gesture so it doesn't compete with the
+    // native one. At the root level, let the Flutter back-swipe proceed so the
+    // user can pop the scaffold page itself.
+    return PopScope(
+      canPop: _nativeStackDepth <= 1,
+      child: platformView,
     );
   }
 }

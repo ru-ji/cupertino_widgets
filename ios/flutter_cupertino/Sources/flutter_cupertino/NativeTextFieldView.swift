@@ -60,7 +60,8 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         container.clipsToBounds = false
         textField.clipsToBounds = false
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.borderStyle = .roundedRect
+        textField.borderStyle = .none
+        textField.backgroundColor = .clear
         container.addSubview(textField)
         NSLayoutConstraint.activate([
             textField.leadingAnchor.constraint(equalTo: container.leadingAnchor),
