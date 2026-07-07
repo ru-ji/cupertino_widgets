@@ -128,6 +128,15 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
                 self?.textField.becomeFirstResponder()
             }
         }
+        // Apply Flutter's brightness to the container so UITextField matches
+        // the Flutter theme (e.g. dark text on light background).
+        if let isDark = c.isDark {
+            container.overrideUserInterfaceStyle = isDark ? .dark : .light
+        }
+        // Background color — nil/transparent by default (iOS UITextField default).
+        if let bg = c.backgroundColor {
+            container.backgroundColor = UIColor(argb: bg)
+        }
     }
 
     @objc private func editingChanged() {
@@ -219,6 +228,15 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         case "unfocus":
             textField.resignFirstResponder()
             result(nil)
+        case "setBrightness":
+            if let args = call.arguments as? [String: Any],
+                let isDark = (args["isDark"] as? NSNumber)?.boolValue
+            {
+                container.overrideUserInterfaceStyle = isDark ? .dark : .light
+                result(nil)
+            } else {
+                result(FlutterError(code: "bad_args", message: "Missing isDark", details: nil))
+            }
         default:
             result(FlutterMethodNotImplemented)
         }

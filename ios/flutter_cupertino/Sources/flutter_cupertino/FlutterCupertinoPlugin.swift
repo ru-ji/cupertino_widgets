@@ -44,6 +44,10 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
         let progressFactory = NativeProgressFactory(messenger: registrar.messenger())
         registrar.register(
             progressFactory, withId: "com.example.flutter_cupertino/cupertino_native_progress")
+
+        let listFactory = NativeListFactory(messenger: registrar.messenger())
+        registrar.register(
+            listFactory, withId: "com.example.flutter_cupertino/cupertino_native_list")
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

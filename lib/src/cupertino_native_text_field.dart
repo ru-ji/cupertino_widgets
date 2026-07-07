@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -128,6 +129,9 @@ class CupertinoNativeTextField extends StatefulWidget {
   final Color? cursorColor;
   final CupertinoNativeClearButtonMode clearButtonMode;
 
+  /// Background color. Defaults to transparent (iOS default).
+  final Color? backgroundColor;
+
   /// iOS autofill/content type hint (e.g. `'password'`, `'username'`,
   /// `'emailAddress'`, `'oneTimeCode'`, `'name'`, `'telephoneNumber'`,
   /// `'fullStreetAddress'`, `'URL'`). Passed through to `UITextContentType`.
@@ -168,6 +172,7 @@ class CupertinoNativeTextField extends StatefulWidget {
     this.style,
     this.cursorColor,
     this.clearButtonMode = CupertinoNativeClearButtonMode.never,
+    this.backgroundColor,
     this.textContentType,
     this.onChanged,
     this.onSubmitted,
@@ -188,6 +193,12 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   /// Whether the native field is showing a non-empty selection (and thus its
   /// draggable handles). Kept current by the `onSelectionActive` callback.
   bool _selectionActive = false;
+
+  /// The APP's brightness (its Material theme), propagated to the native text
+  /// field so its text color matches the app — not the device, which may be in
+  /// a different mode. Re-synced dynamically when the app theme changes.
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  bool? _lastIsDark;
 
   /// Claims a press-and-hold for native text selection while ceding a quick
   /// drag to an ancestor `Scrollable`; while [_selectionActive], claims every
@@ -283,6 +294,19 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncBrightness();
+  }
+
+  void _syncBrightness() {
+    final isDark = _isDark;
+    if (_lastIsDark == isDark) return;
+    _lastIsDark = isDark;
+    channel?.invokeMethod('setBrightness', {'isDark': isDark});
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?.removeListener(_onControllerChanged);
@@ -346,6 +370,8 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       'cursorColor': widget.cursorColor?.toARGB32(),
       'clearButtonMode': widget.clearButtonMode.name,
       'textContentType': widget.textContentType,
+      'isDark': _isDark,
+      'backgroundColor': widget.backgroundColor?.toARGB32(),
     };
   }
 

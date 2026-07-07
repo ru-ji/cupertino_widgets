@@ -1,0 +1,45 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_cupertino/flutter_cupertino.dart';
+
+/// Single-page native scaffold with a SwiftUI `.searchable` search field,
+/// mirroring:
+///
+/// ```swift
+/// NavigationView {
+///     List { ... }
+///         .navigationTitle("CodeSpeedy")
+/// }
+/// .searchable(text: $searchBar,
+///             placement: .navigationBarDrawer(displayMode: .always))
+/// ```
+///
+/// The list, suggestions, results and loader below the bar are rendered by the
+/// Flutter body (see `SearchBody`), driven by
+/// [CupertinoNativeScaffold.searchState].
+class NativeSearchableDemoPage extends StatelessWidget {
+  const NativeSearchableDemoPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CupertinoNativeScaffold(
+        body: 'searchBody',
+        appBar: const CupertinoNativeAppBar(
+          title: 'CodeSpeedy',
+          titleDisplayMode: CupertinoNativeToolbarTitleDisplayMode.large,
+          search: CupertinoNativeSearchField(
+            placeholder: 'Search languages',
+            placement:
+                CupertinoNativeSearchPlacement.navigationBarDrawerAlways,
+          ),
+        ),
+        onSearchChanged: (route, query) =>
+            debugPrint('Search changed: "$query"'),
+        onSearchSubmitted: (route, query) =>
+            debugPrint('Search submitted: "$query"'),
+        onSearchActiveChanged: (route, active) =>
+            debugPrint('Search active: $active'),
+      ),
+    );
+  }
+}

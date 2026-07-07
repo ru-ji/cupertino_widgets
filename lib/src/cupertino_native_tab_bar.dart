@@ -1,7 +1,37 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
+import 'models/cupertino_native_icon.dart';
 import 'models/cupertino_native_tab.dart';
+
+/// iOS 26 tab-view bottom accessory: a persistent view shown above the tab bar
+/// (like the Music mini-player). Only takes effect inside
+/// `CupertinoNativeScaffold` on iOS 26+. It adapts between the system's
+/// `.inline` (single line) and `.expanded` (shows [subtitle]) placements. Taps
+/// report through the scaffold's `onBarAction` with [actionId] and the current
+/// tab's route.
+class CupertinoNativeTabBarAccessory {
+  final String title;
+  final String? subtitle;
+  final CupertinoNativeIcon? icon;
+  final String actionId;
+
+  const CupertinoNativeTabBarAccessory({
+    required this.title,
+    this.subtitle,
+    this.icon,
+    this.actionId = 'accessory',
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'subtitle': subtitle,
+      'icon': icon?.toMap(),
+      'actionId': actionId,
+    };
+  }
+}
 
 /// Mirrors SwiftUI's `tabBarMinimizeBehavior`. Only takes effect inside
 /// `CupertinoNativeScaffold` (iOS 26+), where the scroll view is native.
@@ -54,6 +84,10 @@ class CupertinoNativeTabBar extends StatefulWidget {
   /// background. No effect below iOS 26.
   final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
 
+  /// iOS 26 bottom accessory shown above the tab bar. Only meaningful inside
+  /// `CupertinoNativeScaffold`.
+  final CupertinoNativeTabBarAccessory? accessory;
+
   const CupertinoNativeTabBar({
     super.key,
     required this.tabs,
@@ -68,6 +102,7 @@ class CupertinoNativeTabBar extends StatefulWidget {
     this.shrinkCentered = true,
     this.minimizeBehavior = CupertinoNativeTabBarMinimizeBehavior.automatic,
     this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
+    this.accessory,
   });
 
   /// Serialized form consumed by `CupertinoNativeScaffold` (which renders its
@@ -79,6 +114,7 @@ class CupertinoNativeTabBar extends StatefulWidget {
       'accentColor': accentColor?.toARGB32(),
       'minimizeBehavior': minimizeBehavior.name,
       'scrollEdgeEffect': scrollEdgeEffect.name,
+      'accessory': accessory?.toMap(),
     };
   }
 
@@ -101,8 +137,9 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
   int? _lastRightCount;
   double? _lastSplitSpacing;
 
-  bool get _isDark =>
-      MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+  // The APP's brightness (its Material theme), so the native bar matches the
+  // app rather than the device. Re-synced dynamically on theme change.
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   int get _selectedIndex {
     final idx = widget.tabs.indexWhere((t) => t.id == widget.selection);
@@ -111,7 +148,13 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
 
   List<String> get _labels => widget.tabs.map((t) => t.title).toList();
   List<String> get _symbols =>
-      widget.tabs.map((t) => t.systemImage ?? '').toList();
+      widget.tabs.map((t) => t.resolvedSymbolName ?? '').toList();
+
+  /// Full icon configs for SwiftUI rendering (supports both SF Symbols and
+  /// Flutter glyphs). The standalone UITabBar ignores this and falls back
+  /// to the raw SF Symbol strings in [_symbols].
+  List<Map<String, dynamic>?> get _iconConfigs =>
+      widget.tabs.map((t) => t.icon?.toMap()).toList();
 
   @override
   void didUpdateWidget(covariant CupertinoNativeTabBar oldWidget) {
@@ -165,7 +208,8 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     if (channel == null) return;
 
     final idx = _selectedIndex;
-    final tint = widget.accentColor?.toARGB32();
+    final theme = Theme.of(context);
+    final tint = widget.accentColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32();
     final bg = widget.backgroundColor?.toARGB32();
     final labels = _labels;
     final symbols = _symbols;
@@ -176,7 +220,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     }
 
     final style = <String, dynamic>{};
-    if (_lastTint != tint && tint != null) {
+    if (_lastTint != tint) {
       style['tint'] = tint;
       _lastTint = tint;
     }
@@ -275,12 +319,14 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
       );
     }
 
+    final theme = Theme.of(context);
     final creationParams = <String, dynamic>{
       'labels': _labels,
       'sfSymbols': _symbols,
+      'icons': _iconConfigs,
       'selectedIndex': _selectedIndex,
       'isDark': _isDark,
-      'tint': widget.accentColor?.toARGB32(),
+      'tint': widget.accentColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
       'backgroundColor': widget.backgroundColor?.toARGB32(),
       'split': widget.split,
       'rightCount': widget.rightCount,

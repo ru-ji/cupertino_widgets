@@ -23,6 +23,41 @@ class CupertinoNativeScaffoldPage {
   }
 }
 
+/// Snapshot of a searchable scaffold page's native search field, delivered to
+/// the body isolate via [CupertinoNativeScaffold.searchState].
+///
+/// - [query]: the current text in the search field.
+/// - [isActive]: whether the user is interacting with the field (SwiftUI's
+///   `isSearching`). Use it to swap your body content for suggestions/results.
+/// - [isSubmitted]: true for the single notification fired when the user hits
+///   the keyboard's search/return key.
+class CupertinoNativeSearchState {
+  final String query;
+  final bool isActive;
+  final bool isSubmitted;
+
+  const CupertinoNativeSearchState({
+    this.query = '',
+    this.isActive = false,
+    this.isSubmitted = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is CupertinoNativeSearchState &&
+      other.query == query &&
+      other.isActive == isActive &&
+      other.isSubmitted == isSubmitted;
+
+  @override
+  int get hashCode => Object.hash(query, isActive, isSubmitted);
+
+  @override
+  String toString() =>
+      'CupertinoNativeSearchState(query: $query, isActive: $isActive, '
+      'isSubmitted: $isSubmitted)';
+}
+
 /// Drives a [CupertinoNativeScaffold]'s navigation from the host isolate
 /// (the widget tree that created the scaffold). Inside body isolates use the
 /// static [CupertinoNativeScaffold.push]/[CupertinoNativeScaffold.pop].
@@ -76,9 +111,27 @@ class CupertinoNativeScaffold extends StatefulWidget {
   /// iOS 26 scroll edge effect style for the native scroll views.
   final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
 
+  /// Background color for the scaffold. Defaults to
+  /// [Theme.of(context).scaffoldBackgroundColor].
+  final Color? backgroundColor;
+
+  /// Primary/accent color used for interactive elements (buttons, toggles,
+  /// etc.). Defaults to [Theme.of(context).colorScheme.primary].
+  final Color? primaryColor;
+
   /// Reports the current tab's native stack (root route first) whenever a
   /// push/pop happens — including native back button and back-swipe.
   final void Function(List<String> routes)? onRouteChanged;
+
+  /// Fires on every keystroke in a page's [CupertinoNativeAppBar.search] field.
+  /// [route] is the searchable page's root route.
+  final void Function(String route, String query)? onSearchChanged;
+
+  /// Fires when the user submits the search (keyboard search/return key).
+  final void Function(String route, String query)? onSearchSubmitted;
+
+  /// Fires when a search field becomes active/inactive (SwiftUI `isSearching`).
+  final void Function(String route, bool active)? onSearchActiveChanged;
 
   const CupertinoNativeScaffold({
     super.key,
@@ -90,7 +143,12 @@ class CupertinoNativeScaffold extends StatefulWidget {
     this.onBarAction,
     this.onTabChanged,
     this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
+    this.backgroundColor,
+    this.primaryColor,
     this.onRouteChanged,
+    this.onSearchChanged,
+    this.onSearchSubmitted,
+    this.onSearchActiveChanged,
   }) : assert(tabBar != null || body != null,
             'Provide a tabBar (tab ids double as body routes) or a body route');
 
@@ -102,6 +160,67 @@ class CupertinoNativeScaffold extends StatefulWidget {
   /// `main()` with `cn-scaffold://<route>` as the initial route.
   static const String _routePrefix = 'cn-scaffold://';
 
+  static final ValueNotifier<CupertinoNativeSearchState> _searchState =
+      ValueNotifier(const CupertinoNativeSearchState());
+
+  /// The enclosing scaffold page's live search state. Only meaningful inside
+  /// body isolates whose [CupertinoNativeAppBar] declares a
+  /// [CupertinoNativeSearchField]. Drive your body with a
+  /// [ValueListenableBuilder] on this to render search suggestions, results
+  /// and a loading indicator below the native search bar.
+  static ValueListenable<CupertinoNativeSearchState> get searchState =>
+      _searchState;
+
+  /// The host app's brightness, pushed into each body engine so a body's
+  /// Flutter content matches the app (not the device). Null until seeded.
+  /// Used by [_DynamicEnvWrapper]; seeded from the `?dark=` route param and
+  /// updated by the `setBrightness` body-channel call.
+  static final ValueNotifier<bool?> _bodyIsDark = ValueNotifier<bool?>(null);
+
+  /// Strips and applies a `?dark=0|1` suffix from a body route, returning the
+  /// bare route name. Safe to call with a route that has no query.
+  static String _consumeBrightnessQuery(String route) {
+    final q = route.indexOf('?');
+    if (q < 0) return route;
+    final query = route.substring(q + 1);
+    final dark = Uri.splitQueryString(query)['dark'];
+    if (dark != null) _bodyIsDark.value = dark == '1';
+    return route.substring(0, q);
+  }
+
+  static bool _bodyHandlersInstalled = false;
+
+  /// Registers the body engine's handler for native → Dart callbacks (search
+  /// state, ...). Idempotent; called from [maybeRun]/[run].
+  static void _ensureBodyHandlers() {
+    if (_bodyHandlersInstalled) return;
+    _bodyHandlersInstalled = true;
+    // maybeRun/run execute at the very top of main(), before runApp — so the
+    // binary messenger isn't up yet. Setting a channel handler (or invoking a
+    // method) before the binding is initialized throws and aborts the body's
+    // main(), leaving the body blank. Initialize the binding first.
+    WidgetsFlutterBinding.ensureInitialized();
+    _bodyChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onScaffoldSearch') {
+        final args = call.arguments as Map?;
+        _searchState.value = CupertinoNativeSearchState(
+          query: args?['query'] as String? ?? '',
+          isActive: args?['isActive'] as bool? ?? false,
+          isSubmitted: args?['isSubmitted'] as bool? ?? false,
+        );
+      } else if (call.method == 'setBrightness') {
+        final isDark = (call.arguments as Map?)?['isDark'] as bool?;
+        if (isDark != null) _bodyIsDark.value = isDark;
+      }
+      return null;
+    });
+    // Pull the app's brightness once on startup so the body matches the app
+    // from the first frame (falls back to device brightness until it arrives).
+    _bodyChannel.invokeMethod<bool>('getBrightness').then((isDark) {
+      if (isDark != null) _bodyIsDark.value = isDark;
+    }).catchError((_) {});
+  }
+
   /// Call as the FIRST line of `main()`:
   /// `if (CupertinoNativeScaffold.maybeRun(routes)) return;`
   ///
@@ -111,9 +230,11 @@ class CupertinoNativeScaffold extends StatefulWidget {
   static bool maybeRun(Map<String, Widget Function()> builders) {
     final route = ui.PlatformDispatcher.instance.defaultRouteName;
     if (!route.startsWith(_routePrefix)) return false;
-    final name = route.substring(_routePrefix.length);
+    // Route is `cn-scaffold://<name>?dark=0|1`; consume the brightness suffix.
+    final name = _consumeBrightnessQuery(route.substring(_routePrefix.length));
     final builder = builders[name];
     final child = builder != null ? builder() : Text('Unknown route: $name');
+    _ensureBodyHandlers();
     runApp(_DynamicEnvWrapper(child: _withExplicitWidth(child)));
     return true;
   }
@@ -121,7 +242,8 @@ class CupertinoNativeScaffold extends StatefulWidget {
   /// Call this inside your `@pragma('vm:entry-point')` function. It reads the
   /// route from the engine's initial route and runs the matching builder.
   static void run(Map<String, Widget Function()> builders) {
-    final route = ui.PlatformDispatcher.instance.defaultRouteName;
+    final route =
+        _consumeBrightnessQuery(ui.PlatformDispatcher.instance.defaultRouteName);
     final builder = builders[route];
 
     // Wrap the body in basic inherited widgets only (no Scaffold/MaterialApp,
@@ -129,6 +251,7 @@ class CupertinoNativeScaffold extends StatefulWidget {
     // natural height and let the native ScrollView own scrolling.
     final child = builder != null ? builder() : const Text('Unknown route');
 
+    _ensureBodyHandlers();
     runApp(_DynamicEnvWrapper(child: _withExplicitWidth(child)));
   }
 
@@ -193,12 +316,18 @@ class _DynamicEnvWrapperState extends State<_DynamicEnvWrapper>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    CupertinoNativeScaffold._bodyIsDark.addListener(_onBrightnessChanged);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    CupertinoNativeScaffold._bodyIsDark.removeListener(_onBrightnessChanged);
     super.dispose();
+  }
+
+  void _onBrightnessChanged() {
+    if (mounted) setState(() {}); // Host app toggled light/dark.
   }
 
   @override
@@ -214,7 +343,12 @@ class _DynamicEnvWrapperState extends State<_DynamicEnvWrapper>
   @override
   Widget build(BuildContext context) {
     final platformDispatcher = ui.PlatformDispatcher.instance;
-    final brightness = platformDispatcher.platformBrightness;
+    // Prefer the host app's brightness (pushed from the scaffold) so a body's
+    // Flutter content matches the app; fall back to the device brightness.
+    final override = CupertinoNativeScaffold._bodyIsDark.value;
+    final brightness = override != null
+        ? (override ? ui.Brightness.dark : ui.Brightness.light)
+        : platformDispatcher.platformBrightness;
     final locale = platformDispatcher.locales.isNotEmpty
         ? platformDispatcher.locales.first
         : const Locale('en', 'US');
@@ -248,14 +382,44 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
   /// the native back-swipe.
   int _nativeStackDepth = 1;
 
+  /// The APP's brightness (its Material theme), propagated to the native
+  /// SwiftUI views so they match the app — e.g. light content when the app is
+  /// light even if the device is in dark mode. Re-synced dynamically when the
+  /// app theme changes (see [didChangeDependencies]/[_syncBrightness]).
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  bool? _lastIsDark;
+
   Map<String, dynamic> _toMap() {
+    final theme = Theme.of(context);
     return {
       'entryPoint': widget.entryPoint,
       'body': widget.body,
       'appBar': widget.appBar?.toMap(),
       'tabBar': widget.tabBar?.toMap(),
       'scrollEdgeEffect': widget.scrollEdgeEffect.name,
+      'isDark': _isDark,
+      'backgroundColor':
+          widget.backgroundColor?.toARGB32() ?? theme.scaffoldBackgroundColor.toARGB32(),
+      'primaryColor':
+          widget.primaryColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
     };
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncBrightness();
+  }
+
+  void _syncBrightness() {
+    final isDark = _isDark;
+    if (_lastIsDark == isDark) return;
+    // Don't commit _lastIsDark until the channel is ready; otherwise the
+    // first didChangeDependencies (before _onPlatformViewCreated) eats the
+    // value and the real send never happens.
+    if (channel == null) return;
+    _lastIsDark = isDark;
+    channel!.invokeMethod('setBrightness', {'isDark': isDark});
   }
 
   @override
@@ -307,6 +471,33 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
             setState(() => _nativeStackDepth = depth);
           }
           widget.onRouteChanged?.call(routes.cast<String>());
+        }
+        break;
+      case 'onSearchChanged':
+        {
+          final String? route = call.arguments['route'];
+          final String? query = call.arguments['query'];
+          if (route != null && query != null) {
+            widget.onSearchChanged?.call(route, query);
+          }
+        }
+        break;
+      case 'onSearchSubmitted':
+        {
+          final String? route = call.arguments['route'];
+          final String? query = call.arguments['query'];
+          if (route != null && query != null) {
+            widget.onSearchSubmitted?.call(route, query);
+          }
+        }
+        break;
+      case 'onSearchActiveChanged':
+        {
+          final String? route = call.arguments['route'];
+          final bool? active = call.arguments['active'];
+          if (route != null && active != null) {
+            widget.onSearchActiveChanged?.call(route, active);
+          }
         }
         break;
     }

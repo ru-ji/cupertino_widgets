@@ -22,4 +22,6 @@ struct TextFieldConfig: Codable {
     let cursorColor: Int?  // ARGB
     let clearButtonMode: String?  // "never" | "whileEditing" | "unlessEditing" | "always"
     let textContentType: String?
+    let isDark: Bool?  // Flutter brightness → override UITextField appearance
+    let backgroundColor: Int?  // ARGB — nil = transparent (iOS default)
 }

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'pages/profile_tab_page.dart';
 import 'pages/scaffold_bodies.dart';
+import 'pages/search_body.dart';
 import 'pages/search_tab_page.dart';
 import 'pages/settings_tab_page.dart';
 
@@ -15,5 +16,6 @@ Map<String, Widget Function()> scaffoldRoutes() {
     'profile': () => const ProfileTabPage(),
     'settings': () => const SettingsTabPage(),
     'details': () => const ScaffoldDetailsBody(),
+    'searchBody': () => const SearchBody(),
   };
 }

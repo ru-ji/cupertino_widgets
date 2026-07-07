@@ -16,8 +16,13 @@ struct ScaffoldView: View {
             tabbedContent(tabBar)
                 .applyTabTint(tabBar.accentColor)
                 .applyTabBarMinimizeBehavior(tabBar.minimizeBehavior)
+                .applyTabBottomAccessory(tabBar.accessory) { actionId in
+                    onBarAction(model.selection, actionId)
+                }
         } else {
-            navStack(key: model.config.body ?? "", rootRoute: model.config.body ?? "")
+            navStack(
+                key: model.config.body ?? "", rootRoute: model.config.body ?? "",
+                search: model.config.appBar?.search)
         }
     }
 
@@ -28,14 +33,14 @@ struct ScaffoldView: View {
                 ForEach(tabBar.tabs) { tab in
                     if tab.role == "search" {
                         Tab(
-                            tab.title, systemImage: tab.systemImage ?? "magnifyingglass",
+                            tab.title, systemImage: tab.resolvedSymbolName ?? "magnifyingglass",
                             value: tab.id, role: .search
                         ) {
-                            navStack(key: tab.id, rootRoute: tab.id)
+                            navStack(key: tab.id, rootRoute: tab.id, search: tab.search)
                         }
                     } else {
-                        Tab(tab.title, systemImage: tab.systemImage ?? "circle", value: tab.id) {
-                            navStack(key: tab.id, rootRoute: tab.id)
+                        Tab(tab.title, systemImage: tab.resolvedSymbolName ?? "circle", value: tab.id) {
+                            navStack(key: tab.id, rootRoute: tab.id, search: tab.search)
                         }
                     }
                 }
@@ -43,7 +48,7 @@ struct ScaffoldView: View {
         } else {
             TabView(selection: $model.selection) {
                 ForEach(tabBar.tabs) { tab in
-                    navStack(key: tab.id, rootRoute: tab.id)
+                    navStack(key: tab.id, rootRoute: tab.id, search: tab.search)
                         .tabItem { tabLabel(tab) }
                         .tag(tab.id)
                 }
@@ -65,38 +70,45 @@ struct ScaffoldView: View {
         )
     }
 
-    @ViewBuilder
-    private func navStack(key: String, rootRoute: String) -> some View {
-        NavigationStack(path: pathBinding(key)) {
-            pageBody(engine: model.rootEngines[rootRoute])
-                .applyAppBar(model.config.appBar) { onBarAction(rootRoute, $0) }
-                .navigationDestination(for: PushedRoute.self) { pushed in
-                    pageBody(engine: model.pushedEngines[pushed.id])
-                        .applyAppBar(pushed.appBar) { onBarAction(pushed.route, $0) }
-                }
-        }
+    /// Two-way binding for a searchable page's field. Publishing on real edits
+    /// also reports the keystroke (to the host isolate) and forwards it into
+    /// the body engine via `model.setSearchText`.
+    private func searchBinding(_ key: String) -> Binding<String> {
+        Binding(
+            get: { model.searchTexts[key] ?? "" },
+            set: { model.setSearchText($0, for: key) }
+        )
     }
 
-    /// The Flutter view sizes itself to its content (`isAutoResizable`), and
-    /// the native ScrollView scrolls it — driving the large-title collapse,
-    /// tab-bar minimize, and edge effects with real system scrolling.
     @ViewBuilder
-    private func pageBody(engine: FlutterEngine?) -> some View {
-        if let engine = engine {
-            ScrollView {
-                FlutterContentView(engine: engine)
-                    .frame(maxWidth: .infinity)
+    private func navStack(key: String, rootRoute: String, search: SearchConfig?) -> some View {
+        NavigationStack(path: pathBinding(key)) {
+            SearchablePageBody(
+                engine: model.rootEngines[rootRoute],
+                scrollEdgeEffect: model.config.scrollEdgeEffect,
+                onActiveChange: { model.onSearchActiveChanged?(rootRoute, $0) }
+            )
+            .applyAppBar(model.config.appBar) { onBarAction(rootRoute, $0) }
+            .applySearchable(
+                search,
+                text: searchBinding(rootRoute)
+            ) {
+                model.onSearchSubmitted?(rootRoute, model.searchTexts[rootRoute] ?? "")
             }
-            .applyScrollEdgeEffect(model.config.scrollEdgeEffect)
-        } else {
-            Text("No content")
+            .navigationDestination(for: PushedRoute.self) { pushed in
+                PageScrollBody(
+                    engine: model.pushedEngines[pushed.id],
+                    scrollEdgeEffect: model.config.scrollEdgeEffect
+                )
+                .applyAppBar(pushed.appBar) { onBarAction(pushed.route, $0) }
+            }
         }
     }
 }
 
 @ViewBuilder
 func tabLabel(_ tab: TabItemConfig) -> some View {
-    if let img = tab.systemImage {
+    if let img = tab.resolvedSymbolName {
         Label(tab.title, systemImage: img)
     } else {
         Text(tab.title)
@@ -139,5 +151,64 @@ extension View {
         } else {
             self
         }
+    }
+
+    /// iOS 26 tab-view bottom accessory (persistent view above the tab bar).
+    /// No-op below iOS 26 or when `config` is nil.
+    @ViewBuilder
+    func applyTabBottomAccessory(
+        _ config: TabAccessoryConfig?, onTap: @escaping (String) -> Void
+    ) -> some View {
+        if #available(iOS 26.0, *), let config = config {
+            self.tabViewBottomAccessory {
+                TabBottomAccessoryView(config: config, onTap: onTap)
+            }
+        } else {
+            self
+        }
+    }
+}
+
+/// The content of the iOS 26 tab-view bottom accessory. Reads the system
+/// `tabViewBottomAccessoryPlacement` and shows its subtitle only in the
+/// `.expanded` placement (in `.inline` it collapses to a single line).
+@available(iOS 26.0, *)
+struct TabBottomAccessoryView: View {
+    let config: TabAccessoryConfig
+    let onTap: (String) -> Void
+
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+
+    private var isExpanded: Bool {
+        if case .expanded? = placement { return true }
+        return false
+    }
+
+    var body: some View {
+        Button {
+            onTap(config.actionId)
+        } label: {
+            HStack(spacing: 12) {
+                if let icon = config.icon {
+                    IconView(icon: icon)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(config.title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    if isExpanded, let subtitle = config.subtitle {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

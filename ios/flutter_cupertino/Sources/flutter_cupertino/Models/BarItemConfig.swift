@@ -36,4 +36,5 @@ struct AppBarConfig: Codable, Hashable {
     let displayMode: String?  // "inline" | "large"
     let leading: [BarEntryConfig]?
     let trailing: [BarEntryConfig]?
+    let search: SearchConfig?
 }

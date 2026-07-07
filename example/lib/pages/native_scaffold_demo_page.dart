@@ -19,41 +19,51 @@ class NativeScaffoldDemoPage extends StatelessWidget {
           title: 'Library',
           titleDisplayMode: CupertinoNativeToolbarTitleDisplayMode.large,
           trailing: [
-            // One shared glass capsule with two buttons: an SF Symbol and a
-            // Flutter icon, side by side, to show both render natively.
-            CupertinoNativeBarItemGroup(items: [
-              CupertinoNativeBarItem(
-                  icon: CupertinoNativeIcon.symbol(CupertinoSymbols.plus),
-                  actionId: 'add'),
-              CupertinoNativeBarItem(
-                  icon: CupertinoNativeIcon.flutter(CupertinoIcons.ellipsis_circle),
-                  actionId: 'more'),
-            ]),
+            // Each CupertinoNativeBarItem gets its own glass capsule (iOS 26).
+            // Wrap multiple items in CupertinoNativeBarItemGroup to share one capsule.
+            CupertinoNativeBarItem(
+                icon: CupertinoNativeIcon.symbol(CupertinoSymbols.plus),
+                actionId: 'add'),
+            CupertinoNativeBarItem(
+                icon: CupertinoNativeIcon.flutter(CupertinoIcons.ellipsis_circle),
+                actionId: 'more'),
           ],
         ),
         tabBar: const CupertinoNativeTabBar(
           selection: 'home',
           minimizeBehavior: CupertinoNativeTabBarMinimizeBehavior.onScrollDown,
+          // iOS 26 bottom accessory (a persistent bar above the tab bar). It
+          // shows its subtitle only in the system's `.expanded` placement.
+          accessory: CupertinoNativeTabBarAccessory(
+            title: 'Now Playing',
+            subtitle: 'Swift Playgrounds — Track 3',
+            icon: CupertinoNativeIcon.named('music.note'),
+            actionId: 'accessory',
+          ),
           tabs: [
             CupertinoNativeTab(
               title: 'Home',
-              systemImage: 'house.fill',
+              icon: CupertinoNativeIcon.named('house.fill'),
               id: 'home',
             ),
             CupertinoNativeTab(
               title: 'Search',
-              systemImage: 'magnifyingglass',
+              icon: CupertinoNativeIcon.named('magnifyingglass'),
               id: 'search',
               role: CupertinoNativeTabRole.search,
+              // The search-role tab presents itself as a native search field.
+              search: CupertinoNativeSearchField(
+                placeholder: 'Search languages',
+              ),
             ),
             CupertinoNativeTab(
               title: 'Profile',
-              systemImage: 'person.fill',
+              icon: CupertinoNativeIcon.named('person.fill'),
               id: 'profile',
             ),
             CupertinoNativeTab(
               title: 'Settings',
-              systemImage: 'gear',
+              icon: CupertinoNativeIcon.named('gear'),
               id: 'settings',
             ),
           ],

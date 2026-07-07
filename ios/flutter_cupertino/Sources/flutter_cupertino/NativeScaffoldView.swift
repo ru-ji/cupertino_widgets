@@ -48,6 +48,8 @@ class ScaffoldModel: ObservableObject {
     @Published var paths: [String: [PushedRoute]] = [:] {
         didSet { onPathsChanged?(oldValue, paths) }
     }
+    /// Live text of each searchable page's `.searchable` field, keyed by root route.
+    @Published var searchTexts: [String: String] = [:]
 
     // Engine storage lives here so SwiftUI can look bodies up during builds.
     var rootEngines: [String: FlutterEngine] = [:]
@@ -55,6 +57,18 @@ class ScaffoldModel: ObservableObject {
 
     var onSelectionChanged: ((String) -> Void)?
     var onPathsChanged: (([String: [PushedRoute]], [String: [PushedRoute]]) -> Void)?
+    var onSearchChanged: ((String, String) -> Void)?
+    var onSearchActiveChanged: ((String, Bool) -> Void)?
+    var onSearchSubmitted: ((String, String) -> Void)?
+
+    /// Publishes a searchable field's new text (only on real edits) and
+    /// reports the keystroke via `onSearchChanged`.
+    func setSearchText(_ text: String, for key: String) {
+        if searchTexts[key] != text {
+            searchTexts[key] = text
+            onSearchChanged?(key, text)
+        }
+    }
 
     init(config: ScaffoldConfig) {
         self.config = config
@@ -75,6 +89,12 @@ class NativeScaffoldView: NativeHostingView {
     private let engineGroup: FlutterEngineGroup
     private let model: ScaffoldModel
     private var bodyChannels: [String: FlutterMethodChannel] = [:]
+    /// Last known (query, active) per searchable route, so each forwarded
+    /// snapshot to the body engine carries the full current state.
+    private var searchSnapshots: [String: (query: String, active: Bool)] = [:]
+    /// The app's current brightness, seeded into each body engine's route so
+    /// its Flutter content matches the app. Updated by `setBrightness`.
+    private var currentIsDark: Bool = false
 
     init(
         frame: CGRect,
@@ -94,7 +114,8 @@ class NativeScaffoldView: NativeHostingView {
             model = ScaffoldModel(
                 config: ScaffoldConfig(
                     entryPoint: nil, body: nil, appBar: nil, tabBar: nil,
-                    scrollEdgeEffect: nil))
+                    scrollEdgeEffect: nil, isDark: nil,
+                    backgroundColor: nil, primaryColor: nil))
         }
 
         super.init()
@@ -109,9 +130,39 @@ class NativeScaffoldView: NativeHostingView {
         model.onPathsChanged = { [weak self] old, new in
             self?.pathsDidChange(old: old, new: new)
         }
+        model.onSearchChanged = { [weak self] route, query in
+            self?.reportSearch(route: route, query: query, active: nil, submitted: false)
+        }
+        model.onSearchActiveChanged = { [weak self] route, active in
+            self?.reportSearch(route: route, query: nil, active: active, submitted: false)
+        }
+        model.onSearchSubmitted = { [weak self] route, query in
+            self?.reportSearch(route: route, query: query, active: nil, submitted: true)
+        }
 
         createRootEngines()
         attachContent()
+
+        // Apply Flutter's brightness to the hosting controller's view so
+        // SwiftUI matches the Flutter theme (not the device's default).
+        // MUST happen after attachContent() which creates hostingController.
+        if let argsMap = args as? [String: Any],
+           let isDark = (argsMap["isDark"] as? NSNumber)?.boolValue {
+            // Seed brightness BEFORE createRootEngines() so each body engine's
+            // route carries it (?dark=) and its content matches the app.
+            currentIsDark = isDark
+            hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
+        }
+        // Apply Flutter theme colors (background, tint).
+        if let argsMap = args as? [String: Any] {
+            if let bg = (argsMap["backgroundColor"] as? NSNumber)?.intValue {
+                hostingController?.view.backgroundColor = UIColor(argb: bg)
+            }
+            if let tint = (argsMap["primaryColor"] as? NSNumber)?.intValue {
+                hostingController?.view.tintColor = UIColor(argb: tint)
+            }
+        }
+
         applyStandardLayoutMargins()
     }
 
@@ -231,9 +282,13 @@ class NativeScaffoldView: NativeHostingView {
                     body: model.config.body,
                     appBar: AppBarConfig(
                         title: title, displayMode: bar.displayMode,
-                        leading: bar.leading, trailing: bar.trailing),
+                        leading: bar.leading, trailing: bar.trailing,
+                        search: bar.search),
                     tabBar: model.config.tabBar,
-                    scrollEdgeEffect: model.config.scrollEdgeEffect)
+                    scrollEdgeEffect: model.config.scrollEdgeEffect,
+                    isDark: model.config.isDark,
+                    backgroundColor: model.config.backgroundColor,
+                    primaryColor: model.config.primaryColor)
             }
             result(nil)
         case "updateScaffold":
@@ -251,8 +306,34 @@ class NativeScaffoldView: NativeHostingView {
                 if let selection = config.tabBar?.selection, selection != model.selection {
                     model.selection = selection
                 }
+                // Apply updated theme colors.
+                if let bg = config.backgroundColor {
+                    hostingController?.view.backgroundColor = UIColor(argb: bg)
+                }
+                if let tint = config.primaryColor {
+                    hostingController?.view.tintColor = UIColor(argb: tint)
+                }
             }
             result(nil)
+        case "getBrightness":
+            // Bodies pull the app brightness on startup (race-free: this
+            // handler is installed when the engine is created).
+            result(currentIsDark)
+        case "setBrightness":
+            if let args = call.arguments as? [String: Any],
+                let isDark = (args["isDark"] as? NSNumber)?.boolValue
+            {
+                currentIsDark = isDark
+                hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
+                // Forward into every body engine so its Flutter content matches
+                // the app's brightness (they run without the app's MaterialApp).
+                for channel in bodyChannels.values {
+                    channel.invokeMethod("setBrightness", arguments: ["isDark": isDark])
+                }
+                result(nil)
+            } else {
+                result(FlutterError(code: "bad_args", message: "Missing isDark", details: nil))
+            }
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -275,5 +356,35 @@ class NativeScaffoldView: NativeHostingView {
         let key = currentPathKey
         let routes = [key] + (new[key] ?? []).map { $0.route }
         channel.invokeMethod("onRouteChanged", arguments: ["routes": routes])
+    }
+
+    // MARK: - Search
+
+    /// Reports a search event to the host isolate (the widget that created the
+    /// scaffold) and forwards the full current state into the searchable page's
+    /// body engine so it can render suggestions/results/loader.
+    private func reportSearch(route: String, query: String?, active: Bool?, submitted: Bool) {
+        var snap = searchSnapshots[route] ?? (query: "", active: false)
+        if let query = query { snap.query = query }
+        if let active = active { snap.active = active }
+        searchSnapshots[route] = snap
+
+        if let query = query {
+            channel.invokeMethod(
+                submitted ? "onSearchSubmitted" : "onSearchChanged",
+                arguments: ["route": route, "query": query])
+        }
+        if let active = active {
+            channel.invokeMethod(
+                "onSearchActiveChanged", arguments: ["route": route, "active": active])
+        }
+
+        bodyChannels[route]?.invokeMethod(
+            "onScaffoldSearch",
+            arguments: [
+                "query": snap.query,
+                "isActive": snap.active,
+                "isSubmitted": submitted,
+            ])
     }
 }

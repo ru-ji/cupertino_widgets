@@ -48,22 +48,22 @@ class _StandaloneTabBarDemoPageState extends State<StandaloneTabBarDemoPage> {
               tabs: const [
                 CupertinoNativeTab(
                   title: 'Home',
-                  systemImage: 'house.fill',
+                  icon: CupertinoNativeIcon.named('house.fill'),
                   id: 'home',
                 ),
                 CupertinoNativeTab(
                   title: 'Profile',
-                  systemImage: 'person.fill',
+                  icon: CupertinoNativeIcon.named('person.fill'),
                   id: 'profile',
                 ),
                 CupertinoNativeTab(
                   title: 'Settings',
-                  systemImage: 'gear',
+                  icon: CupertinoNativeIcon.named('gear'),
                   id: 'settings',
                 ),
                 CupertinoNativeTab(
                   title: '',
-                  systemImage: 'magnifyingglass',
+                  icon: CupertinoNativeIcon.named('magnifyingglass'),
                   id: 'search',
                   role: CupertinoNativeTabRole.search,
                 ),
