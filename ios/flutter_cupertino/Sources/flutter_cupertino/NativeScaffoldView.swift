@@ -1,6 +1,7 @@
 import Flutter
 import SwiftUI
 import UIKit
+import Combine
 
 class NativeScaffoldFactory: NSObject, FlutterPlatformViewFactory {
     private var messenger: FlutterBinaryMessenger
@@ -95,6 +96,7 @@ class NativeScaffoldView: NativeHostingView {
     /// The app's current brightness, seeded into each body engine's route so
     /// its Flutter content matches the app. Updated by `setBrightness`.
     private var currentIsDark: Bool = false
+    private var selectionCancellable: AnyCancellable?
 
     init(
         frame: CGRect,
@@ -113,7 +115,7 @@ class NativeScaffoldView: NativeHostingView {
         } else {
             model = ScaffoldModel(
                 config: ScaffoldConfig(
-                    entryPoint: nil, body: nil, appBar: nil, tabBar: nil,
+                    body: nil, appBar: nil, tabBar: nil,
                     scrollEdgeEffect: nil, isDark: nil,
                     backgroundColor: nil, primaryColor: nil))
         }
@@ -142,6 +144,14 @@ class NativeScaffoldView: NativeHostingView {
 
         createRootEngines()
         attachContent()
+
+        // Lazily create engines when the user switches tabs — the new
+        // tab's engine is spun up on demand so init only blocks on one.
+        selectionCancellable = model.$selection
+            .removeDuplicates()
+            .sink { [weak self] route in
+                self?.ensureEngine(for: route)
+            }
 
         // Apply Flutter's brightness to the hosting controller's view so
         // SwiftUI matches the Flutter theme (not the device's default).
@@ -183,32 +193,33 @@ class NativeScaffoldView: NativeHostingView {
 
     // MARK: - Engines
 
+    /// Creates only the engine for the currently active tab (or the single
+    /// body route when there's no tab bar). Other engines are created on
+    /// demand via `ensureEngine(for:)` when the user switches tabs, which
+    /// keeps the init-time main-thread blocking to a single engine.
     private func createRootEngines() {
-        let routes: [String]
+        let activeRoute: String?
         if let tabBar = model.config.tabBar {
-            routes = tabBar.tabs.map { $0.id }
-        } else if let body = model.config.body {
-            routes = [body]
+            activeRoute = model.selection
         } else {
-            routes = []
+            activeRoute = model.config.body
         }
-        for route in routes {
+        if let route = activeRoute, !route.isEmpty {
             model.rootEngines[route] = makeEngine(route: route, key: route)
         }
     }
 
+    /// Creates the engine for `route` if it doesn't already exist. Called
+    /// when the user switches tabs so inactive tabs don't pay the startup
+    /// cost at init.
+    private func ensureEngine(for route: String) {
+        guard model.rootEngines[route] == nil else { return }
+        model.rootEngines[route] = makeEngine(route: route, key: route)
+    }
+
     private func makeEngine(route: String, key: String) -> FlutterEngine {
-        // With a custom entry point the raw route is passed through. Without
-        // one, the app's own main() runs with a prefixed route that
-        // CupertinoNativeScaffold.maybeRun intercepts — no @pragma needed.
-        let engine: FlutterEngine
-        if let entryPoint = model.config.entryPoint, !entryPoint.isEmpty {
-            engine = engineGroup.makeEngine(
-                withEntrypoint: entryPoint, libraryURI: nil, initialRoute: route)
-        } else {
-            engine = engineGroup.makeEngine(
+        let engine = engineGroup.makeEngine(
                 withEntrypoint: nil, libraryURI: nil, initialRoute: "cn-scaffold://\(route)")
-        }
         // Register this plugin's platform-view factories on the spawned
         // engine so package widgets (buttons, toggles, ...) work inside
         // scaffold bodies too.
@@ -278,7 +289,6 @@ class NativeScaffoldView: NativeHostingView {
                 let bar = model.config.appBar
             {
                 model.config = ScaffoldConfig(
-                    entryPoint: model.config.entryPoint,
                     body: model.config.body,
                     appBar: AppBarConfig(
                         title: title, displayMode: bar.displayMode,

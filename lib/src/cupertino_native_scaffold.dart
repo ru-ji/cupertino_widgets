@@ -84,16 +84,8 @@ class CupertinoNativeScaffoldController {
 /// [CupertinoNativeScaffoldController.push] (host isolate) or the static
 /// [push] (body isolates) — not Flutter's Navigator. Each body runs in its
 /// own FlutterEngine. Register the route builders by calling [maybeRun] at
-/// the top of your `main()` (no entry point needed), or with a custom
-/// [entryPoint] function that calls [run]. Requires iOS 16+.
+/// the top of your `main()` (no entry point needed). Requires iOS 16+.
 class CupertinoNativeScaffold extends StatefulWidget {
-  /// Optional name of a `@pragma('vm:entry-point')` function that calls
-  /// [run]. When null (default), body engines run your app's `main()` with a
-  /// special route that [maybeRun] intercepts — add
-  /// `if (CupertinoNativeScaffold.maybeRun(routes)) return;` as the first
-  /// line of `main()`.
-  final String? entryPoint;
-
   /// Root body route when no [tabBar] is given. With a [tabBar], each tab's
   /// `id` doubles as its body route.
   final String? body;
@@ -135,7 +127,6 @@ class CupertinoNativeScaffold extends StatefulWidget {
 
   const CupertinoNativeScaffold({
     super.key,
-    this.entryPoint,
     this.body,
     this.appBar,
     this.tabBar,
@@ -156,7 +147,7 @@ class CupertinoNativeScaffold extends StatefulWidget {
   static const MethodChannel _bodyChannel =
       MethodChannel('flutter_cupertino/scaffold_body');
 
-  /// Route prefix used when no custom [entryPoint] is given: body engines run
+  /// Route prefix used by body engines so that [maybeRun] can intercept and
   /// `main()` with `cn-scaffold://<route>` as the initial route.
   static const String _routePrefix = 'cn-scaffold://';
 
@@ -392,7 +383,6 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
   Map<String, dynamic> _toMap() {
     final theme = Theme.of(context);
     return {
-      'entryPoint': widget.entryPoint,
       'body': widget.body,
       'appBar': widget.appBar?.toMap(),
       'tabBar': widget.tabBar?.toMap(),
@@ -426,7 +416,6 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
   void didUpdateWidget(covariant CupertinoNativeScaffold oldWidget) {
     super.didUpdateWidget(oldWidget);
     final oldMap = {
-      'entryPoint': oldWidget.entryPoint,
       'body': oldWidget.body,
       'appBar': oldWidget.appBar?.toMap(),
       'tabBar': oldWidget.tabBar?.toMap(),

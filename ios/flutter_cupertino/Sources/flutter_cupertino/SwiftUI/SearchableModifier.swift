@@ -16,7 +16,13 @@ struct PageScrollBody: View {
             }
             .applyScrollEdgeEffect(scrollEdgeEffect)
         } else {
-            Text("No content")
+            // Engine not yet created (lazy tab). Show a native spinner
+            // while the Dart isolate boots — avoids a blank white flash.
+            VStack {
+                Spacer()
+                ProgressView()
+                Spacer()
+            }
         }
     }
 }
