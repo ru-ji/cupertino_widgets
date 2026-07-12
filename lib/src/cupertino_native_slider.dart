@@ -35,7 +35,7 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider>
   @override
   Widget build(BuildContext context) {
     const String viewType =
-        'com.example.flutter_cupertino/cupertino_native_slider';
+        'com.example.cupertino_widgets/cupertino_native_slider';
     final Map<String, dynamic> creationParams = <String, dynamic>{
       'value': widget.value,
       'min': widget.min,

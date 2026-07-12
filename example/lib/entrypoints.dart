@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'pages/new_event_sheet_body.dart';
 import 'pages/profile_tab_page.dart';
 import 'pages/scaffold_bodies.dart';
 import 'pages/search_body.dart';
@@ -17,5 +18,6 @@ Map<String, Widget Function()> scaffoldRoutes() {
     'settings': () => const SettingsTabPage(),
     'details': () => const ScaffoldDetailsBody(),
     'searchBody': () => const SearchBody(),
+    'newEvent': () => const NewEventSheetBody(),
   };
 }

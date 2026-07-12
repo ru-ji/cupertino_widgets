@@ -1,0 +1,216 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+
+import 'internal/native_platform_view_mixin.dart';
+import 'models/cupertino_native_icon.dart';
+
+/// The shape of a [CupertinoNativeGlassContainer].
+enum CupertinoNativeGlassShape { capsule, circle, roundedRect }
+
+/// A container backed by the iOS 26 **Liquid Glass** material
+/// (SwiftUI's `.glassEffect`). The glass is a real native view that refracts
+/// whatever Flutter content is rendered behind it; [child] is ordinary Flutter
+/// content composited on top, so it stays fully interactive.
+///
+/// ```dart
+/// CupertinoNativeGlassContainer(
+///   shape: CupertinoNativeGlassShape.capsule,
+///   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+///   child: Text('Now Playing'),
+/// )
+/// ```
+///
+/// **Availability:** the refractive effect requires iOS 26+. On iOS 15–25 the
+/// native side renders a static `ultraThinMaterial` approximation so layouts
+/// don't break; on other platforms a translucent [DecoratedBox] is used. Query
+/// [isSupported] to branch your UI on the real effect.
+class CupertinoNativeGlassContainer extends StatefulWidget {
+  const CupertinoNativeGlassContainer({
+    super.key,
+    this.child,
+    this.shape = CupertinoNativeGlassShape.roundedRect,
+    this.cornerRadius = 26,
+    this.tint,
+    this.interactive = false,
+    this.onPressed,
+    this.icon,
+    this.childInteractive = false,
+    this.padding = EdgeInsets.zero,
+    this.width,
+    this.height,
+  });
+
+  /// Flutter content drawn on top of the glass. The glass sizes itself to the
+  /// child (plus [padding]) unless [width]/[height] are given.
+  final Widget? child;
+
+  final CupertinoNativeGlassShape shape;
+
+  /// Corner radius for [CupertinoNativeGlassShape.roundedRect]
+  /// (continuous corners, default 26 to match iOS 26 cards).
+  final double cornerRadius;
+
+  /// Optional tint mixed into the glass material.
+  final Color? tint;
+
+  /// When true the glass reacts to touches with the system shimmer (iOS 26).
+  final bool interactive;
+
+  /// Called when the glass is tapped (native tap gesture on the glass
+  /// surface). Set this to use the container as a liquid-glass button —
+  /// combine with [interactive] for the touch shimmer.
+  final VoidCallback? onPressed;
+
+  /// SF Symbol (or Flutter glyph) rendered natively, centered in the glass —
+  /// the easy way to make an icon-only glass button without a Flutter child.
+  final CupertinoNativeIcon? icon;
+
+  /// Whether [child] participates in hit testing. Defaults to false so every
+  /// touch falls through to the glass itself ([interactive] shimmer,
+  /// [onPressed]); set true when the child contains buttons, sliders or other
+  /// widgets that must receive their own touches.
+  final bool childInteractive;
+
+  /// Inset between the glass bounds and [child].
+  final EdgeInsetsGeometry padding;
+
+  final double? width;
+  final double? height;
+
+  /// Whether the running device renders real Liquid Glass (iOS 26+).
+  static Future<bool> get isSupported async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    const channel = MethodChannel('com.example.cupertino_widgets/alert');
+    try {
+      return await channel.invokeMethod<bool>('isLiquidGlassSupported') ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  @override
+  State<CupertinoNativeGlassContainer> createState() =>
+      _CupertinoNativeGlassContainerState();
+}
+
+class _CupertinoNativeGlassContainerState
+    extends State<CupertinoNativeGlassContainer>
+    with NativePlatformViewStateMixin {
+  Map<String, dynamic> _toMap() {
+    return {
+      'shape': widget.shape.name,
+      'cornerRadius': widget.cornerRadius,
+      'tint': widget.tint?.toARGB32(),
+      'interactive': widget.interactive,
+      'pressable': widget.onPressed != null,
+      'icon': widget.icon?.toMap(),
+    };
+  }
+
+  @override
+  void didUpdateWidget(covariant CupertinoNativeGlassContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.shape != widget.shape ||
+        oldWidget.cornerRadius != widget.cornerRadius ||
+        oldWidget.tint != widget.tint ||
+        oldWidget.interactive != widget.interactive ||
+        oldWidget.icon != widget.icon ||
+        (oldWidget.onPressed != null) != (widget.onPressed != null)) {
+      updateNativeView('updateGlass', _toMap(), refreshIntrinsicSize: false);
+    }
+  }
+
+  Future<dynamic> _handleMethodCall(MethodCall call) async {
+    if (call.method == 'pressed') {
+      widget.onPressed?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget content;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      // Touches must reach the native view immediately for the interactive
+      // shimmer / tap gesture — inside scrollables Flutter's gesture arena
+      // would otherwise delay and cancel them.
+      final wantsTouches = widget.interactive || widget.onPressed != null;
+      content = Stack(
+        // Center the child when the box is forced bigger than it (e.g. an
+        // explicit height with intrinsic width).
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: UiKitView(
+              viewType:
+                  'com.example.cupertino_widgets/cupertino_native_liquid_glass',
+              layoutDirection: TextDirection.ltr,
+              creationParams: _toMap(),
+              creationParamsCodec: const StandardMessageCodec(),
+              hitTestBehavior: wantsTouches
+                  ? PlatformViewHitTestBehavior.opaque
+                  : PlatformViewHitTestBehavior.transparent,
+              gestureRecognizers: wantsTouches
+                  ? {
+                      Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer(),
+                      ),
+                    }
+                  : const {},
+              onPlatformViewCreated: (id) => setUpChannel(
+                id,
+                'cupertino_widgets/liquid_glass_$id',
+                onMethodCall: _handleMethodCall,
+              ),
+            ),
+          ),
+          IgnorePointer(
+            ignoring: !widget.childInteractive,
+            child: Padding(
+              padding: widget.padding,
+              child: widget.child ?? const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Non-iOS fallback: a translucent rounded box.
+      Widget box = DecoratedBox(
+        decoration: BoxDecoration(
+          color: (widget.tint ?? const Color(0xFF787880)).withValues(alpha: 0.2),
+          borderRadius: widget.shape == CupertinoNativeGlassShape.circle
+              ? null
+              : BorderRadius.circular(
+                  widget.shape == CupertinoNativeGlassShape.capsule
+                      ? 999
+                      : widget.cornerRadius),
+          shape: widget.shape == CupertinoNativeGlassShape.circle
+              ? BoxShape.circle
+              : BoxShape.rectangle,
+        ),
+        child: Padding(
+          padding: widget.padding,
+          child: widget.child ?? const SizedBox.shrink(),
+        ),
+      );
+      if (widget.onPressed != null) {
+        box = GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onPressed,
+          child: box,
+        );
+      }
+      content = box;
+    }
+
+    if (widget.width != null || widget.height != null) {
+      return SizedBox(width: widget.width, height: widget.height, child: content);
+    }
+    return content;
+  }
+}

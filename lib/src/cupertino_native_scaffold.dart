@@ -136,6 +136,7 @@ class CupertinoNativeScaffold extends StatefulWidget {
     this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
     this.backgroundColor,
     this.primaryColor,
+    this.showLoadingIndicator = true,
     this.onRouteChanged,
     this.onSearchChanged,
     this.onSearchSubmitted,
@@ -143,9 +144,13 @@ class CupertinoNativeScaffold extends StatefulWidget {
   }) : assert(tabBar != null || body != null,
             'Provide a tabBar (tab ids double as body routes) or a body route');
 
+  /// Whether a native spinner shows while a body engine boots and renders
+  /// its first frame. Set false to show nothing (the page background).
+  final bool showLoadingIndicator;
+
   /// Well-known channel the native side attaches to every body engine.
   static const MethodChannel _bodyChannel =
-      MethodChannel('flutter_cupertino/scaffold_body');
+      MethodChannel('cupertino_widgets/scaffold_body');
 
   /// Route prefix used by body engines so that [maybeRun] can intercept and
   /// `main()` with `cn-scaffold://<route>` as the initial route.
@@ -212,6 +217,42 @@ class CupertinoNativeScaffold extends StatefulWidget {
     }).catchError((_) {});
   }
 
+  /// Pays body-engine start-up costs ahead of time.
+  ///
+  /// The scaffold runs each body in its own FlutterEngine. Called with no
+  /// arguments, this spawns a hidden warm-up engine so the engine group's
+  /// first-spawn cost (snapshot load, isolate-group creation) is paid early.
+  ///
+  /// Pass [routes] to go further: one engine per route is **fully booted** —
+  /// `main()` runs, the route's builder executes, `runApp` is called — and
+  /// parked. The first scaffold or sheet that opens that route attaches the
+  /// parked engine instead of booting one, so its Flutter content appears
+  /// immediately:
+  ///
+  /// ```dart
+  /// runApp(const MyApp());
+  /// CupertinoNativeScaffold.prewarm(routes: ['home']);
+  /// ```
+  ///
+  /// Each parked engine holds its isolate in memory (~a few MB), so prewarm
+  /// the routes users actually hit first, not the whole table. Note: debug
+  /// builds JIT-compile Dart on top of all this — judge real latency in
+  /// `--release`.
+  static Future<void> prewarm({List<String> routes = const []}) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    final isDark = ui.PlatformDispatcher.instance.platformBrightness ==
+        ui.Brightness.dark;
+    try {
+      await const MethodChannel('com.example.cupertino_widgets/alert')
+          .invokeMethod<void>('prewarmScaffold', {
+        'routes': routes,
+        'isDark': isDark,
+      });
+    } on PlatformException {
+      // Plugin unavailable (e.g. iOS < 15) — nothing to warm.
+    }
+  }
+
   /// Call as the FIRST line of `main()`:
   /// `if (CupertinoNativeScaffold.maybeRun(routes)) return;`
   ///
@@ -223,6 +264,12 @@ class CupertinoNativeScaffold extends StatefulWidget {
     if (!route.startsWith(_routePrefix)) return false;
     // Route is `cn-scaffold://<name>?dark=0|1`; consume the brightness suffix.
     final name = _consumeBrightnessQuery(route.substring(_routePrefix.length));
+    // The hidden engine spawned by [prewarm]: render nothing and keep the
+    // engine group warm.
+    if (name == '_warmup') {
+      runApp(const SizedBox.shrink());
+      return true;
+    }
     final builder = builders[name];
     final child = builder != null ? builder() : Text('Unknown route: $name');
     _ensureBodyHandlers();
@@ -392,6 +439,7 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
           widget.backgroundColor?.toARGB32() ?? theme.scaffoldBackgroundColor.toARGB32(),
       'primaryColor':
           widget.primaryColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
+      'showLoadingIndicator': widget.showLoadingIndicator,
     };
   }
 
@@ -431,7 +479,7 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/scaffold_$id',
+      'cupertino_widgets/scaffold_$id',
       onMethodCall: _handleMethodCall,
     );
     widget.controller?._channel = channel;
@@ -499,7 +547,7 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
     }
 
     final platformView = UiKitView(
-      viewType: 'com.example.flutter_cupertino/cupertino_native_scaffold',
+      viewType: 'com.example.cupertino_widgets/cupertino_native_scaffold',
       layoutDirection: TextDirection.ltr,
       creationParams: _toMap(),
       creationParamsCodec: const StandardMessageCodec(),

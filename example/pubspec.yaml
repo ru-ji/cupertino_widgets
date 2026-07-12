@@ -1,5 +1,5 @@
-name: flutter_cupertino_example
-description: Demonstrates how to use the flutter_cupertino plugin.
+name: cupertino_widgets_example
+description: Demonstrates how to use the cupertino_widgets plugin.
 version: 1.0.0+1
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_cupertino:
+  cupertino_widgets:
     path: ../
   # Bundles the CupertinoIcons font so CupertinoIcons glyphs can render
   # natively (the native side loads bundled icon fonts by family name).

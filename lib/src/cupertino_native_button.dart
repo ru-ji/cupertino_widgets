@@ -30,7 +30,7 @@ class CupertinoNativeButton extends StatefulWidget {
 
   const CupertinoNativeButton({
     super.key,
-    required this.title,
+    this.title = '',
     this.icon,
     this.systemImage,
     this.style = CupertinoNativeButtonStyle.automatic,
@@ -87,7 +87,7 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
       'expand': widget.expand,
       'color': widget.color?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
-      'fontWeight': widget.textStyle?.fontWeight?.index,
+      'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),
     };
   }
@@ -95,7 +95,7 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/button_$id',
+      'cupertino_widgets/button_$id',
       onMethodCall: _handleMethodCall,
     );
     // Request intrinsic size after a short delay to let the view settle
@@ -113,7 +113,7 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final platformView = UiKitView(
-        viewType: 'com.example.flutter_cupertino/cupertino_native_button',
+        viewType: 'com.example.cupertino_widgets/cupertino_native_button',
         layoutDirection: TextDirection.ltr,
         creationParams: _toMap(),
         creationParamsCodec: const StandardMessageCodec(),

@@ -51,7 +51,7 @@ class _CupertinoNativeProgressIndicatorState
   }
 
   void _onPlatformViewCreated(int id) {
-    setUpChannel(id, 'flutter_cupertino/progress_$id');
+    setUpChannel(id, 'cupertino_widgets/progress_$id');
   }
 
   @override
@@ -92,7 +92,7 @@ class _CupertinoNativeProgressIndicatorState
             height: height,
             child: UiKitView(
               viewType:
-                  'com.example.flutter_cupertino/cupertino_native_progress',
+                  'com.example.cupertino_widgets/cupertino_native_progress',
               layoutDirection: TextDirection.ltr,
               creationParams: _toMap(),
               creationParamsCodec: const StandardMessageCodec(),

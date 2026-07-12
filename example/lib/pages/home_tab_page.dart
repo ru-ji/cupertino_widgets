@@ -1,172 +1,89 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../widgets/settings_ui.dart';
+
+/// Home tab body. Shared between the standalone tab bar demo and the native
+/// scaffold — the scaffold's body engine lives inside a platform view, so this
+/// page (like all tab pages) uses only drawn Flutter widgets.
 class HomeTabPage extends StatelessWidget {
   const HomeTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 48),
-          Icon(Icons.home, size: 64, color: Colors.blue),
-          SizedBox(height: 16),
-          Text(
-            'Home',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
+          Text('Good Morning',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.36,
+                color: CupertinoColors.label.resolveFrom(context),
+              )),
+          const SizedBox(height: 4),
+          Text('Thursday, July 10', style: footnoteStyle(context)),
+          const SizedBox(height: 16),
+          const _HomeCard(
+            title: 'Native everywhere',
+            subtitle: 'This Flutter page sits behind a real UIKit tab bar — '
+                'Liquid Glass, split search tab and all.',
+            color: CupertinoColors.systemBlue,
           ),
-          SizedBox(height: 8),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
+          const SizedBox(height: 12),
+          const _HomeCard(
+            title: 'Switch tabs below',
+            subtitle: 'Selection changes are reported back to Flutter, which '
+                'swaps this body.',
+            color: CupertinoColors.systemPurple,
           ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
+          const SizedBox(height: 12),
+          const _HomeCard(
+            title: 'Try the search tab',
+            subtitle: 'The trailing tab has the native search role and floats '
+                'in its own glass capsule.',
+            color: CupertinoColors.systemTeal,
           ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'This content is rendered by Flutter inside a screen '
-            'controlled by a native SwiftUI TabView.',
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24),
-          Text(
-            'The native ScrollView wraps this Flutter view, so '
-            'scrolling is handled by SwiftUI — not Flutter.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeCard extends StatelessWidget {
+  const _HomeCard({
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
+
+  final String title;
+  final String subtitle;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = CupertinoDynamicColor.resolve(color, context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: resolved.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: resolved,
+              )),
+          const SizedBox(height: 4),
+          Text(subtitle, style: rowTitleStyle(context)),
         ],
       ),
     );

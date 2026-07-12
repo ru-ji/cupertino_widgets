@@ -68,6 +68,10 @@ class CupertinoNativeSearchField {
 class CupertinoNativeAppBar {
   final String title;
 
+  /// Secondary line under the title (SwiftUI `.navigationSubtitle`, iOS 26+;
+  /// ignored on earlier versions).
+  final String? subtitle;
+
   /// How the title is displayed. Defaults to
   /// [CupertinoNativeToolbarTitleDisplayMode.automatic].
   final CupertinoNativeToolbarTitleDisplayMode titleDisplayMode;
@@ -84,6 +88,7 @@ class CupertinoNativeAppBar {
 
   const CupertinoNativeAppBar({
     required this.title,
+    this.subtitle,
     this.titleDisplayMode = CupertinoNativeToolbarTitleDisplayMode.automatic,
     this.leading = const [],
     this.trailing = const [],
@@ -95,6 +100,7 @@ class CupertinoNativeAppBar {
   Map<String, dynamic> toMap() {
     return {
       'title': title,
+      'subtitle': subtitle,
       'displayMode': titleDisplayMode.name,
       'leading': leading.map((e) => e.toMap()).toList(),
       'trailing': trailing.map((e) => e.toMap()).toList(),

@@ -1,32 +1,45 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../widgets/settings_ui.dart';
+
+/// Settings tab body — shared with the native scaffold, so drawn Flutter
+/// widgets only (no platform views).
 class SettingsTabPage extends StatelessWidget {
   const SettingsTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 48),
-          Icon(Icons.settings, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'Settings',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24),
-          Text('Notifications', style: TextStyle(fontSize: 18)),
-          Divider(),
-          Text('Privacy', style: TextStyle(fontSize: 18)),
-          Divider(),
-          Text('About', style: TextStyle(fontSize: 18)),
-          Divider(),
-        ],
-      ),
+    return const Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SettingsSection(
+          cardColor: CupertinoColors.systemGrey6,
+          header: 'Preferences',
+          children: [
+            SettingsRow(title: 'Notifications', value: 'On', showChevron: true),
+            SettingsRow(title: 'Sounds & Haptics', showChevron: true),
+            SettingsRow(title: 'Focus', showChevron: true),
+          ],
+        ),
+        SettingsSection(
+          cardColor: CupertinoColors.systemGrey6,
+          header: 'Privacy',
+          children: [
+            SettingsRow(title: 'Location Services', value: 'While Using',
+                showChevron: true),
+            SettingsRow(title: 'Tracking', showChevron: true),
+          ],
+        ),
+        SettingsSection(
+          cardColor: CupertinoColors.systemGrey6,
+          footer: 'Cupertino Widgets 1.0.0',
+          children: [
+            SettingsRow(title: 'About', showChevron: true),
+            SettingsRow(title: 'Legal & Regulatory', showChevron: true),
+          ],
+        ),
+        SizedBox(height: 24),
+      ],
     );
   }
 }

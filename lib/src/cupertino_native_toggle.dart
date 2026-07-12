@@ -48,7 +48,7 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
       'label': widget.label,
       'color': widget.activeColor?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
-      'fontWeight': widget.textStyle?.fontWeight?.index,
+      'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),
     };
   }
@@ -56,7 +56,7 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/toggle_$id',
+      'cupertino_widgets/toggle_$id',
       onMethodCall: _handleMethodCall,
     );
     await Future.delayed(const Duration(milliseconds: 50));
@@ -74,7 +74,7 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final platformView = UiKitView(
-        viewType: 'com.example.flutter_cupertino/cupertino_native_toggle',
+        viewType: 'com.example.cupertino_widgets/cupertino_native_toggle',
         layoutDirection: TextDirection.ltr,
         creationParams: _toMap(),
         creationParamsCodec: const StandardMessageCodec(),
@@ -121,17 +121,21 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
       );
     }
 
-    // Fallback for non-iOS
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (widget.label != null) Text(widget.label!),
-        Switch(
-          value: widget.value,
-          onChanged: widget.onChanged,
-          activeThumbColor: widget.activeColor,
-        ),
-      ],
+    // Fallback for non-iOS. Material ancestor so Switch works even in
+    // Cupertino-only apps.
+    return Material(
+      type: MaterialType.transparency,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.label != null) Text(widget.label!),
+          Switch(
+            value: widget.value,
+            onChanged: widget.onChanged,
+            activeThumbColor: widget.activeColor,
+          ),
+        ],
+      ),
     );
   }
 }

@@ -25,7 +25,7 @@ class CupertinoNativeAlertAction {
 
 class CupertinoNativeAlert {
   static const MethodChannel _channel = MethodChannel(
-    'com.example.flutter_cupertino/alert',
+    'com.example.cupertino_widgets/alert',
   );
 
   static Future<void> show({

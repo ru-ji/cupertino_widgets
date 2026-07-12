@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'cupertino_scroll_edge_effect.dart';
+import 'internal/ios_version.dart';
 import 'models/cupertino_native_icon.dart';
 import 'models/cupertino_native_tab.dart';
 
@@ -176,7 +178,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
   }
 
   void _onPlatformViewCreated(int id) {
-    final channel = MethodChannel('flutter_cupertino/tabbar_$id');
+    final channel = MethodChannel('cupertino_widgets/tabbar_$id');
     _channel = channel;
     channel.setMethodCallHandler(_handleMethodCall);
     _lastIndex = _selectedIndex;
@@ -335,7 +337,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     };
 
     final platformView = UiKitView(
-      viewType: 'com.example.flutter_cupertino/cupertino_native_tabbar',
+      viewType: 'com.example.cupertino_widgets/cupertino_native_tabbar',
       layoutDirection: TextDirection.ltr,
       creationParams: creationParams,
       creationParamsCodec: const StandardMessageCodec(),
@@ -343,9 +345,38 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     );
 
     final h = widget.height ?? _intrinsicHeight ?? 50.0;
+    Widget bar;
     if (!widget.split && widget.shrinkCentered) {
-      return SizedBox(height: h, width: _intrinsicWidth, child: platformView);
+      bar = SizedBox(height: h, width: _intrinsicWidth, child: platformView);
+    } else {
+      bar = SizedBox(height: h, child: platformView);
     }
-    return SizedBox(height: h, child: platformView);
+
+    // SwiftUI's scroll-edge effect is bound to native scroll views, so a
+    // standalone bar can't get it from the system. On iOS 26+ draw the
+    // Flutter recreation behind the floating bar when the effect is
+    // explicitly requested: it reaches above the bar and down through the
+    // home-indicator area, melting Flutter content into the screen edge.
+    if (isIOS26OrLater &&
+        widget.scrollEdgeEffect != CupertinoNativeScrollEdgeEffect.automatic) {
+      final bottomInset = MediaQuery.paddingOf(context).bottom;
+      bar = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: -28,
+            bottom: -bottomInset,
+            child: CupertinoScrollEdgeEffect(
+              edge: CupertinoScrollEdgeEffectEdge.bottom,
+              style: widget.scrollEdgeEffect,
+            ),
+          ),
+          bar,
+        ],
+      );
+    }
+    return bar;
   }
 }

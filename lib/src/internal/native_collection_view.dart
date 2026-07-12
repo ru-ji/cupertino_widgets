@@ -110,7 +110,7 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/list_$id',
+      'cupertino_widgets/list_$id',
       onMethodCall: _handleMethodCall,
     );
     // Give the native view a layout pass so it can measure content height.
@@ -148,7 +148,7 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
     }
 
     final platformView = UiKitView(
-      viewType: 'com.example.flutter_cupertino/cupertino_native_list',
+      viewType: 'com.example.cupertino_widgets/cupertino_native_list',
       layoutDirection: TextDirection.ltr,
       creationParams: _toMap(),
       creationParamsCodec: const StandardMessageCodec(),
@@ -197,6 +197,10 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
         ));
       }
     }
-    return Column(mainAxisSize: MainAxisSize.min, children: children);
+    // Material ancestor so ListTile/Switch work even in Cupertino-only apps.
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
   }
 }

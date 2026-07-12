@@ -52,7 +52,7 @@ class _CupertinoNativeSegmentedControlState
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/segmented_$id',
+      'cupertino_widgets/segmented_$id',
       onMethodCall: _handleMethodCall,
     );
     await Future.delayed(const Duration(milliseconds: 50));
@@ -70,7 +70,7 @@ class _CupertinoNativeSegmentedControlState
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final platformView = UiKitView(
-        viewType: 'com.example.flutter_cupertino/cupertino_native_segmented',
+        viewType: 'com.example.cupertino_widgets/cupertino_native_segmented',
         layoutDirection: TextDirection.ltr,
         creationParams: _toMap(),
         creationParamsCodec: const StandardMessageCodec(),

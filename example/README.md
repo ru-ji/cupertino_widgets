@@ -1,3 +1,3 @@
-# flutter_cupertino_example
+# cupertino_widgets_example
 
 A new Flutter project.

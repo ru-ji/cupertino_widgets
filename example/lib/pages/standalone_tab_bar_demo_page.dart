@@ -1,19 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_cupertino/flutter_cupertino.dart';
+import 'package:flutter/cupertino.dart' show CupertinoColors;
+import 'package:flutter/widgets.dart';
+import 'package:cupertino_widgets/cupertino_widgets.dart';
 
+import '../widgets/settings_ui.dart';
 import 'home_tab_page.dart';
 import 'profile_tab_page.dart';
 import 'search_tab_page.dart';
 import 'settings_tab_page.dart';
 
-/// The standalone native tab bar inside a plain Flutter Scaffold. The bar is a
-/// bare UIKit tab bar in a transparent container that floats at its content
-/// width; the body is ordinary Flutter content. Scrolling here is Flutter's, so
-/// the native collapse/minimize animations don't trigger — that's what
-/// `CupertinoNativeScaffold` is for.
+/// The standalone native tab bar floating over ordinary Flutter content. The
+/// bar is a bare UIKit tab bar (Liquid Glass on iOS 26) with a split
+/// search-role tab; the pages it switches between are plain Flutter.
 ///
-/// (The standalone native app bar was removed; navigation bars now live only
-/// inside `CupertinoNativeScaffold`.)
+/// Scrolling here is Flutter's, so the native collapse/minimize animations
+/// don't trigger — that's what `CupertinoNativeScaffold` is for.
 class StandaloneTabBarDemoPage extends StatefulWidget {
   const StandaloneTabBarDemoPage({super.key});
 
@@ -27,52 +27,40 @@ class _StandaloneTabBarDemoPageState extends State<StandaloneTabBarDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final padding = MediaQuery.paddingOf(context);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Standalone Tab Bar')),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: padding.bottom + 60),
-            child: _body(),
+    return DemoScaffold(
+      title: 'Tab Bar',
+      backgroundColor: CupertinoColors.systemBackground,
+      bottomBar: CupertinoNativeTabBar(
+        selection: _selectedTab,
+        scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
+        split: true,
+        rightCount: 1,
+        tabs: [
+          CupertinoNativeTab(
+            title: 'Home',
+            icon: CupertinoNativeIcon.symbol(CupertinoSymbols.houseFill),
+            id: 'home',
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: CupertinoNativeTabBar(
-              selection: _selectedTab,
-              accentColor: Colors.blue,
-              scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
-              split: true,
-              rightCount: 1,
-              tabs: const [
-                CupertinoNativeTab(
-                  title: 'Home',
-                  icon: CupertinoNativeIcon.named('house.fill'),
-                  id: 'home',
-                ),
-                CupertinoNativeTab(
-                  title: 'Profile',
-                  icon: CupertinoNativeIcon.named('person.fill'),
-                  id: 'profile',
-                ),
-                CupertinoNativeTab(
-                  title: 'Settings',
-                  icon: CupertinoNativeIcon.named('gear'),
-                  id: 'settings',
-                ),
-                CupertinoNativeTab(
-                  title: '',
-                  icon: CupertinoNativeIcon.named('magnifyingglass'),
-                  id: 'search',
-                  role: CupertinoNativeTabRole.search,
-                ),
-              ],
-              onSelectionChanged: (id) => setState(() => _selectedTab = id),
-            ),
+          CupertinoNativeTab(
+            title: 'Profile',
+            icon: CupertinoNativeIcon.symbol(CupertinoSymbols.personFill),
+            id: 'profile',
+          ),
+          CupertinoNativeTab(
+            title: 'Settings',
+            icon: CupertinoNativeIcon.symbol(CupertinoSymbols.gear),
+            id: 'settings',
+          ),
+          CupertinoNativeTab(
+            title: '',
+            icon: CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
+            id: 'search',
+            role: CupertinoNativeTabRole.search,
           ),
         ],
+        onSelectionChanged: (id) => setState(() => _selectedTab = id),
       ),
+      children: [_body()],
     );
   }
 

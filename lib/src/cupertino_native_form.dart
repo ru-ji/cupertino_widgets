@@ -33,8 +33,9 @@ class CupertinoNativeForm extends StatelessWidget {
   final bool scrollable;
   final Color? tint;
 
-  /// Corner radius of the grouped section cards. Null uses 10; tune it to match
-  /// your iOS version's Settings app.
+  /// Corner radius of the grouped section cards. Null matches the running iOS
+  /// version's Settings app automatically (26 on iOS 26+, 10 on earlier
+  /// releases); set a value to override.
   final double? cornerRadius;
 
   final void Function(String id)? onRowTap;

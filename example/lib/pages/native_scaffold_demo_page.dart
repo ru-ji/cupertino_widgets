@@ -1,6 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/material.dart';
-import 'package:flutter_cupertino/flutter_cupertino.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:cupertino_widgets/cupertino_widgets.dart';
 
 /// Full native SwiftUI scaffold: large title that collapses on scroll,
 /// grouped toolbar items, a tab bar with a search-role tab and
@@ -12,58 +11,63 @@ class NativeScaffoldDemoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CupertinoNativeScaffold(
+    return SizedBox.expand(
+      child: CupertinoNativeScaffold(
         scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
         appBar: CupertinoNativeAppBar(
           title: 'Library',
+          subtitle: '128 items',
           titleDisplayMode: CupertinoNativeToolbarTitleDisplayMode.large,
           trailing: [
             // Each CupertinoNativeBarItem gets its own glass capsule (iOS 26).
             // Wrap multiple items in CupertinoNativeBarItemGroup to share one capsule.
             CupertinoNativeBarItem(
-                icon: CupertinoNativeIcon.symbol(CupertinoSymbols.plus),
-                actionId: 'add'),
+              icon: CupertinoNativeIcon.symbol(CupertinoSymbols.plus),
+              actionId: 'add',
+            ),
             CupertinoNativeBarItem(
-                icon: CupertinoNativeIcon.flutter(CupertinoIcons.ellipsis_circle),
-                actionId: 'more'),
+              icon: CupertinoNativeIcon.symbol(CupertinoSymbols.ellipsisCircle),
+              actionId: 'more',
+            ),
           ],
         ),
-        tabBar: const CupertinoNativeTabBar(
+        tabBar: CupertinoNativeTabBar(
           selection: 'home',
           minimizeBehavior: CupertinoNativeTabBarMinimizeBehavior.onScrollDown,
           // iOS 26 bottom accessory (a persistent bar above the tab bar). It
           // shows its subtitle only in the system's `.expanded` placement.
           accessory: CupertinoNativeTabBarAccessory(
             title: 'Now Playing',
-            subtitle: 'Swift Playgrounds — Track 3',
+            subtitle: 'Deep Focus — Track 3',
             icon: CupertinoNativeIcon.named('music.note'),
             actionId: 'accessory',
           ),
           tabs: [
             CupertinoNativeTab(
               title: 'Home',
-              icon: CupertinoNativeIcon.named('house.fill'),
+              icon: CupertinoNativeIcon.symbol(CupertinoSymbols.houseFill),
               id: 'home',
             ),
             CupertinoNativeTab(
               title: 'Search',
-              icon: CupertinoNativeIcon.named('magnifyingglass'),
+              icon: CupertinoNativeIcon.symbol(
+                CupertinoSymbols.magnifyingglass,
+              ),
               id: 'search',
               role: CupertinoNativeTabRole.search,
               // The search-role tab presents itself as a native search field.
               search: CupertinoNativeSearchField(
-                placeholder: 'Search languages',
+                placeholder: 'Search your library',
               ),
             ),
             CupertinoNativeTab(
               title: 'Profile',
-              icon: CupertinoNativeIcon.named('person.fill'),
+              icon: CupertinoNativeIcon.symbol(CupertinoSymbols.personFill),
               id: 'profile',
             ),
             CupertinoNativeTab(
               title: 'Settings',
-              icon: CupertinoNativeIcon.named('gear'),
+              icon: CupertinoNativeIcon.symbol(CupertinoSymbols.gear),
               id: 'settings',
             ),
           ],

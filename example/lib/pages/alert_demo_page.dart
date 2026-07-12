@@ -1,0 +1,85 @@
+import 'package:flutter/cupertino.dart';
+import 'package:cupertino_widgets/cupertino_widgets.dart';
+
+import '../widgets/settings_ui.dart';
+
+/// [CupertinoNativeAlert] presented as tappable settings rows, like the
+/// confirmation flows in Settings.
+class AlertDemoPage extends StatefulWidget {
+  const AlertDemoPage({super.key});
+
+  @override
+  State<AlertDemoPage> createState() => _AlertDemoPageState();
+}
+
+class _AlertDemoPageState extends State<AlertDemoPage> {
+  String _lastChoice = 'None yet';
+
+  void _chose(String choice) => setState(() => _lastChoice = choice);
+
+  @override
+  Widget build(BuildContext context) {
+    final blue = CupertinoColors.activeBlue.resolveFrom(context);
+    final red = CupertinoColors.systemRed.resolveFrom(context);
+
+    return DemoScaffold(
+      title: 'Alert',
+      children: [
+        SettingsSection(
+          header: 'Examples',
+          footer: 'Last choice: $_lastChoice',
+          children: [
+            SettingsRow(
+              title: 'Mobile Data Is Off',
+              titleColor: blue,
+              onTap: () => CupertinoNativeAlert.show(
+                title: 'Mobile Data is Off',
+                message:
+                    'Turn on mobile data or use Wi-Fi to access data.',
+                actions: [
+                  CupertinoNativeAlertAction(
+                    title: 'Settings',
+                    onPressed: () => _chose('Settings'),
+                  ),
+                  CupertinoNativeAlertAction(
+                    title: 'OK',
+                    onPressed: () => _chose('OK'),
+                  ),
+                ],
+              ),
+            ),
+            SettingsRow(
+              title: 'Erase All Content…',
+              titleColor: red,
+              onTap: () => CupertinoNativeAlert.show(
+                title: 'Erase All Content and Settings?',
+                message: 'This cannot be undone. All media, data and settings '
+                    'will be erased.',
+                actions: [
+                  CupertinoNativeAlertAction(
+                    title: 'Cancel',
+                    onPressed: () => _chose('Cancel'),
+                  ),
+                  CupertinoNativeAlertAction(
+                    title: 'Erase',
+                    isDestructive: true,
+                    onPressed: () => _chose('Erase'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SettingsSection(
+          header: 'About',
+          footer: 'These are real UIAlertControllers — system blur, button '
+              'order, and destructive styling included. Each action reports '
+              'back to Flutter.',
+          children: [
+            SettingsRow(title: 'Presentation', value: 'UIAlertController'),
+          ],
+        ),
+      ],
+    );
+  }
+}

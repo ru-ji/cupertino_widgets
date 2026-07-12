@@ -56,7 +56,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
       'style': widget.style.name,
       'color': widget.color?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
-      'fontWeight': widget.textStyle?.fontWeight?.index,
+      'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),
     };
   }
@@ -64,7 +64,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/menu_$id',
+      'cupertino_widgets/menu_$id',
       onMethodCall: _handleMethodCall,
     );
     await Future.delayed(const Duration(milliseconds: 50));
@@ -83,7 +83,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final platformView = UiKitView(
-        viewType: 'com.example.flutter_cupertino/cupertino_native_menu',
+        viewType: 'com.example.cupertino_widgets/cupertino_native_menu',
         layoutDirection: TextDirection.ltr,
         creationParams: _toMap(),
         creationParamsCodec: const StandardMessageCodec(),

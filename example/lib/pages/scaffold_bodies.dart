@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_cupertino/flutter_cupertino.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:cupertino_widgets/cupertino_widgets.dart';
+
+import '../widgets/settings_ui.dart';
 
 /// Body for the scaffold's home tab. Runs in its own FlutterEngine inside the
 /// native ScrollView — scrolling this content collapses the large title and
@@ -11,70 +13,114 @@ import 'package:flutter_cupertino/flutter_cupertino.dart';
 class ScaffoldHomeBody extends StatelessWidget {
   const ScaffoldHomeBody({super.key});
 
-  static const _colors = [
-    Colors.blue,
-    Colors.indigo,
-    Colors.purple,
-    Colors.pink,
-    Colors.orange,
-    Colors.teal,
+  static const _albums = [
+    ('Morning Coffee', 'Lo-fi · 24 tracks', CupertinoColors.systemBrown),
+    ('Deep Focus', 'Ambient · 40 tracks', CupertinoColors.systemIndigo),
+    ('Summer Drive', 'Pop · 31 tracks', CupertinoColors.systemOrange),
+    ('Night Runner', 'Synthwave · 18 tracks', CupertinoColors.systemPurple),
+    ('Rainy Day', 'Jazz · 26 tracks', CupertinoColors.systemTeal),
+    ('Workout Mix', 'Electronic · 35 tracks', CupertinoColors.systemRed),
+    ('Acoustic Sessions', 'Folk · 22 tracks', CupertinoColors.systemGreen),
+    ('Study Beats', 'Instrumental · 48 tracks', CupertinoColors.systemBlue),
+    ('Late Night Coding', 'Chillhop · 29 tracks', CupertinoColors.systemPink),
+    ('Sunday Morning', 'Classical · 15 tracks', CupertinoColors.systemYellow),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          icon: const Icon(Icons.chevron_right),
-          label: const Text('Open Details'),
-          onPressed: () {
-            CupertinoNativeScaffold.push(
-              CupertinoNativeScaffoldPage(
-                route: 'details',
-                appBar: CupertinoNativeAppBar(
-                  title: 'Details',
-                  trailing: [
-                    CupertinoNativeBarItem(
-                      icon: CupertinoNativeIcon.symbol(
-                          CupertinoSymbols.squareAndArrowUp),
-                      actionId: 'share_details',
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
-            'This Flutter content lives inside the native SwiftUI ScrollView. '
-            'Scroll it: the large title collapses and the tab bar minimizes — '
-            'both driven by native scrolling.',
-            textAlign: TextAlign.center,
+            'Scroll me — the large title collapses, the tab bar minimizes '
+            'and the glass toolbar reacts, all natively.',
+            style: footnoteStyle(context),
           ),
         ),
-        const SizedBox(height: 16),
-        // Long, obviously-scrollable Flutter content.
-        for (var i = 0; i < 30; i++)
-          Container(
-            height: 72,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: _colors[i % _colors.length].withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: PillButton(
+            label: 'Open Now Playing',
+            onTap: () {
+              CupertinoNativeScaffold.push(
+                CupertinoNativeScaffoldPage(
+                  route: 'details',
+                  appBar: CupertinoNativeAppBar(
+                    title: 'Now Playing',
+                    trailing: [
+                      CupertinoNativeBarItem(
+                        icon: CupertinoNativeIcon.symbol(
+                            CupertinoSymbols.squareAndArrowUp),
+                        actionId: 'share_details',
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        for (final (title, subtitle, color) in _albums) ...[
+          for (var repeat = 0; repeat < 3; repeat++)
+            _AlbumRow(
+              title: title,
+              subtitle: subtitle,
+              color: color,
             ),
-            child: Center(
-              child: Text(
-                'Flutter row $i',
-                style: const TextStyle(fontSize: 17),
+        ],
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _AlbumRow extends StatelessWidget {
+  const _AlbumRow({
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
+
+  final String title;
+  final String subtitle;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = CupertinoDynamicColor.resolve(color, context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [resolved, resolved.withValues(alpha: 0.55)],
               ),
             ),
           ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: rowTitleStyle(context)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: footnoteStyle(context)),
+              ],
+            ),
+          ),
+          const DisclosureChevron(),
+        ],
+      ),
     );
   }
 }
@@ -91,25 +137,43 @@ class ScaffoldDetailsBody extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 24),
-          const Icon(Icons.description, size: 64, color: Colors.indigo),
           const SizedBox(height: 16),
-          const Text(
-            'Detail Page',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  CupertinoColors.systemIndigo.resolveFrom(context),
+                  CupertinoColors.systemPurple.resolveFrom(context),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'This page was pushed onto the native SwiftUI NavigationStack. '
-            'The slide transition, the toolbar morph, and the back-swipe '
-            'gesture are all system behavior.',
+          const SizedBox(height: 20),
+          Text('Deep Focus',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: CupertinoColors.label.resolveFrom(context),
+              )),
+          Text('Ambient · 40 tracks', style: footnoteStyle(context)),
+          const SizedBox(height: 12),
+          Text(
+            'This page was pushed onto the native SwiftUI NavigationStack: '
+            'the slide transition, toolbar morph and back-swipe are all '
+            'system behavior.',
             textAlign: TextAlign.center,
+            style: footnoteStyle(context),
           ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            icon: const Icon(Icons.chevron_left),
-            label: const Text('Pop'),
-            onPressed: () => CupertinoNativeScaffold.pop(),
+          const SizedBox(height: 20),
+          PillButton(
+            label: 'Pop Back',
+            filled: false,
+            onTap: () => CupertinoNativeScaffold.pop(),
           ),
         ],
       ),

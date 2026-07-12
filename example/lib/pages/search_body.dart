@@ -1,7 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_cupertino/flutter_cupertino.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:cupertino_widgets/cupertino_widgets.dart';
+
+import '../widgets/settings_ui.dart';
 
 /// Body for the searchable scaffold demo. It runs in its own FlutterEngine
 /// inside the native SwiftUI ScrollView and listens to
@@ -23,21 +25,21 @@ class SearchBody extends StatefulWidget {
 }
 
 class _SearchBodyState extends State<SearchBody> {
-  static const _all = <String>[
-    'SwiftUI',
-    'Swift',
-    'Objective-C',
-    'Python',
-    'JavaScript',
-    'TypeScript',
-    'Dart',
-    'Kotlin',
-    'Java',
-    'Rust',
-    'Go',
-    'C++',
-    'Ruby',
-    'PHP',
+  static const _all = <(String, String)>[
+    ('SwiftUI', 'Apple platforms'),
+    ('Swift', 'Apple platforms'),
+    ('Objective-C', 'Apple platforms'),
+    ('Python', 'General purpose'),
+    ('JavaScript', 'Web'),
+    ('TypeScript', 'Web'),
+    ('Dart', 'Flutter'),
+    ('Kotlin', 'Android'),
+    ('Java', 'JVM'),
+    ('Rust', 'Systems'),
+    ('Go', 'Backend'),
+    ('C++', 'Systems'),
+    ('Ruby', 'Web'),
+    ('PHP', 'Web'),
   ];
 
   /// Popular queries to hint while the field is focused but empty.
@@ -46,7 +48,7 @@ class _SearchBodyState extends State<SearchBody> {
   bool _active = false;
   bool _loading = false;
   String _query = '';
-  List<String> _results = const [];
+  List<(String, String)> _results = const [];
   Timer? _debounce;
 
   @override
@@ -79,7 +81,7 @@ class _SearchBodyState extends State<SearchBody> {
         final q = state.query.toLowerCase();
         setState(() {
           _results =
-              _all.where((e) => e.toLowerCase().contains(q)).toList();
+              _all.where((e) => e.$1.toLowerCase().contains(q)).toList();
           _loading = false;
         });
       });
@@ -96,7 +98,7 @@ class _SearchBodyState extends State<SearchBody> {
   @override
   Widget build(BuildContext context) {
     if (!_active) {
-      return _list(_all);
+      return _list('Languages', _all);
     }
     if (_query.isEmpty) {
       return _suggestionsView();
@@ -107,18 +109,30 @@ class _SearchBodyState extends State<SearchBody> {
     if (_results.isEmpty) {
       return _empty();
     }
-    return _list(_results);
+    return _list('Results', _results);
   }
 
-  Widget _list(List<String> items) {
+  Widget _list(String header, List<(String, String)> items) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final item in items)
-          ListTile(
-            leading: const Icon(Icons.code),
-            title: Text(item),
-          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 16, 32, 8),
+          child: Text(header.toUpperCase(), style: footnoteStyle(context)),
+        ),
+        SettingsSection(
+          cardColor: CupertinoColors.systemGrey6,
+          children: [
+            for (final (name, category) in items)
+              SettingsRow(
+                title: name,
+                subtitle: category,
+                showChevron: true,
+                onTap: () {},
+              ),
+          ],
+        ),
         const SizedBox(height: 24),
       ],
     );
@@ -129,18 +143,17 @@ class _SearchBodyState extends State<SearchBody> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            'Suggestions',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 16, 32, 8),
+          child: Text('SUGGESTED', style: footnoteStyle(context)),
         ),
-        for (final s in _suggestions)
-          ListTile(
-            leading: const Icon(Icons.north_west, size: 18),
-            title: Text(s),
-          ),
+        SettingsSection(
+          cardColor: CupertinoColors.systemGrey6,
+          children: [
+            for (final s in _suggestions)
+              SettingsRow(title: s, onTap: () {}),
+          ],
+        ),
         const SizedBox(height: 24),
       ],
     );
@@ -149,7 +162,7 @@ class _SearchBodyState extends State<SearchBody> {
   Widget _loader() {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 48),
-      child: Center(child: CircularProgressIndicator()),
+      child: Center(child: ActivitySpinner(size: 28)),
     );
   }
 
@@ -157,10 +170,7 @@ class _SearchBodyState extends State<SearchBody> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Center(
-        child: Text(
-          'No results for "$_query"',
-          style: const TextStyle(color: Colors.grey),
-        ),
+        child: Text('No results for "$_query"', style: footnoteStyle(context)),
       ),
     );
   }

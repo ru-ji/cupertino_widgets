@@ -7,6 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'internal/native_platform_view_mixin.dart';
+import 'models/cupertino_native_icon.dart';
+
+/// Where the single line of text sits within the field's height, mapped to
+/// `UIControl.contentVerticalAlignment`.
+enum CupertinoNativeTextVerticalAlignment { top, center, bottom }
 
 /// Disambiguates a quick drag (scroll the ancestor `Scrollable`, like a plain
 /// Flutter `TextField` allows) from a press-and-hold (enter native text
@@ -132,6 +137,30 @@ class CupertinoNativeTextField extends StatefulWidget {
   /// Background color. Defaults to transparent (iOS default).
   final Color? backgroundColor;
 
+  /// Renders the field on a **Liquid Glass** background (iOS 26 `UIGlassEffect`;
+  /// an ultra-thin material stands in on earlier versions). The text gets a
+  /// 16pt horizontal inset inside the glass.
+  final bool glassEffect;
+
+  /// Corner radius of the [glass] shape (continuous corners).
+  final double glassCornerRadius;
+
+  /// Optional tint mixed into the [glass] material.
+  final Color? glassTint;
+
+  /// Leading SF Symbol inside the field (native `UITextField.leftView`).
+  /// SF Symbols only — Flutter widgets can't be embedded in a native control;
+  /// compose with a Flutter `Row`/`Stack` for arbitrary widgets.
+  final CupertinoNativeIcon? prefixIcon;
+
+  /// Trailing SF Symbol inside the field (native `UITextField.rightView`).
+  final CupertinoNativeIcon? suffixIcon;
+
+  /// Where the (single) line of text sits within the field's height — useful
+  /// with an explicit [height]. UITextField is single-line; multi-line input
+  /// would use UITextView and is not covered yet.
+  final CupertinoNativeTextVerticalAlignment verticalAlignment;
+
   /// iOS autofill/content type hint (e.g. `'password'`, `'username'`,
   /// `'emailAddress'`, `'oneTimeCode'`, `'name'`, `'telephoneNumber'`,
   /// `'fullStreetAddress'`, `'URL'`). Passed through to `UITextContentType`.
@@ -173,6 +202,12 @@ class CupertinoNativeTextField extends StatefulWidget {
     this.cursorColor,
     this.clearButtonMode = CupertinoNativeClearButtonMode.never,
     this.backgroundColor,
+    this.glassEffect = false,
+    this.glassCornerRadius = 16,
+    this.glassTint,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.verticalAlignment = CupertinoNativeTextVerticalAlignment.center,
     this.textContentType,
     this.onChanged,
     this.onSubmitted,
@@ -336,7 +371,14 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         o.style != widget.style ||
         o.cursorColor != widget.cursorColor ||
         o.clearButtonMode != widget.clearButtonMode ||
-        o.textContentType != widget.textContentType;
+        o.textContentType != widget.textContentType ||
+        o.backgroundColor != widget.backgroundColor ||
+        o.glassEffect != widget.glassEffect ||
+        o.glassCornerRadius != widget.glassCornerRadius ||
+        o.glassTint != widget.glassTint ||
+        o.prefixIcon != widget.prefixIcon ||
+        o.suffixIcon != widget.suffixIcon ||
+        o.verticalAlignment != widget.verticalAlignment;
   }
 
   /// Push programmatic controller edits to native (guarded against the echo
@@ -365,13 +407,19 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       'readOnly': widget.readOnly,
       'autofocus': widget.autofocus,
       'fontSize': widget.style?.fontSize,
-      'fontWeight': widget.style?.fontWeight?.index,
+      'fontWeight': widget.style?.fontWeight?.value,
       'textColor': widget.style?.color?.toARGB32(),
       'cursorColor': widget.cursorColor?.toARGB32(),
       'clearButtonMode': widget.clearButtonMode.name,
       'textContentType': widget.textContentType,
       'isDark': _isDark,
       'backgroundColor': widget.backgroundColor?.toARGB32(),
+      'glass': widget.glassEffect,
+      'glassCornerRadius': widget.glassCornerRadius,
+      'glassTint': widget.glassTint?.toARGB32(),
+      'prefixIcon': widget.prefixIcon?.toMap(),
+      'suffixIcon': widget.suffixIcon?.toMap(),
+      'verticalAlignment': widget.verticalAlignment.name,
     };
   }
 
@@ -385,7 +433,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(
       id,
-      'flutter_cupertino/textfield_$id',
+      'cupertino_widgets/textfield_$id',
       onMethodCall: _handleMethodCall,
     );
     await Future.delayed(const Duration(milliseconds: 50));
@@ -432,7 +480,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final platformView = UiKitView(
-        viewType: 'com.example.flutter_cupertino/cupertino_native_text_field',
+        viewType: 'com.example.cupertino_widgets/cupertino_native_text_field',
         layoutDirection: TextDirection.ltr,
         creationParams: _toMap(),
         creationParamsCodec: const StandardMessageCodec(),
