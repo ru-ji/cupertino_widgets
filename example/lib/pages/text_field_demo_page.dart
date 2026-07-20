@@ -16,6 +16,8 @@ class TextFieldDemoPage extends StatefulWidget {
 class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
   final _nameController = TextEditingController(text: 'Casey Rivera');
   String _email = '';
+  bool _glassClear = false;
+  bool _glassInteractive = true;
 
   @override
   void dispose() {
@@ -32,7 +34,8 @@ class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
           header: 'Liquid Glass',
           footer: 'glass: true wraps the native field in the iOS 26 '
               'UIGlassEffect — with a prefix SF Symbol via the native '
-              'leftView slot.',
+              'leftView slot. glassVariant picks regular or clear glass; '
+              'glassInteractive toggles the touch shimmer.',
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -40,10 +43,30 @@ class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
                 placeholder: 'Search or enter text…',
                 glassEffect: true,
                 glassCornerRadius: 16,
+                glassVariant: _glassClear
+                    ? CupertinoGlassVariant.clear
+                    : CupertinoGlassVariant.regular,
+                glassInteractive: _glassInteractive,
                 height: 48,
                 prefixIcon:
                     CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
                 clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
+              ),
+            ),
+            SettingsRow(
+              title: 'Clear variant',
+              subtitle: 'More transparent glass',
+              trailing: CupertinoNativeToggle(
+                value: _glassClear,
+                onChanged: (v) => setState(() => _glassClear = v),
+              ),
+            ),
+            SettingsRow(
+              title: 'Interactive',
+              subtitle: 'Shimmer on touch',
+              trailing: CupertinoNativeToggle(
+                value: _glassInteractive,
+                onChanged: (v) => setState(() => _glassInteractive = v),
               ),
             ),
           ],

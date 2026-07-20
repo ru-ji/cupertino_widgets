@@ -26,6 +26,8 @@ struct TextFieldConfig: Codable {
     let backgroundColor: Int?  // ARGB — nil = transparent (iOS default)
     let glass: Bool?  // Liquid Glass background (iOS 26; material fallback below)
     let glassCornerRadius: Double?  // glass shape radius; nil = 16
+    let glassVariant: String?  // "regular" | "clear"; nil = regular
+    let glassInteractive: Bool?  // touch shimmer on the glass; nil = true
     let glassTint: Int?  // ARGB tint mixed into the glass
     let prefixIcon: IconConfig?  // leading SF Symbol (UITextField.leftView)
     let suffixIcon: IconConfig?  // trailing SF Symbol (UITextField.rightView)

@@ -109,6 +109,7 @@ natively via `CupertinoNativeIcon.flutter(...)`.
 ```dart
 CupertinoNativeGlassContainer(
   shape: CupertinoNativeGlassShape.capsule,
+  variant: CupertinoGlassVariant.clear,  // .regular (default) or .clear
   interactive: true,               // system touch shimmer
   onPressed: () {},                // makes it a glass button
   icon: CupertinoNativeIcon.symbol(CupertinoSymbols.paintbrush),
@@ -117,8 +118,11 @@ CupertinoNativeGlassContainer(
 ```
 
 The glass is a real `glassEffect` refracting whatever Flutter renders behind
-it. Check `CupertinoNativeGlassContainer.isSupported` to branch on devices
-below iOS 26 (they render a material fallback).
+it. `CupertinoGlassVariant.clear` picks the more transparent clear glass for
+media-rich backdrops. Check `CupertinoNativeGlassContainer.isSupported` to
+branch on devices below iOS 26 (they render a material fallback).
+`CupertinoNativeTextField(glassEffect: true)` takes the same variants via
+`glassVariant`, plus `glassInteractive` to toggle its touch shimmer.
 
 <!-- 📸 IMAGE (GIF recommended): glass — the Liquid Glass demo hero card over
      the colorful backdrop, finger pressing the shapes.

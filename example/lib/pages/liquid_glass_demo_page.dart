@@ -19,6 +19,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
   static const _tints = ['None', 'Blue', 'Pink'];
   int _tintIndex = 0;
   bool _interactive = true;
+  bool _clear = false;
   bool? _supported;
 
   @override
@@ -28,6 +29,9 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
       if (mounted) setState(() => _supported = v);
     });
   }
+
+  CupertinoGlassVariant get _variant =>
+      _clear ? CupertinoGlassVariant.clear : CupertinoGlassVariant.regular;
 
   Color? get _tint => switch (_tintIndex) {
         1 => CupertinoColors.systemBlue,
@@ -56,6 +60,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                 child: CupertinoNativeGlassContainer(
                   shape: CupertinoNativeGlassShape.roundedRect,
                   cornerRadius: 26,
+                  variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
                   width: 260,
@@ -86,6 +91,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                 bottom: 20,
                 child: CupertinoNativeGlassContainer(
                   shape: CupertinoNativeGlassShape.capsule,
+                  variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
                   height: 52,
@@ -104,6 +110,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                 right: 20,
                 child: CupertinoNativeGlassContainer(
                   shape: CupertinoNativeGlassShape.circle,
+                  variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
                   width: 56,
@@ -134,6 +141,14 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
               trailing: CupertinoNativeToggle(
                 value: _interactive,
                 onChanged: (v) => setState(() => _interactive = v),
+              ),
+            ),
+            SettingsRow(
+              title: 'Clear variant',
+              subtitle: 'More transparent glass',
+              trailing: CupertinoNativeToggle(
+                value: _clear,
+                onChanged: (v) => setState(() => _clear = v),
               ),
             ),
             SettingsRow(title: 'Tint', value: _tints[_tintIndex]),

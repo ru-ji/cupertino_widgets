@@ -10,6 +10,12 @@ import 'models/cupertino_native_icon.dart';
 /// The shape of a [CupertinoNativeGlassContainer].
 enum CupertinoNativeGlassShape { capsule, circle, roundedRect }
 
+/// Which Liquid Glass material variant to render (SwiftUI `Glass` /
+/// `UIGlassEffect.Style`): [regular] is the standard adaptive glass,
+/// [clear] is the more transparent variant for media-rich backdrops.
+/// Ignored below iOS 26, where the material fallback has no variants.
+enum CupertinoGlassVariant { regular, clear }
+
 /// A container backed by the iOS 26 **Liquid Glass** material
 /// (SwiftUI's `.glassEffect`). The glass is a real native view that refracts
 /// whatever Flutter content is rendered behind it; [child] is ordinary Flutter
@@ -33,6 +39,7 @@ class CupertinoNativeGlassContainer extends StatefulWidget {
     this.child,
     this.shape = CupertinoNativeGlassShape.roundedRect,
     this.cornerRadius = 26,
+    this.variant = CupertinoGlassVariant.regular,
     this.tint,
     this.interactive = false,
     this.onPressed,
@@ -52,6 +59,10 @@ class CupertinoNativeGlassContainer extends StatefulWidget {
   /// Corner radius for [CupertinoNativeGlassShape.roundedRect]
   /// (continuous corners, default 26 to match iOS 26 cards).
   final double cornerRadius;
+
+  /// Glass material variant — regular (default) or the more transparent
+  /// clear glass (iOS 26).
+  final CupertinoGlassVariant variant;
 
   /// Optional tint mixed into the glass material.
   final Color? tint;
@@ -106,6 +117,7 @@ class _CupertinoNativeGlassContainerState
     return {
       'shape': widget.shape.name,
       'cornerRadius': widget.cornerRadius,
+      'variant': widget.variant.name,
       'tint': widget.tint?.toARGB32(),
       'interactive': widget.interactive,
       'pressable': widget.onPressed != null,
@@ -118,6 +130,7 @@ class _CupertinoNativeGlassContainerState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.shape != widget.shape ||
         oldWidget.cornerRadius != widget.cornerRadius ||
+        oldWidget.variant != widget.variant ||
         oldWidget.tint != widget.tint ||
         oldWidget.interactive != widget.interactive ||
         oldWidget.icon != widget.icon ||

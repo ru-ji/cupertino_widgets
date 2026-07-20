@@ -210,8 +210,8 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
 
         let effectView: UIVisualEffectView
         if #available(iOS 26.0, *) {
-            let effect = UIGlassEffect()
-            effect.isInteractive = true
+            let effect = UIGlassEffect(style: c.glassVariant == "clear" ? .clear : .regular)
+            effect.isInteractive = c.glassInteractive ?? true
             if let tint = c.glassTint { effect.tintColor = UIColor(argb: tint) }
             effectView = UIVisualEffectView(effect: effect)
         } else {

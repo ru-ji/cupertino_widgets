@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'cupertino_native_glass_container.dart' show CupertinoGlassVariant;
 import 'internal/native_platform_view_mixin.dart';
 import 'search_row_visibility.dart';
 import 'models/cupertino_native_icon.dart';
@@ -146,6 +147,14 @@ class CupertinoNativeTextField extends StatefulWidget {
   /// Corner radius of the [glass] shape (continuous corners).
   final double glassCornerRadius;
 
+  /// Glass material variant — regular (default) or the more transparent
+  /// clear glass (iOS 26). Only used with [glassEffect].
+  final CupertinoGlassVariant glassVariant;
+
+  /// Whether the glass reacts to touches with the system shimmer (iOS 26).
+  /// Only used with [glassEffect].
+  final bool glassInteractive;
+
   /// Optional tint mixed into the [glass] material.
   final Color? glassTint;
 
@@ -212,6 +221,8 @@ class CupertinoNativeTextField extends StatefulWidget {
     this.backgroundColor,
     this.glassEffect = false,
     this.glassCornerRadius = 16,
+    this.glassVariant = CupertinoGlassVariant.regular,
+    this.glassInteractive = true,
     this.glassTint,
     this.prefixIcon,
     this.suffixIcon,
@@ -411,6 +422,8 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         o.backgroundColor != widget.backgroundColor ||
         o.glassEffect != widget.glassEffect ||
         o.glassCornerRadius != widget.glassCornerRadius ||
+        o.glassVariant != widget.glassVariant ||
+        o.glassInteractive != widget.glassInteractive ||
         o.glassTint != widget.glassTint ||
         o.prefixIcon != widget.prefixIcon ||
         o.suffixIcon != widget.suffixIcon ||
@@ -452,6 +465,8 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       'backgroundColor': widget.backgroundColor?.toARGB32(),
       'glass': widget.glassEffect,
       'glassCornerRadius': widget.glassCornerRadius,
+      'glassVariant': widget.glassVariant.name,
+      'glassInteractive': widget.glassInteractive,
       'glassTint': widget.glassTint?.toARGB32(),
       'prefixIcon': widget.prefixIcon?.toMap(),
       'suffixIcon': widget.suffixIcon?.toMap(),

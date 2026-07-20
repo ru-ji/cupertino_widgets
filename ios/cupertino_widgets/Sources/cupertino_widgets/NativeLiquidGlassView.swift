@@ -71,6 +71,7 @@ class NativeLiquidGlassView: NativeHostingView {
         AdaptiveLiquidGlassView(
             shape: args["shape"] as? String ?? "roundedRect",
             cornerRadius: CGFloat(args["cornerRadius"] as? Double ?? 26),
+            variant: args["variant"] as? String ?? "regular",
             tint: (args["tint"] as? Int).map { Color(argb: $0) },
             interactive: args["interactive"] as? Bool ?? false,
             pressable: args["pressable"] as? Bool ?? false,
@@ -88,6 +89,7 @@ class NativeLiquidGlassView: NativeHostingView {
 struct AdaptiveLiquidGlassView: View {
     let shape: String
     let cornerRadius: CGFloat
+    let variant: String  // "regular" | "clear"
     let tint: Color?
     let interactive: Bool
     let pressable: Bool
@@ -152,7 +154,7 @@ struct AdaptiveLiquidGlassView: View {
 
     @available(iOS 26.0, *)
     private var glass: Glass {
-        var glass: Glass = .regular
+        var glass: Glass = variant == "clear" ? .clear : .regular
         if let tint { glass = glass.tint(tint) }
         if interactive { glass = glass.interactive() }
         return glass
