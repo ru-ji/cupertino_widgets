@@ -4,8 +4,6 @@ import 'package:flutter/widgets.dart';
 import 'package:cupertino_widgets/cupertino_widgets.dart';
 
 import '../widgets/settings_ui.dart';
-import 'package:inspire_blur/inspire_blur.dart';
-import 'package:progressive_blur/progressive_blur.dart';
 
 /// [CupertinoSliverAppBar] — the Flutter-drawn iOS 26 navigation bar: pure
 /// scroll-edge-effect background (no solid fill, no border), the blur-morph

@@ -94,10 +94,10 @@ packages:
     dependency: "direct main"
     description:
       name: inspire_blur
-      sha256: "45b0cb837c0c40f75ef753aef40593eb4b3738bcfe6f312231b5e66175ed61d8"
+      sha256: ed0665b9ac0a508ba0a8544fac3141b25217ac99055fade9cc91e2054b9249e4
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.1"
+    version: "0.4.0"
   leak_tracker:
     dependency: transitive
     description:
