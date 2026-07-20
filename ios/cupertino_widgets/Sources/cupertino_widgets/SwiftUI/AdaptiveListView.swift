@@ -78,14 +78,24 @@ struct AdaptiveListView: View {
             }
 
             VStack(spacing: 0) {
+                // The separator is an overlay pinned to the row's bottom edge
+                // (how UITableView draws its own), not a sibling `Divider()`:
+                // a free-standing hairline between stack children could get
+                // dropped at certain row boundaries when the hosting view
+                // snapshots, leaving rows with no divider between them.
                 ForEach(Array(section.rows.enumerated()), id: \.element.id) { index, row in
                     rowView(row)
                         .frame(minHeight: 44)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 6)
-                    if index < section.rows.count - 1 {
-                        Divider().padding(.leading, separatorInset(row))
-                    }
+                        .overlay(alignment: .bottom) {
+                            if index < section.rows.count - 1 {
+                                Rectangle()
+                                    .fill(Color(uiColor: .separator))
+                                    .frame(height: 1.0 / UIScreen.main.scale)
+                                    .padding(.leading, separatorInset(row))
+                            }
+                        }
                 }
             }
             .background(isPlain ? Color.clear : Color(.secondarySystemGroupedBackground))

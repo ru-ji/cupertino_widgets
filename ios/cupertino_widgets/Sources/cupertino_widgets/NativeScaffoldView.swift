@@ -140,6 +140,25 @@ class NativeScaffoldView: NativeHostingView {
         return pooledEngines.removeValue(forKey: route)
     }
 
+    deinit {
+        // Park the root bodies back into the shared pool: re-opening a
+        // scaffold on the same route re-attaches the still-running engine —
+        // Dart state intact, no reload, no spinner — instead of paying a
+        // fresh boot. Bodies still boot lazily on FIRST visit; a parked
+        // engine renders nothing while detached and holds ~a few MB.
+        for (route, engine) in model.rootEngines {
+            engine.viewController = nil
+            if Self.pooledEngines[route] == nil {
+                Self.pooledEngines[route] = engine
+            }
+        }
+        // Pushed detail pages are per-instance (the same route can be pushed
+        // twice with independent state); they die with the scaffold.
+        for engine in model.pushedEngines.values {
+            engine.viewController = nil
+        }
+    }
+
     private let channel: FlutterMethodChannel
     private let model: ScaffoldModel
     private var bodyChannels: [String: FlutterMethodChannel] = [:]

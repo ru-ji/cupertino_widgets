@@ -91,6 +91,7 @@ final class NativeSheetManager: NSObject, UIAdaptivePresentationControllerDelega
         let initialSegment = args["bottomSelectedIndex"] as? Int ?? 0
         let scrollEdgeEffect = args["scrollEdgeEffect"] as? String
         let showLoadingIndicator = args["showLoadingIndicator"] as? Bool ?? true
+        let backgroundArgb = args["backgroundColor"] as? Int
 
         let presented: UIViewController
         if #available(iOS 16.0, *) {
@@ -103,6 +104,7 @@ final class NativeSheetManager: NSObject, UIAdaptivePresentationControllerDelega
                     initialSegment: initialSegment,
                     scrollEdgeEffect: scrollEdgeEffect,
                     showLoadingIndicator: showLoadingIndicator,
+                    backgroundColor: backgroundArgb,
                     onBarAction: { [weak self] id in
                         self?.eventsChannel?.invokeMethod("barAction", arguments: id)
                     },
@@ -213,6 +215,12 @@ struct SheetRootView: View {
     let initialSegment: Int
     let scrollEdgeEffect: String?
     let showLoadingIndicator: Bool
+    /// Sheet background (ARGB) painted behind the whole stack content. The
+    /// NavigationStack draws its own opaque system background (resolved at
+    /// the sheet's *elevated* level in dark mode) over the hosting view's
+    /// backgroundColor, so the color must be re-applied inside the stack or
+    /// the chrome regions read differently from the Flutter body.
+    let backgroundColor: Int?
     let onBarAction: (String) -> Void
     let onSegment: (Int) -> Void
     let onSearchChanged: (String) -> Void
@@ -228,6 +236,7 @@ struct SheetRootView: View {
         initialSegment: Int,
         scrollEdgeEffect: String?,
         showLoadingIndicator: Bool,
+        backgroundColor: Int?,
         onBarAction: @escaping (String) -> Void,
         onSegment: @escaping (Int) -> Void,
         onSearchChanged: @escaping (String) -> Void,
@@ -239,6 +248,7 @@ struct SheetRootView: View {
         self.initialSegment = initialSegment
         self.scrollEdgeEffect = scrollEdgeEffect
         self.showLoadingIndicator = showLoadingIndicator
+        self.backgroundColor = backgroundColor
         self.onBarAction = onBarAction
         self.onSegment = onSegment
         self.onSearchChanged = onSearchChanged
@@ -261,6 +271,18 @@ struct SheetRootView: View {
                     onSearchSubmitted(searchText)
                 }
                 .onChange(of: searchText) { onSearchChanged($0) }
+                .background(sheetBackground)
+        }
+    }
+
+    /// The Dart-provided background, under the bar and safe areas too, so
+    /// the chrome matches the Flutter body exactly.
+    @ViewBuilder
+    private var sheetBackground: some View {
+        if let backgroundColor = backgroundColor {
+            Color(argb: backgroundColor).ignoresSafeArea()
+        } else {
+            Color.clear
         }
     }
 

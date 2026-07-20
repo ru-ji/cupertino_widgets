@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'internal/native_platform_view_mixin.dart';
+import 'search_row_visibility.dart';
 import 'models/cupertino_native_icon.dart';
 
 /// Where the single line of text sits within the field's height, mapped to
@@ -182,6 +183,13 @@ class CupertinoNativeTextField extends StatefulWidget {
   final double? width;
   final double? height;
 
+  /// Adopts the parent's height instead of [height]/the intrinsic one, so the
+  /// native view physically resizes with its host. Used by
+  /// `CupertinoSliverAppBar.search`, whose collapsing slot squeezes the
+  /// capsule proportionally to the scroll. [height] remains the fallback when
+  /// the parent's height is unbounded.
+  final bool fillHeight;
+
   const CupertinoNativeTextField({
     super.key,
     this.controller,
@@ -216,6 +224,7 @@ class CupertinoNativeTextField extends StatefulWidget {
     this.onTapOutside,
     this.width,
     this.height,
+    this.fillHeight = false,
   });
 
   @override
@@ -332,6 +341,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _syncBrightness();
+    _syncSearchRowVisibility();
   }
 
   void _syncBrightness() {
@@ -341,10 +351,36 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
     channel?.invokeMethod('setBrightness', {'isDark': isDark});
   }
 
+  /// The enclosing [CupertinoSliverAppBar]'s search-row visibility, when this
+  /// field is hosted as its `searchField`. Flutter's `Opacity` can't fade a
+  /// platform view's pixels, so the fade is forwarded to the native side.
+  ValueListenable<double>? _searchRowVisibility;
+
+  /// Last opacity actually sent, quantized — the scroll drives the value every
+  /// frame and the channel shouldn't be spammed with sub-perceptual deltas.
+  double? _lastSentOpacity;
+
+  void _syncSearchRowVisibility() {
+    final visibility = CupertinoSearchRowVisibility.maybeOf(context);
+    if (identical(visibility, _searchRowVisibility)) return;
+    _searchRowVisibility?.removeListener(_onSearchRowVisibilityChanged);
+    _searchRowVisibility = visibility;
+    visibility?.addListener(_onSearchRowVisibilityChanged);
+  }
+
+  void _onSearchRowVisibilityChanged() {
+    final value = _searchRowVisibility?.value ?? 1.0;
+    final quantized = (value * 20).roundToDouble() / 20;
+    if (quantized == _lastSentOpacity) return;
+    _lastSentOpacity = quantized;
+    channel?.invokeMethod('setContentOpacity', {'opacity': quantized});
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?.removeListener(_onControllerChanged);
+    _searchRowVisibility?.removeListener(_onSearchRowVisibilityChanged);
     if (_ownsFocusNode) _focusNode.dispose();
     super.dispose();
   }
@@ -438,6 +474,9 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
     );
     await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
+    // The view may be created mid-collapse (or already collapsed); align the
+    // native content opacity with the current row visibility right away.
+    if (_searchRowVisibility != null) _onSearchRowVisibilityChanged();
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -489,7 +528,24 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       );
 
       final Widget sized;
-      if (widget.width != null || widget.height != null) {
+      if (widget.fillHeight) {
+        // Track the parent's (possibly animating) height so the native view
+        // really resizes — e.g. the app bar's collapsing search slot.
+        sized = LayoutBuilder(
+          builder: (context, constraints) {
+            final width =
+                constraints.maxWidth.isFinite ? constraints.maxWidth : 200.0;
+            final height = constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : (widget.height ?? intrinsicHeight ?? 52);
+            return SizedBox(
+              width: widget.width ?? width,
+              height: height,
+              child: platformView,
+            );
+          },
+        );
+      } else if (widget.width != null || widget.height != null) {
         sized = SizedBox(
           width: widget.width,
           height: widget.height ?? intrinsicHeight ?? 52,

@@ -170,6 +170,9 @@ void main() {
 CupertinoNativeScaffold(
   appBar: CupertinoNativeAppBar(title: 'Library'),
   tabBar: CupertinoNativeTabBar(tabs: [/* ... */]),
+  // A native spinner shows while a body engine boots its first frame.
+  // Pass false to show nothing (the page background) instead:
+  showLoadingIndicator: false,
 )
 ```
 
@@ -211,11 +214,50 @@ between detents.
 
 ## Performance
 
-Scaffold and sheet bodies run in engines spawned from one shared
-`FlutterEngineGroup` — every spawn after the first is cheap. Call
-`CupertinoNativeScaffold.prewarm()` once after `runApp` to pay the first
-spawn in the background so even the *first* native screen opens instantly.
-(Debug builds JIT-compile Dart on engine start; judge startup latency in
+### How scaffold bodies live
+
+Every `CupertinoNativeScaffold` (and native sheet) body is a Flutter page
+running in its own lightweight engine, spawned from one shared
+`FlutterEngineGroup` — engines share the GPU context and Dart snapshot, so
+each one costs a few MB, not a whole app. Their lifecycle:
+
+1. **Lazy** — a body boots the first time its page or tab is shown, never
+   before.
+2. **Kept across visits** — when you leave a scaffold, its root bodies are
+   *parked*: detached from the screen, still running, rendering nothing.
+   Re-opening the same route re-attaches the parked body instantly — no
+   reload, no spinner, scroll position and state intact.
+3. Pushed detail pages are per-instance and are discarded when popped.
+
+### `prewarm()` — what it's for and how to use it
+
+The one boot users can still feel is the **very first engine after app
+launch**: the engine group pays its one-time cost (loading the Dart
+snapshot, creating the isolate group) right when the user opens the first
+native screen. `prewarm()` moves that cost to app startup instead, where
+nobody notices it:
+
+```dart
+void main() {
+  if (CupertinoNativeScaffold.maybeRun(routes)) return;
+  runApp(const MyApp());
+  CupertinoNativeScaffold.prewarm(); // after runApp — non-blocking
+}
+```
+
+That plain call is all most apps need. Pass `routes:` only when a specific
+page must show its Flutter content with **zero** delay on its very first
+open — typically a scaffold visible immediately at launch:
+
+```dart
+CupertinoNativeScaffold.prewarm(routes: ['home']);
+```
+
+This fully boots and parks that body at startup. It's a trade-off: **each
+listed route boots on the main thread in the first seconds of the app and
+holds memory from then on**, so listing many routes slows startup — prewarm
+only what the user sees first, and let everything else load lazily. (Debug
+builds JIT-compile Dart on top of all this; judge real latency in
 `--release`.)
 
 ## Example app
@@ -232,6 +274,20 @@ Liquid Glass features.
 
 - **iOS only.** On other platforms widgets render simple Flutter fallbacks so
   shared code still builds.
+- **Standard Flutter effect widgets work on the native views.** `Transform`
+  (translate / scale / rotate), clipping, `Offstage` and `Visibility` reach
+  the underlying `UIView` through platform-view mutators, and `Opacity`
+  fades them too — with one iOS caveat: Liquid Glass / material backgrounds
+  (`UIVisualEffectView`) keep rendering their effect at full intensity under
+  an inherited alpha, so to fully hide a glass surface use
+  `Visibility`/`Offstage` (or the component's own parameters). The example's
+  *Widget Effects* page exercises all of these on live native views.
+- **Works from iOS 15 up.** iOS 26 is not required: on iOS 15–18 every
+  component renders its classic pre-26 system style (e.g. material blur
+  instead of Liquid Glass, Flutter's `CupertinoSliverNavigationBar` behind
+  `CupertinoSliverAppBar`), and iOS 26-only properties (glass styles, corner
+  concentricity, scroll edge effect tuning) are simply ignored. The native
+  scaffold needs iOS 16+.
 - Scaffold/sheet **bodies** run in embedded engines and must use drawn Flutter
   widgets (no platform views inside them) and self-size
   (`Column(mainAxisSize: MainAxisSize.min)`).

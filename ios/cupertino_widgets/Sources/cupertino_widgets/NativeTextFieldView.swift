@@ -28,6 +28,16 @@ class NativeTextFieldFactory: NSObject, FlutterPlatformViewFactory {
     }
 }
 
+/// Container that reports layout passes, so the glass capsule's corner
+/// radius can track the height while the app bar squeezes the field.
+private final class SqueezableContainerView: UIView {
+    var onLayout: (() -> Void)?
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
+    }
+}
+
 /// A native single-line `UITextField` embedded as a Flutter platform view.
 /// Reports edits back to Dart via the method channel and enforces `maxLength`
 /// / `readOnly` through its delegate, so `CupertinoNativeTextField` can offer
@@ -35,13 +45,16 @@ class NativeTextFieldFactory: NSObject, FlutterPlatformViewFactory {
 @available(iOS 15.0, *)
 class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
     private let channel: FlutterMethodChannel
-    private let container: UIView
+    private let container: SqueezableContainerView
     private let textField = UITextField()
     private var maxLength: Int?
     private var readOnly = false
     private var selectionActive = false
     /// Liquid Glass background (iOS 26) / material fallback, behind the field.
     private var glassView: UIVisualEffectView?
+    /// Configured capsule radius — clamped to half the current height during
+    /// layout, so the squeezing capsule keeps valid continuous corners.
+    private var glassCornerRadius: CGFloat = 16
     private var leadingConstraint: NSLayoutConstraint?
     private var trailingConstraint: NSLayoutConstraint?
 
@@ -57,9 +70,11 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
     ) {
         channel = FlutterMethodChannel(
             name: "cupertino_widgets/textfield_\(viewId)", binaryMessenger: messenger)
-        container = UIView(frame: frame)
+        container = SqueezableContainerView(frame: frame)
 
         super.init()
+
+        container.onLayout = { [weak self] in self?.clampGlassCorners() }
 
         container.backgroundColor = .clear
         // Let the selection handles / magnifier draw outside the field bounds.
@@ -73,14 +88,16 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         let trailing = textField.trailingAnchor.constraint(equalTo: container.trailingAnchor)
         leadingConstraint = leading
         trailingConstraint = trailing
-        NSLayoutConstraint.activate([
-            leading,
-            trailing,
-            textField.topAnchor.constraint(
-                equalTo: container.topAnchor, constant: verticalInset),
-            textField.bottomAnchor.constraint(
-                equalTo: container.bottomAnchor, constant: -verticalInset),
-        ])
+        let top = textField.topAnchor.constraint(
+            equalTo: container.topAnchor, constant: verticalInset)
+        let bottom = textField.bottomAnchor.constraint(
+            equalTo: container.bottomAnchor, constant: -verticalInset)
+        // The app bar squeezes the whole view below the insets' combined
+        // 16pt during its collapse; sub-required priority lets the layout
+        // compress gracefully instead of breaking constraints.
+        top.priority = UILayoutPriority(999)
+        bottom.priority = UILayoutPriority(999)
+        NSLayoutConstraint.activate([leading, trailing, top, bottom])
 
         textField.addTarget(self, action: #selector(editingChanged), for: .editingChanged)
         textField.addTarget(self, action: #selector(editingDidBegin), for: .editingDidBegin)
@@ -201,7 +218,8 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
             effectView = UIVisualEffectView(
                 effect: UIBlurEffect(style: .systemUltraThinMaterial))
         }
-        effectView.layer.cornerRadius = CGFloat(c.glassCornerRadius ?? 16)
+        glassCornerRadius = CGFloat(c.glassCornerRadius ?? 16)
+        effectView.layer.cornerRadius = glassCornerRadius
         effectView.layer.cornerCurve = .continuous
         effectView.clipsToBounds = true
         effectView.isUserInteractionEnabled = false
@@ -214,6 +232,14 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
             effectView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
         glassView = effectView
+    }
+
+    /// A corner radius above half the height renders artifacts; track the
+    /// squeezing bounds so the capsule stays a capsule all the way down.
+    private func clampGlassCorners() {
+        guard let glassView = glassView else { return }
+        glassView.layer.cornerRadius =
+            min(glassCornerRadius, max(container.bounds.height / 2, 0))
     }
 
     @objc private func focusField() {
@@ -317,6 +343,20 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
                 result(nil)
             } else {
                 result(FlutterError(code: "bad_args", message: "Missing isDark", details: nil))
+            }
+        case "setContentOpacity":
+            // Scroll-driven fade of the field's *content* — text, placeholder
+            // and prefix/suffix icons — while the capsule squeezes (Flutter's
+            // Opacity can't fade platform-view pixels). The glass capsule
+            // itself stays visible and shrinks away with the geometry, like
+            // the system search bar.
+            if let args = call.arguments as? [String: Any],
+                let opacity = (args["opacity"] as? NSNumber)?.doubleValue
+            {
+                textField.alpha = CGFloat(max(0, min(1, opacity)))
+                result(nil)
+            } else {
+                result(FlutterError(code: "bad_args", message: "Missing opacity", details: nil))
             }
         default:
             result(FlutterMethodNotImplemented)

@@ -23,6 +23,11 @@ flutter:
       ios:
         pluginClass: FlutterCupertinoPlugin
 
+  # Variable-radius Gaussian for CupertinoScrollEdgeEffect (two separable
+  # BackdropFilter passes via ui.ImageFilter.shader).
+  shaders:
+    - shaders/cupertino_edge_blur.frag
+
   # To add assets to your package, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

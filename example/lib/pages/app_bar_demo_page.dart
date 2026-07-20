@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:cupertino_widgets/cupertino_widgets.dart';
 
 import '../widgets/settings_ui.dart';
+import 'package:inspire_blur/inspire_blur.dart';
+import 'package:progressive_blur/progressive_blur.dart';
 
 /// [CupertinoSliverAppBar] — the Flutter-drawn iOS 26 navigation bar: pure
 /// scroll-edge-effect background (no solid fill, no border), the blur-morph
@@ -32,13 +34,6 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
 
   bool _searching = false;
   String _query = '';
-  final FocusNode _searchNode = FocusNode();
-
-  @override
-  void dispose() {
-    _searchNode.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,10 +49,10 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
         style: rowTitleStyle(context),
         child: CustomScrollView(
           slivers: [
-            CupertinoSliverAppBar(
+            CupertinoSliverAppBar.search(
               largeTitle: 'Records',
-              subtitle: '${_albums.length} albums',
-              titleAlignment: CupertinoAppBarTitleAlignment.leading,
+              //subtitle: '${_albums.length} albums',
+              centerTitle: true,
               // iOS 26 back button: a glass circle with just the chevron.
               leading: CupertinoAppBarAction.back(
                 onPressed: () => Navigator.pop(context),
@@ -73,31 +68,18 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
                 CupertinoAppBarAction(label: 'Select', onPressed: () {}),
               ],
               separateTrailing: true,
-              // Same contract as CupertinoSliverNavigationBar.search: any
-              // widget. bottomMode.automatic collapses it with the scroll
-              // (before the page moves); .always keeps it visible.
-              searchField: CupertinoNativeTextField(
-                placeholder: 'Search records',
-                glassEffect: true,
-                glassCornerRadius: 18,
-                height: 36,
-                focusNode: _searchNode,
-                prefixIcon: CupertinoNativeIcon.symbol(
-                    CupertinoSymbols.magnifyingglass),
-                clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
-                onChanged: (q) => setState(() => _query = q),
-              ),
+              // The .search constructor builds the glass field itself (44pt
+              // capsule, magnifier prefix, focus managed internally).
+              // bottomMode.automatic collapses it with the scroll (before
+              // the page moves); .always keeps it visible.
+              searchPlaceholder: 'Search records',
               bottomMode: NavigationBarBottomMode.automatic,
+              onSearchChanged: (q) => setState(() => _query = q),
               onSearchActiveChanged: (active) {
                 setState(() {
                   _searching = active;
                   if (!active) _query = '';
                 });
-                if (active) {
-                  _searchNode.requestFocus();
-                } else {
-                  _searchNode.unfocus();
-                }
               },
             ),
             SliverPadding(

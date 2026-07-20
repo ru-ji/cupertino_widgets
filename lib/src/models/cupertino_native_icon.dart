@@ -52,6 +52,22 @@ class CupertinoNativeIcon {
     this.color,
   });
 
+  /// A copy of this icon whose [size] falls back to [fallback] when unset —
+  /// used by host controls whose default glyph size differs from the global
+  /// 17pt (e.g. the app bar's 44pt glass buttons render at 20pt like SwiftUI
+  /// toolbar icons). An explicit [size] always wins.
+  CupertinoNativeIcon withDefaultSize(double fallback) => size != null
+      ? this
+      : CupertinoNativeIcon._(
+          sfSymbol: sfSymbol,
+          renderingMode: renderingMode,
+          codePoint: codePoint,
+          fontFamily: fontFamily,
+          fontPackage: fontPackage,
+          size: fallback,
+          color: color,
+        );
+
   /// A typo-safe SF Symbol from the [CupertinoSymbols] enum.
   CupertinoNativeIcon.symbol(
     CupertinoSymbols symbol, {

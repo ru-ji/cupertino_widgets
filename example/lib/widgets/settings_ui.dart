@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/cupertino.dart' show CupertinoColors, CupertinoDynamicColor;
+import 'package:flutter/cupertino.dart'
+    show CupertinoColors, CupertinoDynamicColor, CupertinoTheme;
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter/widgets.dart';
 
@@ -84,8 +85,9 @@ class _DemoScaffoldState extends State<DemoScaffold> {
     final background = CupertinoDynamicColor.resolve(
         widget.backgroundColor ?? CupertinoColors.systemGroupedBackground,
         context);
-    final isDark =
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    // Follows the APP theme (incl. the home toggle's forced mode), not the
+    // device setting — platformBrightnessOf would ignore a forced ThemeMode.
+    final isDark = CupertinoTheme.brightnessOf(context) == Brightness.dark;
     final topPadding = MediaQuery.paddingOf(context).top;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final barHeight = topPadding + 44;

@@ -9,23 +9,31 @@ import 'pages/home_page.dart';
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  /// App-wide theme mode — toggled by the home app bar's brightness action.
+  /// Starts on the device setting.
+  static final ValueNotifier<ThemeMode> themeMode =
+      ValueNotifier<ThemeMode>(ThemeMode.system);
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Cupertino Widgets',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF007AFF),
-        useMaterial3: true,
-        brightness: Brightness.light,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeMode,
+      builder: (context, mode, _) => MaterialApp(
+        title: 'Cupertino Widgets',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorSchemeSeed: const Color(0xFF007AFF),
+          useMaterial3: true,
+          brightness: Brightness.light,
+        ),
+        darkTheme: ThemeData(
+          colorSchemeSeed: const Color(0xFF007AFF),
+          useMaterial3: true,
+          brightness: Brightness.dark,
+        ),
+        themeMode: mode,
+        home: const HomePage(),
       ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF007AFF),
-        useMaterial3: true,
-        brightness: Brightness.dark,
-      ),
-      themeMode: ThemeMode.system,
-      home: const HomePage(),
     );
   }
 }
