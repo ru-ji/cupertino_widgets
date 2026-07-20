@@ -209,9 +209,11 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         guard hasGlass else { return }
 
         let effectView: UIVisualEffectView
+        var interactiveGlass = false
         if #available(iOS 26.0, *) {
             let effect = UIGlassEffect(style: c.glassVariant == "clear" ? .clear : .regular)
             effect.isInteractive = c.glassInteractive ?? true
+            interactiveGlass = effect.isInteractive
             if let tint = c.glassTint { effect.tintColor = UIColor(argb: tint) }
             effectView = UIVisualEffectView(effect: effect)
         } else {
@@ -222,7 +224,18 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         effectView.layer.cornerRadius = glassCornerRadius
         effectView.layer.cornerCurve = .continuous
         effectView.clipsToBounds = true
-        effectView.isUserInteractionEnabled = false
+        // Interactive glass only shimmers when the effect view receives the
+        // touches. The container's tap recognizer still fires for hits on the
+        // glass (recognizers observe subview hits), so tap-to-focus keeps
+        // working either way.
+        effectView.isUserInteractionEnabled = interactiveGlass
+        if interactiveGlass {
+            // Interactive glass ignores fully transparent content — the same
+            // quirk as SwiftUI's .glassEffect on Color.clear — so keep a
+            // near-invisible fill in the effect view to keep it alive.
+            effectView.contentView.backgroundColor =
+                UIColor.white.withAlphaComponent(0.02)
+        }
         effectView.translatesAutoresizingMaskIntoConstraints = false
         container.insertSubview(effectView, at: 0)
         NSLayoutConstraint.activate([

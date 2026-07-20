@@ -12,5 +12,5 @@ struct ScaffoldConfig: Codable {
     let isDark: Bool?
     let backgroundColor: Int?  // ARGB — defaults to scaffoldBackgroundColor from Flutter theme
     let primaryColor: Int?     // ARGB — defaults to colorScheme.primary from Flutter theme
-    let showLoadingIndicator: Bool?  // spinner while a body engine boots; nil = true
+    let showLoadingIndicator: Bool?  // spinner while a body engine boots; nil = false
 }

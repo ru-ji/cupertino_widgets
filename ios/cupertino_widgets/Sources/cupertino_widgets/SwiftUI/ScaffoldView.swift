@@ -86,7 +86,7 @@ struct ScaffoldView: View {
             SearchablePageBody(
                 engine: model.rootEngines[rootRoute],
                 scrollEdgeEffect: model.config.scrollEdgeEffect,
-                showLoadingIndicator: model.config.showLoadingIndicator ?? true,
+                showLoadingIndicator: model.config.showLoadingIndicator ?? false,
                 onActiveChange: { model.onSearchActiveChanged?(rootRoute, $0) }
             )
             .applyAppBar(model.config.appBar) { onBarAction(rootRoute, $0) }
@@ -100,7 +100,7 @@ struct ScaffoldView: View {
                 PageScrollBody(
                     engine: model.pushedEngines[pushed.id],
                     scrollEdgeEffect: model.config.scrollEdgeEffect,
-                    showLoadingIndicator: model.config.showLoadingIndicator ?? true
+                    showLoadingIndicator: model.config.showLoadingIndicator ?? false
                 )
                 .applyAppBar(pushed.appBar) { onBarAction(pushed.route, $0) }
             }

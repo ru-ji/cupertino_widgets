@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'cupertino_native_app_bar.dart';
 import 'cupertino_native_tab_bar.dart' show CupertinoNativeScrollEdgeEffect;
+import 'cupertino_widgets_settings.dart';
 
 /// The heights a [CupertinoNativeSheet] can rest at, mirroring
 /// `UISheetPresentationController.Detent`.
@@ -95,7 +96,7 @@ abstract final class CupertinoNativeSheet {
     CupertinoNativeScrollEdgeEffect scrollEdgeEffect =
         CupertinoNativeScrollEdgeEffect.soft,
     Color? backgroundColor,
-    bool showLoadingIndicator = true,
+    bool? showLoadingIndicator,
     bool? isDark,
     void Function(String actionId)? onBarAction,
     ValueChanged<int>? onBottomChanged,
@@ -123,7 +124,8 @@ abstract final class CupertinoNativeSheet {
         'cornerRadius': cornerRadius,
         'scrollEdgeEffect': scrollEdgeEffect.name,
         'backgroundColor': backgroundColor?.toARGB32(),
-        'showLoadingIndicator': showLoadingIndicator,
+        'showLoadingIndicator': showLoadingIndicator ??
+            CupertinoWidgetsSettings.showLoadingIndicator,
         'isDark': dark,
       });
     } finally {

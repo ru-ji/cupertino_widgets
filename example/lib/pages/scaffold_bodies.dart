@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:cupertino_widgets/cupertino_widgets.dart';
-
+import 'package:soft_edge_blur/soft_edge_blur.dart';
 import '../widgets/settings_ui.dart';
 
 /// Body for the scaffold's home tab. Runs in its own FlutterEngine inside the
@@ -53,7 +53,8 @@ class ScaffoldHomeBody extends StatelessWidget {
                     trailing: [
                       CupertinoNativeBarItem(
                         icon: CupertinoNativeIcon.symbol(
-                            CupertinoSymbols.squareAndArrowUp),
+                          CupertinoSymbols.squareAndArrowUp,
+                        ),
                         actionId: 'share_details',
                       ),
                     ],
@@ -65,11 +66,7 @@ class ScaffoldHomeBody extends StatelessWidget {
         ),
         for (final (title, subtitle, color) in _albums) ...[
           for (var repeat = 0; repeat < 3; repeat++)
-            _AlbumRow(
-              title: title,
-              subtitle: subtitle,
-              color: color,
-            ),
+            _AlbumRow(title: title, subtitle: subtitle, color: color),
         ],
         const SizedBox(height: 24),
       ],
@@ -154,12 +151,14 @@ class ScaffoldDetailsBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Deep Focus',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: CupertinoColors.label.resolveFrom(context),
-              )),
+          Text(
+            'Deep Focus',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: CupertinoColors.label.resolveFrom(context),
+            ),
+          ),
           Text('Ambient · 40 tracks', style: footnoteStyle(context)),
           const SizedBox(height: 12),
           Text(

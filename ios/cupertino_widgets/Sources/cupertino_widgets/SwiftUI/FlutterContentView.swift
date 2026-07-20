@@ -16,31 +16,44 @@ import UIKit
 struct FlutterContentView: View {
     let engine: FlutterEngine
     /// Show a native spinner until the engine's first layout reports in.
-    var showLoadingIndicator = true
+    /// Off by default (matches CupertinoWidgetsSettings on the Dart side).
+    var showLoadingIndicator = false
 
     @State private var contentSize: CGSize?
+    /// Engine-reported "first frame is on screen". Size observation can lag
+    /// (or fail entirely) behind actual rendering; either signal must be able
+    /// to dismiss the spinner so it never sits on top of live content.
+    @State private var firstFrameRendered = false
+
+    private var isLoading: Bool { contentSize == nil && !firstFrameRendered }
 
     var body: some View {
-        _FlutterContentRepresentable(engine: engine) { size in
-            // Reported from UIKit layout passes; hop out before mutating state.
-            DispatchQueue.main.async {
-                if contentSize != size {
-                    contentSize = size
+        _FlutterContentRepresentable(
+            engine: engine,
+            onSizeChange: { size in
+                // Reported from UIKit layout passes; hop out before mutating state.
+                DispatchQueue.main.async {
+                    if contentSize != size {
+                        contentSize = size
+                    }
                 }
+            },
+            onFirstFrame: {
+                DispatchQueue.main.async { firstFrameRendered = true }
             }
-        }
+        )
         // Placeholder height until Flutter's first layout reports in.
         .frame(height: contentSize?.height ?? UIScreen.main.bounds.height)
         // Native spinner while the body engine renders its first frame, so
         // the page never reads as empty (opt out via showLoadingIndicator).
         .overlay(alignment: .top) {
-            if showLoadingIndicator && contentSize == nil {
+            if showLoadingIndicator && isLoading {
                 ProgressView()
                     .padding(.top, 80)
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.15), value: contentSize != nil)
+        .animation(.easeOut(duration: 0.15), value: isLoading)
     }
 }
 
@@ -48,15 +61,18 @@ struct FlutterContentView: View {
 private struct _FlutterContentRepresentable: UIViewControllerRepresentable {
     let engine: FlutterEngine
     let onSizeChange: (CGSize) -> Void
+    let onFirstFrame: () -> Void
 
     func makeUIViewController(context: Context) -> FlutterHostViewController {
         let controller = FlutterHostViewController(engine: engine)
         controller.onSizeChange = onSizeChange
+        controller.onFirstFrame = onFirstFrame
         return controller
     }
 
     func updateUIViewController(_ uiViewController: FlutterHostViewController, context: Context) {
         uiViewController.onSizeChange = onSizeChange
+        uiViewController.onFirstFrame = onFirstFrame
     }
 }
 
@@ -68,8 +84,10 @@ final class FlutterHostViewController: UIViewController {
     private let flutterController: FlutterViewController
     private var lastReportedSize: CGSize = .zero
     private var boundsObservation: NSKeyValueObservation?
+    private var displayObservation: NSKeyValueObservation?
 
     var onSizeChange: ((CGSize) -> Void)?
+    var onFirstFrame: (() -> Void)?
 
     init(engine: FlutterEngine) {
         flutterController = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
@@ -91,6 +109,19 @@ final class FlutterHostViewController: UIViewController {
         view.addSubview(flutterController.view)
         flutterController.didMove(toParent: self)
 
+        // The engine's own "first frame is on screen" signal — the
+        // KVO-compliant `displayingFlutterUI` property (FlutterViewController
+        // has no public rendered-callback API). Fires even when size
+        // observation doesn't, so the spinner can never outlive visible
+        // content.
+        displayObservation = flutterController.observe(
+            \.isDisplayingFlutterUI, options: [.initial, .new]
+        ) { [weak self] controller, _ in
+            if controller.isDisplayingFlutterUI {
+                DispatchQueue.main.async { self?.onFirstFrame?() }
+            }
+        }
+
         // The engine resizes the FlutterView through its own constraints;
         // host layout passes don't reliably re-run when that happens, so
         // observe the view's bounds directly.
@@ -102,6 +133,7 @@ final class FlutterHostViewController: UIViewController {
 
     deinit {
         boundsObservation?.invalidate()
+        displayObservation?.invalidate()
     }
 
     override func viewDidLayoutSubviews() {

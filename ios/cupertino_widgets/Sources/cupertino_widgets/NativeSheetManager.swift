@@ -90,7 +90,7 @@ final class NativeSheetManager: NSObject, UIAdaptivePresentationControllerDelega
         let segments = args["bottomSegments"] as? [String]
         let initialSegment = args["bottomSelectedIndex"] as? Int ?? 0
         let scrollEdgeEffect = args["scrollEdgeEffect"] as? String
-        let showLoadingIndicator = args["showLoadingIndicator"] as? Bool ?? true
+        let showLoadingIndicator = args["showLoadingIndicator"] as? Bool ?? false
         let backgroundArgb = args["backgroundColor"] as? Int
 
         let presented: UIViewController

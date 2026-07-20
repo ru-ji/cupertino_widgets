@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'cupertino_native_app_bar.dart';
 import 'cupertino_native_tab_bar.dart';
+import 'cupertino_widgets_settings.dart';
 import 'internal/native_platform_view_mixin.dart';
 
 /// A page pushed onto a [CupertinoNativeScaffold]'s native NavigationStack.
@@ -136,7 +137,7 @@ class CupertinoNativeScaffold extends StatefulWidget {
     this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
     this.backgroundColor,
     this.primaryColor,
-    this.showLoadingIndicator = true,
+    this.showLoadingIndicator,
     this.onRouteChanged,
     this.onSearchChanged,
     this.onSearchSubmitted,
@@ -145,8 +146,9 @@ class CupertinoNativeScaffold extends StatefulWidget {
             'Provide a tabBar (tab ids double as body routes) or a body route');
 
   /// Whether a native spinner shows while a body engine boots and renders
-  /// its first frame. Set false to show nothing (the page background).
-  final bool showLoadingIndicator;
+  /// its first frame. Defaults to the global
+  /// [CupertinoWidgetsSettings.showLoadingIndicator] (off).
+  final bool? showLoadingIndicator;
 
   /// Well-known channel the native side attaches to every body engine.
   static const MethodChannel _bodyChannel =
@@ -391,21 +393,30 @@ class _DynamicEnvWrapperState extends State<_DynamicEnvWrapper>
         ? platformDispatcher.locales.first
         : const Locale('en', 'US');
 
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Localizations(
-        locale: locale,
-        delegates: const <LocalizationsDelegate<dynamic>>[
-          DefaultWidgetsLocalizations.delegate,
-          DefaultMaterialLocalizations.delegate,
-        ],
-        child: Theme(
-          data: brightness == ui.Brightness.dark
-              ? ThemeData.dark()
-              : ThemeData.light(),
-          // Ensure the main widget takes the full width but its natural height.
-          // Material provides the default text styles so text isn't white-on-white.
-          child: Material(type: MaterialType.transparency, child: widget.child),
+    // Body isolates run without a WidgetsApp, so no MediaQuery exists —
+    // and without one, every CupertinoDynamicColor.resolveFrom falls back
+    // to LIGHT regardless of the app/device brightness. Provide one with
+    // the effective brightness so dynamic colors resolve correctly.
+    return MediaQuery(
+      data: MediaQueryData.fromView(View.of(context))
+          .copyWith(platformBrightness: brightness),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Localizations(
+          locale: locale,
+          delegates: const <LocalizationsDelegate<dynamic>>[
+            DefaultWidgetsLocalizations.delegate,
+            DefaultMaterialLocalizations.delegate,
+          ],
+          child: Theme(
+            data: brightness == ui.Brightness.dark
+                ? ThemeData.dark()
+                : ThemeData.light(),
+            // Ensure the main widget takes the full width but its natural height.
+            // Material provides the default text styles so text isn't white-on-white.
+            child:
+                Material(type: MaterialType.transparency, child: widget.child),
+          ),
         ),
       ),
     );
@@ -439,7 +450,8 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
           widget.backgroundColor?.toARGB32() ?? theme.scaffoldBackgroundColor.toARGB32(),
       'primaryColor':
           widget.primaryColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
-      'showLoadingIndicator': widget.showLoadingIndicator,
+      'showLoadingIndicator': widget.showLoadingIndicator ??
+          CupertinoWidgetsSettings.showLoadingIndicator,
     };
   }
 

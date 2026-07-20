@@ -245,6 +245,17 @@ class NativeScaffoldView: NativeHostingView {
         }
 
         applyStandardLayoutMargins()
+        // UIKit re-derives the hosted hierarchy's margins after containment
+        // changes AND during layout passes — re-assert ours on both, or the
+        // NavigationStack's large title ends up flush with the screen's
+        // leading edge.
+        _view.onParentingChanged = { [weak self] in
+            self?.applyStandardLayoutMargins()
+            self?.hostingController?.view.setNeedsLayout()
+        }
+        _view.onLayout = { [weak self] in
+            self?.applyStandardLayoutMargins()
+        }
 
         // Spawn the first body engine on the next runloop turn: platform-view
         // creation returns immediately so the push transition animates
@@ -263,11 +274,42 @@ class NativeScaffoldView: NativeHostingView {
     /// Forcing the hosting view's directional layout margins restores that inset
     /// on the large title without insetting the Flutter body (SwiftUI content
     /// lays out against the safe area, not the layout-margins guide).
+    private static let standardMargins = NSDirectionalEdgeInsets(
+        top: 0, leading: 16, bottom: 0, trailing: 16)
+
     private func applyStandardLayoutMargins() {
         guard let host = hostingController else { return }
         host.viewRespectsSystemMinimumLayoutMargins = false
-        host.view.directionalLayoutMargins = NSDirectionalEdgeInsets(
-            top: 0, leading: 16, bottom: 0, trailing: 16)
+        host.view.directionalLayoutMargins = Self.standardMargins
+        // The navigation bar aligns its large title/subtitle with the CONTENT
+        // view controller's layout margins — SwiftUI's internal bridged
+        // controllers, not our hosting controller. In this embedding they
+        // resolve their system-minimum margins to zero, so force the standard
+        // 16pt down the whole internal chain, and on the bar itself.
+        forceMargins(onChildrenOf: host)
+        forceMargins(onBarsIn: host.view, depth: 0)
+    }
+
+    private func forceMargins(onChildrenOf controller: UIViewController) {
+        for child in controller.children {
+            child.viewRespectsSystemMinimumLayoutMargins = false
+            child.viewIfLoaded?.directionalLayoutMargins = Self.standardMargins
+            forceMargins(onChildrenOf: child)
+        }
+    }
+
+    private func forceMargins(onBarsIn view: UIView, depth: Int) {
+        guard depth < 8 else { return }
+        for subview in view.subviews {
+            if let bar = subview as? UINavigationBar {
+                bar.directionalLayoutMargins = Self.standardMargins
+                for barSubview in bar.subviews {
+                    barSubview.directionalLayoutMargins = Self.standardMargins
+                }
+            } else {
+                forceMargins(onBarsIn: subview, depth: depth + 1)
+            }
+        }
     }
 
     // MARK: - Engines

@@ -45,9 +45,17 @@ void main() {
   // Vertical position within the effect area: 0 at its top, 1 at its bottom.
   float t = clamp((xy.y - u_area_origin.y) / max(u_area_size.y, 1.0), 0.0, 1.0);
   // Distance from the hugged screen edge: 0 at the edge, 1 fully inward.
-  float edgeDist = mix(t, 1.0 - t, u_edge);
-  // Smooth quadratic falloff — full blur at the edge, imperceptible inward.
-  float falloff = (1.0 - edgeDist) * (1.0 - edgeDist);
+  // The last 3% is a dead zone (sigma exactly 0) so the filter's boundary
+  // never coincides with a live blur: where it does, taps past the edge are
+  // masked away and the surviving taps — all from brighter content above —
+  // leave a faint light line exactly at the end of the effect.
+  float edgeDist = clamp(mix(t, 1.0 - t, u_edge) / 0.97, 0.0, 1.0);
+  // Cosine falloff, raised to soften the knee: full strength at the edge,
+  // still visibly blurred through the middle, easing to exactly zero with
+  // zero slope at the inner boundary. A plain quadratic collapses by the
+  // halfway point, which is what made the effect read as a band that stops
+  // rather than a blur that fades.
+  float falloff = pow(cos(edgeDist * 1.5707963), 1.5);
 
   float sigma = u_blur_sigma * falloff;
   if (sigma < MIN_SIGMA) {

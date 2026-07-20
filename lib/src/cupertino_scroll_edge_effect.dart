@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart'
@@ -65,13 +66,14 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
   static const String _shaderAsset =
       'packages/cupertino_widgets/shaders/cupertino_edge_blur.frag';
 
-  /// Peak blur at the screen edge, logical px. Matches the heavy smear of the
-  /// system effect (compare Music/Library on iOS 26).
-  static const double _maxSigma = 14;
+  /// Peak blur at the screen edge, logical px. The system effect is lighter
+  /// than it looks — its reach comes from spanning a tall region, not from a
+  /// heavy sigma (compare Music/Library on iOS 26).
+  static const double _maxSigma = 10;
 
   /// Fallback-only: blur strength per horizontal slice, outermost first —
-  /// a quadratic falloff approximating the shader's continuous one.
-  static const _fallbackSigmas = [10.0, 7.5, 5.4, 3.7, 2.3, 1.3, 0.6, 0.15];
+  /// the shader's cosine falloff sampled at each slice's center.
+  static const _fallbackSigmas = [9.9, 9.4, 8.3, 6.8, 5.1, 3.2, 1.6, 0.3];
 
   static ui.FragmentProgram? _cachedProgram;
   static Future<ui.FragmentProgram?>? _programFuture;
@@ -105,7 +107,8 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
         try {
           // Running from within this package itself (tests).
           return await ui.FragmentProgram.fromAsset(
-              'shaders/cupertino_edge_blur.frag');
+            'shaders/cupertino_edge_blur.frag',
+          );
         } catch (_) {
           return null; // Fallback slices take over permanently.
         }
@@ -138,11 +141,22 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
     _route?.secondaryAnimation?.removeListener(_onRouteTick);
   }
 
+  /// Whether the enclosing route is mid-push/pop/back-swipe.
+  bool _transitioning = false;
+
+  static bool _moving(Animation<double>? a) =>
+      a != null && a.value > 0 && a.value < 1;
+
   /// The enclosing route is sliding (push/pop/back-swipe). The page's screen
   /// position changes without any layout, so the blur wouldn't repaint on its
   /// own — repaint it each transition tick to keep its bounds current.
   void _onRouteTick() {
     _blurKey.currentContext?.findRenderObject()?.markNeedsPaint();
+    final transitioning =
+        _moving(_route?.animation) || _moving(_route?.secondaryAnimation);
+    if (transitioning != _transitioning && mounted) {
+      setState(() => _transitioning = transitioning);
+    }
   }
 
   @override
@@ -161,28 +175,48 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
     // on something other than systemBackground (e.g. a grouped background)
     // so the wash harmonizes with it.
     final tint = CupertinoDynamicColor.resolve(
-        widget.color ?? CupertinoColors.systemBackground, context);
+      widget.color ?? CupertinoColors.systemBackground,
+      context,
+    );
     final isTop = widget.edge == CupertinoScrollEdgeEffectEdge.top;
     final hard = widget.style == CupertinoNativeScrollEdgeEffect.hard;
 
-    // Tint wash covering the whole effect area (exactly the blurred region),
-    // fading from the edge into the content — it holds in the 0.75–0.95
-    // range over the upper part like the system bar surface.
+    // Tint wash on the same cosine family as the blur, so the two read as one
+    // effect — but on a steeper exponent, because they must NOT die together:
+    // the system tint is near-opaque at the very edge and has cleared by the
+    // title, while the blur keeps softening well below it. Matching their
+    // rates is what made this read as a flat band that stops.
+    final peak = hard ? 1.0 : 0.96;
+    const steps = 16;
+    double alphaAt(double t) =>
+        peak * math.pow(math.cos(t * math.pi / 2), 1.2).toDouble();
+    // Same 3% dead zone as the shader: nothing is painted at the boundary.
+    const fadeEnd = 0.97;
     final wash = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: isTop ? Alignment.topCenter : Alignment.bottomCenter,
           end: isTop ? Alignment.bottomCenter : Alignment.topCenter,
           colors: [
-            tint.withValues(alpha: hard ? 0.98 : 0.94),
-            tint.withValues(alpha: hard ? 0.90 : 0.84),
-            tint.withValues(alpha: hard ? 0.50 : 0.42),
+            for (var i = 0; i <= steps; i++)
+              tint.withValues(alpha: alphaAt(i / steps)),
             tint.withValues(alpha: 0),
           ],
-          stops: const [0, 0.45, 0.75, 1],
+          stops: [for (var i = 0; i <= steps; i++) (i / steps) * fadeEnd, 1.0],
         ),
       ),
     );
+
+    // While the route slides, the tint carries the effect alone. A backdrop
+    // filter sampling a scene that is being transformed mid-flight picks up
+    // the seam where the sliding page's own backdrop ends — a hard vertical
+    // line across the bar. Nothing in the page is scrolled during a
+    // transition, so the blur has nothing to earn there.
+    // ponytail: blur suppressed for the transition's duration; if the
+    // pop-in ever reads as abrupt, cross-fade it back in instead.
+    if (_transitioning) {
+      return IgnorePointer(child: ClipRect(child: wash));
+    }
 
     final hPass = _horizontalPass;
     final vPass = _verticalPass;
@@ -233,8 +267,9 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
                     child: ClipRect(
                       child: BackdropFilter(
                         filter: ui.ImageFilter.blur(
-                            sigmaX: _fallbackSigmas[i],
-                            sigmaY: _fallbackSigmas[i]),
+                          sigmaX: _fallbackSigmas[i],
+                          sigmaY: _fallbackSigmas[i],
+                        ),
                         child: const SizedBox.expand(),
                       ),
                     ),
@@ -271,7 +306,8 @@ class _ShaderEdgeBlur extends LeafRenderObjectWidget {
   final double devicePixelRatio;
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderShaderEdgeBlur(
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderShaderEdgeBlur(
         horizontalPass: horizontalPass,
         verticalPass: verticalPass,
         maxSigma: maxSigma,
@@ -281,7 +317,9 @@ class _ShaderEdgeBlur extends LeafRenderObjectWidget {
 
   @override
   void updateRenderObject(
-      BuildContext context, _RenderShaderEdgeBlur renderObject) {
+    BuildContext context,
+    _RenderShaderEdgeBlur renderObject,
+  ) {
     renderObject
       ..horizontalPass = horizontalPass
       ..verticalPass = verticalPass
@@ -298,11 +336,11 @@ class _RenderShaderEdgeBlur extends RenderBox {
     required double maxSigma,
     required bool topEdge,
     required double devicePixelRatio,
-  })  : _horizontalPass = horizontalPass,
-        _verticalPass = verticalPass,
-        _maxSigma = maxSigma,
-        _topEdge = topEdge,
-        _devicePixelRatio = devicePixelRatio;
+  }) : _horizontalPass = horizontalPass,
+       _verticalPass = verticalPass,
+       _maxSigma = maxSigma,
+       _topEdge = topEdge,
+       _devicePixelRatio = devicePixelRatio;
 
   ui.FragmentShader _horizontalPass;
   set horizontalPass(ui.FragmentShader value) {
@@ -340,9 +378,14 @@ class _RenderShaderEdgeBlur extends RenderBox {
   }
 
   /// One retained layer per pass; the vertical pass samples the horizontal
-  /// pass's output, composing a full 2D Gaussian.
-  BackdropFilterLayer? _horizontalLayer;
-  BackdropFilterLayer? _verticalLayer;
+  /// pass's output, composing a full 2D Gaussian. Held via [LayerHandle] —
+  /// without one the framework disposes the layer whenever an ancestor drops
+  /// its layer subtree (route transitions do), and the next paint would then
+  /// write to a disposed layer.
+  final LayerHandle<BackdropFilterLayer> _horizontalLayer =
+      LayerHandle<BackdropFilterLayer>();
+  final LayerHandle<BackdropFilterLayer> _verticalLayer =
+      LayerHandle<BackdropFilterLayer>();
 
   @override
   bool get sizedByParent => true;
@@ -362,11 +405,11 @@ class _RenderShaderEdgeBlur extends RenderBox {
     _configure(_horizontalPass, 1, 0, bounds);
     _configure(_verticalPass, 0, 1, bounds);
 
-    final horizontalLayer = _horizontalLayer ??= BackdropFilterLayer();
+    final horizontalLayer = _horizontalLayer.layer ??= BackdropFilterLayer();
     horizontalLayer.filter = ui.ImageFilter.shader(_horizontalPass);
     context.pushLayer(horizontalLayer, _paintNothing, offset);
 
-    final verticalLayer = _verticalLayer ??= BackdropFilterLayer();
+    final verticalLayer = _verticalLayer.layer ??= BackdropFilterLayer();
     verticalLayer.filter = ui.ImageFilter.shader(_verticalPass);
     context.pushLayer(verticalLayer, _paintNothing, offset);
   }
@@ -374,7 +417,11 @@ class _RenderShaderEdgeBlur extends RenderBox {
   static void _paintNothing(PaintingContext context, Offset offset) {}
 
   void _configure(
-      ui.FragmentShader shader, double dirX, double dirY, Rect bounds) {
+    ui.FragmentShader shader,
+    double dirX,
+    double dirY,
+    Rect bounds,
+  ) {
     final dpr = _devicePixelRatio;
     // Floats 0,1 (u_size) and sampler 0 (the backdrop) are engine-filled.
     shader
@@ -390,8 +437,8 @@ class _RenderShaderEdgeBlur extends RenderBox {
 
   @override
   void dispose() {
-    _horizontalLayer = null;
-    _verticalLayer = null;
+    _horizontalLayer.layer = null;
+    _verticalLayer.layer = null;
     super.dispose();
   }
 }

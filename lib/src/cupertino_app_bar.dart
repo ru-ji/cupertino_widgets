@@ -24,8 +24,10 @@ class CupertinoAppBarAction {
     this.label,
     this.child,
     required this.onPressed,
-  }) : assert(icon != null || label != null || child != null,
-            'Provide an icon, a label, or a child');
+  }) : assert(
+         icon != null || label != null || child != null,
+         'Provide an icon, a label, or a child',
+       );
 
   /// The iOS 26 back button: a glass circle with just the back chevron.
   factory CupertinoAppBarAction.back({required VoidCallback onPressed}) =>
@@ -84,14 +86,14 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.bottomHeight = 44,
     this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.soft,
     this.tintColor,
-  })  : searchPlaceholder = null,
-        searchStyle = null,
-        searchPrefixIcon = null,
-        searchSuffixIcon = null,
-        bottomMode = NavigationBarBottomMode.always,
-        onSearchChanged = null,
-        onSearchActiveChanged = null,
-        _searchable = false;
+  }) : searchPlaceholder = null,
+       searchStyle = null,
+       searchPrefixIcon = null,
+       searchSuffixIcon = null,
+       bottomMode = NavigationBarBottomMode.always,
+       onSearchChanged = null,
+       onSearchActiveChanged = null,
+       _searchable = false;
 
   /// A bar whose bottom row is a built-in search bar — the iOS 26 glass
   /// capsule, backed by a native `UITextField`. Focus, the top-dock morph and
@@ -116,9 +118,9 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.onSearchActiveChanged,
     this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.soft,
     this.tintColor,
-  })  : bottom = null,
-        bottomHeight = searchFieldHeight,
-        _searchable = true;
+  }) : bottom = null,
+       bottomHeight = searchFieldHeight,
+       _searchable = true;
 
   final String largeTitle;
 
@@ -199,8 +201,10 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     vsync: this,
     duration: const Duration(milliseconds: 550),
   );
-  late final Animation<double> _searchT =
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
+  late final Animation<double> _searchT = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOutCubic,
+  );
   ScrollableState? _scrollableState;
 
   /// Search-row visibility (1 → 0 as the scroll consumes it), published to
@@ -210,23 +214,27 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
 
   /// Focus of the built-in search field — driven by the morph (focused on
   /// open, unfocused on close).
-  final FocusNode _searchFocusNode =
-      FocusNode(debugLabel: 'CupertinoSliverAppBar.search');
+  final FocusNode _searchFocusNode = FocusNode(
+    debugLabel: 'CupertinoSliverAppBar.search',
+  );
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scrollableState?.position.isScrollingNotifier
-        .removeListener(_handleScrollChange);
+    _scrollableState?.position.isScrollingNotifier.removeListener(
+      _handleScrollChange,
+    );
     _scrollableState = Scrollable.maybeOf(context);
-    _scrollableState?.position.isScrollingNotifier
-        .addListener(_handleScrollChange);
+    _scrollableState?.position.isScrollingNotifier.addListener(
+      _handleScrollChange,
+    );
   }
 
   @override
   void dispose() {
-    _scrollableState?.position.isScrollingNotifier
-        .removeListener(_handleScrollChange);
+    _scrollableState?.position.isScrollingNotifier.removeListener(
+      _handleScrollChange,
+    );
     _searchRowVisibility.dispose();
     _searchFocusNode.dispose();
     _controller.dispose();
@@ -248,7 +256,8 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     // and the active search view should scroll freely.
     if (_controller.value > 0.0) return;
 
-    final bool collapsibleSearch = widget._searchable &&
+    final bool collapsibleSearch =
+        widget._searchable &&
         widget.bottomMode == NavigationBarBottomMode.automatic;
     final double bottomScrollOffset = collapsibleSearch
         ? _IOS26SliverAppBarDelegate._searchRowHeight(widget.bottomHeight)
@@ -262,8 +271,10 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     if (bottomScrollOffset > 0.0 && position.pixels < bottomScrollOffset) {
       // Shifted by the dead zone: collapsing fully requires that much more
       // travel, so a light scroll settles back to the expanded state.
-      target = position.pixels >
-              bottomScrollOffset / 2 + _IOS26SliverAppBarDelegate._collapseDeadZone
+      target =
+          position.pixels >
+              bottomScrollOffset / 2 +
+                  _IOS26SliverAppBarDelegate._collapseDeadZone
           ? bottomScrollOffset
           : 0.0;
     } else if (position.pixels > bottomScrollOffset &&
@@ -331,8 +342,9 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
                 preferredSize: Size.fromHeight(widget.bottomHeight),
                 child: widget.bottom!,
               ),
-        bottomMode:
-            widget.bottom == null ? null : NavigationBarBottomMode.always,
+        bottomMode: widget.bottom == null
+            ? null
+            : NavigationBarBottomMode.always,
       );
     }
     final theme = CupertinoTheme.of(context);
@@ -345,8 +357,9 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
         color: widget.tintColor,
       ),
     );
-    final actionStyle =
-        theme.textTheme.textStyle.copyWith(decoration: TextDecoration.none);
+    final actionStyle = theme.textTheme.textStyle.copyWith(
+      decoration: TextDecoration.none,
+    );
     final leading = widget.leading == null
         ? null
         : _GlassActionButton(action: widget.leading!, labelStyle: actionStyle);
@@ -375,7 +388,8 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
             fillHeight: true,
             focusNode: _searchFocusNode,
             textInputAction: TextInputAction.search,
-            prefixIcon: widget.searchPrefixIcon ??
+            prefixIcon:
+                widget.searchPrefixIcon ??
                 CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
             suffixIcon: widget.searchSuffixIcon,
             clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
@@ -405,10 +419,12 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           onSearchOpen: () => _setSearchActive(true),
           topPadding: MediaQuery.paddingOf(context).top,
           // Native Flutter Cupertino nav bar text styles.
-          inlineTitleStyle: theme.textTheme.navTitleTextStyle
-              .copyWith(decoration: TextDecoration.none),
-          largeTitleStyle: theme.textTheme.navLargeTitleTextStyle
-              .copyWith(decoration: TextDecoration.none),
+          inlineTitleStyle: theme.textTheme.navTitleTextStyle.copyWith(
+            decoration: TextDecoration.none,
+          ),
+          largeTitleStyle: theme.textTheme.navLargeTitleTextStyle.copyWith(
+            decoration: TextDecoration.none,
+          ),
           subtitleStyle: theme.textTheme.tabLabelTextStyle.copyWith(
             fontSize: 13,
             decoration: TextDecoration.none,
@@ -431,11 +447,13 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
       if (grouped.length == 1 || widget.separateTrailing) {
         for (final action in grouped) {
           children.add(
-              _GlassActionButton(action: action, labelStyle: labelStyle));
+            _GlassActionButton(action: action, labelStyle: labelStyle),
+          );
         }
       } else {
-        children.add(_GlassActionUnion(
-            actions: List.of(grouped), labelStyle: labelStyle));
+        children.add(
+          _GlassActionUnion(actions: List.of(grouped), labelStyle: labelStyle),
+        );
       }
       grouped.clear();
     }
@@ -443,8 +461,9 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     for (final action in widget.trailing) {
       if (action._isIconOnly || widget.separateTrailing) {
         flushGroup();
-        children
-            .add(_GlassActionButton(action: action, labelStyle: labelStyle));
+        children.add(
+          _GlassActionButton(action: action, labelStyle: labelStyle),
+        );
       } else {
         grouped.add(action);
       }
@@ -467,7 +486,8 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: action.onPressed,
-      child: action.child ??
+      child:
+          action.child ??
           Text(
             action.label ?? 'Back',
             style: CupertinoTheme.of(context).textTheme.navActionTextStyle,
@@ -519,6 +539,11 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   // instantly deform the search bar.
   static const double _collapseDeadZone = 10;
 
+  /// How far the scroll-edge effect reaches BELOW the header. The system
+  /// effect fades out past the bar; ending it at the header's own edge is
+  /// what reads as an abrupt stop.
+  static const double _effectOverhang = 24;
+
   static double _searchRowHeight(double fieldHeight) =>
       fieldHeight + _bottomPadding + 6;
 
@@ -567,8 +592,9 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   static double _largeTitleH({
     required bool expandedTitle,
     required bool hasSubtitle,
-  }) =>
-      !expandedTitle ? 0 : (hasSubtitle ? _largeExtension + 20 : _largeExtension);
+  }) => !expandedTitle
+      ? 0
+      : (hasSubtitle ? _largeExtension + 20 : _largeExtension);
 
   double get _restingMax =>
       topPadding + _barH + _largeH + (_hasSearch ? _searchRowH : 0);
@@ -591,42 +617,60 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     final height = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
 
     // Sequenced collapse, like Flutter's bottomMode.automatic: the scroll
     // consumes the search row FIRST (it shrinks and fades to nothing before
     // the page moves), then the large title collapses.
-    final consumedBySearch =
-        _collapsibleSearch ? shrinkOffset.clamp(0.0, _searchRowH) : 0.0;
-    final searchCollapseT =
-        _collapsibleSearch ? consumedBySearch / _searchRowH : 0.0;
+    final consumedBySearch = _collapsibleSearch
+        ? shrinkOffset.clamp(0.0, _searchRowH)
+        : 0.0;
+    final searchCollapseT = _collapsibleSearch
+        ? consumedBySearch / _searchRowH
+        : 0.0;
     final titleShrink = shrinkOffset - consumedBySearch;
-    final tTitle =
-        _largeH <= 0 ? 1.0 : (titleShrink / _largeH).clamp(0.0, 1.0);
+    final tTitle = _largeH <= 0 ? 1.0 : (titleShrink / _largeH).clamp(0.0, 1.0);
 
     // All morph animations share the controller's curve and duration, but
     // the chrome (inline bar, glass buttons, titles) exits FAST: fully gone
     // by ~half of the search animation, like the system bar.
     final chrome = (1 - searchT * 2).clamp(0.0, 1.0);
+    // The subtitle trails the title slightly through the collapse morph: its
+    // progress runs off a lagged copy of the title's.
+    final tTitleSub = (tTitle - 0.12).clamp(0.0, 1.0);
     final largeOpacity = !expandedTitle
         ? 0.0
         : (1 - tTitle / 0.75).clamp(0.0, 1.0) * chrome;
+    final largeSubOpacity = !expandedTitle
+        ? 0.0
+        : (1 - tTitleSub / 0.75).clamp(0.0, 1.0) * chrome;
     // The collapsed (inline) title appears only as the large title collapses
     // on scroll — or permanently when the expanded title is disabled.
-    final inlineT =
-        !expandedTitle ? 1.0 : ((tTitle - 0.55) / 0.45).clamp(0.0, 1.0);
+    final inlineT = !expandedTitle
+        ? 1.0
+        : ((tTitle - 0.55) / 0.45).clamp(0.0, 1.0);
+    final inlineSubT = !expandedTitle
+        ? 1.0
+        : ((tTitleSub - 0.55) / 0.45).clamp(0.0, 1.0);
     final inlineSigma = (1 - inlineT) * 8;
 
     // Search slot geometry: shrinks with the collapse, travels on activation.
     // The capsule itself starts squeezing only past the dead zone — the
     // row's padding absorbs the first few points of scroll.
-    final fieldConsumed =
-        (consumedBySearch - _collapseDeadZone).clamp(0.0, fieldHeight);
+    final fieldConsumed = (consumedBySearch - _collapseDeadZone).clamp(
+      0.0,
+      fieldHeight,
+    );
     final restFieldH = fieldHeight - fieldConsumed;
-    final fieldH =
-        ui.lerpDouble(restFieldH, fieldHeight, searchT)!.clamp(0.1, fieldHeight);
-    final restTop = height - restFieldH - _bottomPadding * (1 - searchCollapseT);
+    final fieldH = ui
+        .lerpDouble(restFieldH, fieldHeight, searchT)!
+        .clamp(0.1, fieldHeight);
+    final restTop =
+        height - restFieldH - _bottomPadding * (1 - searchCollapseT);
     final fieldTop = ui.lerpDouble(restTop, topPadding + 4, searchT)!;
     // The field narrows as it rises, making room for the ✕.
     final fieldRight = ui.lerpDouble(16, 16 + 44 + 12, searchT)!;
@@ -638,169 +682,217 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     final contentFade = searchT > 0
         ? 1.0
         : 1 -
-            ((fieldShrink - _fadeStartShrink) /
-                    (_fadeEndShrink - _fadeStartShrink))
-                .clamp(0.0, 1.0);
+              ((fieldShrink - _fadeStartShrink) /
+                      (_fadeEndShrink - _fadeStartShrink))
+                  .clamp(0.0, 1.0);
     // Let the hosted field react natively (Opacity can't fade platform-view
     // pixels). Listeners only push over a channel — no setState — so writing
     // during this build is safe.
     searchRowVisibility.value = contentFade;
 
+    // Blur-morph + translate-from-below, like the system collapse. Title and
+    // subtitle fade/travel on their own (lagged) progress so the subtitle
+    // arrives just after the title.
+    Widget inlineFade(Widget child, double t) => Opacity(
+      opacity: t * chrome,
+      child: Transform.translate(offset: Offset(0, (1 - t) * 16), child: child),
+    );
+    // With a subtitle the system inline bar drops the title to 15pt (and the
+    // subtitle to 12pt) so both lines read as one compact block.
     Widget inlineTitleBlock = subtitle == null
-        ? Text(largeTitle, style: inlineTitleStyle)
+        ? inlineFade(Text(largeTitle, style: inlineTitleStyle), inlineT)
         : Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: centerTitle
                 ? CrossAxisAlignment.center
                 : CrossAxisAlignment.start,
             children: [
-              Text(largeTitle, style: inlineTitleStyle),
-              Text(subtitle!, style: subtitleStyle),
+              inlineFade(
+                Text(
+                  largeTitle,
+                  style: inlineTitleStyle.copyWith(fontSize: 15),
+                ),
+                inlineT,
+              ),
+              inlineFade(
+                Text(subtitle!, style: subtitleStyle.copyWith(fontSize: 12)),
+                inlineSubT,
+              ),
             ],
           );
-    // Blur-morph + translate-from-below, like the system collapse.
-    inlineTitleBlock = Opacity(
-      opacity: inlineT * chrome,
-      child: Transform.translate(
-        offset: Offset(0, (1 - inlineT) * 16),
-        child: inlineSigma > 0.1
-            ? ImageFiltered(
-                imageFilter: ui.ImageFilter.blur(
-                    sigmaX: inlineSigma, sigmaY: inlineSigma),
-                child: inlineTitleBlock,
-              )
-            : inlineTitleBlock,
-      ),
-    );
+    if (inlineSigma > 0.1) {
+      inlineTitleBlock = ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(
+          sigmaX: inlineSigma,
+          sigmaY: inlineSigma,
+        ),
+        child: inlineTitleBlock,
+      );
+    }
 
-    return ClipRect(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(child: edgeEffect),
-          // Inline bar row. Slides up out of view during the search morph
-          // (platform views can't be opacity-faded).
-          Positioned(
-            top: topPadding,
-            left: 0,
-            right: 0,
-            height: _barH,
-            child: Transform.translate(
-              offset: Offset(0, -(1 - chrome) * (topPadding + _barH)),
-              child: !centerTitle
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          if (leading != null) ...[
-                            leading!,
-                            const SizedBox(width: 12),
-                          ],
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: inlineTitleBlock,
-                            ),
-                          ),
-                          ?trailing,
-                        ],
-                      ),
-                    )
-                  : Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        inlineTitleBlock,
-                        if (leading != null)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16),
-                              child: leading!,
-                            ),
-                          ),
-                        if (trailing != null)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 16),
-                              child: trailing!,
-                            ),
-                          ),
-                      ],
-                    ),
-            ),
-          ),
-          // Large title (+ subtitle), anchored above the search row. It sits
-          // still while the search row collapses beneath it, then collapses
-          // itself (sequenced like the system bar).
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: (_hasSearch
-                    ? _searchRowH *
-                        (bottomMode == NavigationBarBottomMode.always
-                            ? 1.0
-                            : (1 - searchCollapseT))
-                    : 0) +
-                _bottomPadding,
-            child: Opacity(
-              opacity: largeOpacity,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    largeTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: largeTitleStyle,
-                  ),
-                  if (subtitle != null)
-                    Text(subtitle!, style: subtitleStyle),
-                ],
-              ),
-            ),
-          ),
-          if (_hasSearch) ...[
-            // The user's search field, permanently mounted in a slot that
-            // shrinks/fades with the collapse and travels to the top when
-            // activated. (Opacity fades drawn fields; embedded platform-view
-            // pixels are clipped by the shrinking slot instead.)
-            Positioned(
-              left: 16,
-              right: fieldRight,
-              top: fieldTop,
-              height: fieldH,
-              child: _SearchSlot(
-                // A plain bottom widget receives its touches directly; the
-                // search field only becomes interactive once docked.
-                interactive: !searchable || searchT > 0.05,
-                onTap: onSearchOpen,
-                child: CupertinoSearchRowVisibility(
-                  listenable: searchRowVisibility,
-                  child: searchField!,
-                ),
-              ),
-            ),
-            // Glass ✕ — permanently mounted; rides in from beyond the right
-            // screen edge, scaling up as it materializes next to the field.
-            if (closeButton != null)
+    // The effect covers the bar + large-title region only — NOT the resting
+    // search row. A search bar's taller header would otherwise stretch the
+    // blur falloff and tint wash ~a row further down the content than a bar
+    // without one (the HomePage look). As the row collapses — or the search
+    // morph docks the field at the top — the effect grows back to full.
+    final restEffectH = !_hasSearch
+        ? height
+        : (height -
+                  _searchRowH *
+                      (bottomMode == NavigationBarBottomMode.always
+                          ? 1.0
+                          : (1 - searchCollapseT)))
+              .clamp(topPadding + _barH, height);
+    // The system effect keeps thinning well past the bar's own bounds, so the
+    // effect deliberately overflows the header (unclipped) — that trailing
+    // reach is what makes it read as fading out instead of stopping.
+    final effectH =
+        ui.lerpDouble(restEffectH, height, searchT)! + _effectOverhang;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.expand,
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: effectH,
+          child: edgeEffect,
+        ),
+        ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Inline bar row. Slides up out of view during the search morph
+              // (platform views can't be opacity-faded).
               Positioned(
-                top: topPadding + 4,
-                right: 16,
-                width: 44,
-                height: 44,
+                top: topPadding,
+                left: 0,
+                right: 0,
+                height: _barH,
                 child: Transform.translate(
-                  offset: Offset((1 - searchT) * 140, 0),
-                  child: Transform.scale(
-                    scale: 0.7 + 0.3 * searchT,
-                    child: closeButton!,
-                  ),
+                  offset: Offset(0, -(1 - chrome) * (topPadding + _barH)),
+                  child: !centerTitle
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              if (leading != null) ...[
+                                leading!,
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: inlineTitleBlock,
+                                ),
+                              ),
+                              ?trailing,
+                            ],
+                          ),
+                        )
+                      : Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            inlineTitleBlock,
+                            if (leading != null)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 16),
+                                  child: leading!,
+                                ),
+                              ),
+                            if (trailing != null)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 16),
+                                  child: trailing!,
+                                ),
+                              ),
+                          ],
+                        ),
                 ),
               ),
-          ],
-        ],
-      ),
+              // Large title (+ subtitle), anchored above the search row. It sits
+              // still while the search row collapses beneath it, then collapses
+              // itself (sequenced like the system bar).
+              Positioned(
+                left: 16,
+                right: 16,
+                // Anchored 8pt above the search FIELD's top edge (not the search
+                // row's slot, whose extra spacing floated the title 6pt too high
+                // vs the system layout).
+                bottom:
+                    (_hasSearch
+                        ? restFieldH + _bottomPadding * (1 - searchCollapseT)
+                        : 0) +
+                    _bottomPadding,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Opacity(
+                      opacity: largeOpacity,
+                      child: Text(
+                        largeTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: largeTitleStyle,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Opacity(
+                        opacity: largeSubOpacity,
+                        child: Text(subtitle!, style: subtitleStyle),
+                      ),
+                  ],
+                ),
+              ),
+              if (_hasSearch) ...[
+                // The user's search field, permanently mounted in a slot that
+                // shrinks/fades with the collapse and travels to the top when
+                // activated. (Opacity fades drawn fields; embedded platform-view
+                // pixels are clipped by the shrinking slot instead.)
+                Positioned(
+                  left: 16,
+                  right: fieldRight,
+                  top: fieldTop,
+                  height: fieldH,
+                  child: _SearchSlot(
+                    // A plain bottom widget receives its touches directly; the
+                    // search field only becomes interactive once docked.
+                    interactive: !searchable || searchT > 0.05,
+                    onTap: onSearchOpen,
+                    child: CupertinoSearchRowVisibility(
+                      listenable: searchRowVisibility,
+                      child: searchField!,
+                    ),
+                  ),
+                ),
+                // Glass ✕ — permanently mounted; rides in from beyond the right
+                // screen edge, scaling up as it materializes next to the field.
+                if (closeButton != null)
+                  Positioned(
+                    top: topPadding + 4,
+                    right: 16,
+                    width: 44,
+                    height: 44,
+                    child: Transform.translate(
+                      offset: Offset((1 - searchT) * 140, 0),
+                      child: Transform.scale(
+                        scale: 0.7 + 0.3 * searchT,
+                        child: closeButton!,
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -898,7 +990,8 @@ class _GlassActionUnion extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: actions[i].onPressed,
-              child: actions[i].child ??
+              child:
+                  actions[i].child ??
                   Text(actions[i].label!, style: labelStyle),
             ),
           ],
@@ -944,22 +1037,27 @@ class CupertinoAppBar extends StatelessWidget {
             ? null
             : GestureDetector(
                 onTap: leading!.onPressed,
-                child: leading!.child ??
-                    Text(leading!.label ?? 'Back',
-                        style: theme.textTheme.navActionTextStyle),
+                child:
+                    leading!.child ??
+                    Text(
+                      leading!.label ?? 'Back',
+                      style: theme.textTheme.navActionTextStyle,
+                    ),
               ),
       );
     }
     final topPadding = MediaQuery.paddingOf(context).top;
-    final titleStyle = theme.textTheme.navTitleTextStyle
-        .copyWith(decoration: TextDecoration.none);
+    final titleStyle = theme.textTheme.navTitleTextStyle.copyWith(
+      decoration: TextDecoration.none,
+    );
     final subtitleStyle = theme.textTheme.tabLabelTextStyle.copyWith(
       fontSize: 13,
       decoration: TextDecoration.none,
       color: CupertinoColors.secondaryLabel.resolveFrom(context),
     );
-    final actionStyle =
-        theme.textTheme.textStyle.copyWith(decoration: TextDecoration.none);
+    final actionStyle = theme.textTheme.textStyle.copyWith(
+      decoration: TextDecoration.none,
+    );
 
     final titleBlock = subtitle == null
         ? Text(title, style: titleStyle)
@@ -986,9 +1084,17 @@ class CupertinoAppBar extends StatelessWidget {
     return SizedBox(
       height: topPadding + 44,
       child: Stack(
+        clipBehavior: Clip.none,
         fit: StackFit.expand,
         children: [
-          Positioned.fill(
+          // Reaches past the bar's own bounds so the blur/tint fade out
+          // instead of ending at the edge (see _effectOverhang).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height:
+                topPadding + 44 + _IOS26SliverAppBarDelegate._effectOverhang,
             child: RepaintBoundary(
               child: CupertinoScrollEdgeEffect(
                 edge: CupertinoScrollEdgeEffectEdge.top,

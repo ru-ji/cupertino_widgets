@@ -81,7 +81,7 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
               },
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 40),
               sliver: SliverList(
                 delegate: SliverChildListDelegate(
                   _searching

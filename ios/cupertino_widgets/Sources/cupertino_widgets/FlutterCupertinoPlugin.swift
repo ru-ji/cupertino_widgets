@@ -26,6 +26,11 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
         registrar.register(
             menuFactory, withId: "com.example.cupertino_widgets/cupertino_native_menu")
 
+        let contextMenuFactory = NativeContextMenuFactory(messenger: registrar.messenger())
+        registrar.register(
+            contextMenuFactory,
+            withId: "com.example.cupertino_widgets/cupertino_native_context_menu")
+
         let buttonFactory = NativeButtonFactory(messenger: registrar.messenger())
         registrar.register(
             buttonFactory, withId: "com.example.cupertino_widgets/cupertino_native_button")

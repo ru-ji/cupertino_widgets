@@ -1,4 +1,6 @@
 export 'src/cupertino_native_menu.dart';
+export 'src/cupertino_native_context_menu.dart';
+export 'src/cupertino_widgets_settings.dart';
 export 'src/cupertino_native_button.dart';
 export 'src/cupertino_native_text_field.dart';
 export 'src/models/cupertino_native_menu_item.dart';

@@ -94,9 +94,24 @@ class NativeHostingView: NSObject, FlutterPlatformView {
 final class HostingContainerView: UIView {
     weak var hostedController: UIHostingController<AnyView>?
 
+    /// Called after every (re)parenting pass. Containment changes make UIKit
+    /// re-derive the hosted controller's layout margins, so subclass owners
+    /// that force custom margins (the scaffold) re-assert them here.
+    var onParentingChanged: (() -> Void)?
+
+    /// Called on every layout pass of the container. UIKit recomputes the
+    /// hosted hierarchy's margins during layout, so margin-forcing owners
+    /// re-assert here too (must not trigger another layout).
+    var onLayout: (() -> Void)?
+
     override func didMoveToWindow() {
         super.didMoveToWindow()
         updateHostParenting()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
     }
 
     func updateHostParenting() {
@@ -110,6 +125,7 @@ final class HostingContainerView: UIView {
             host.willMove(toParent: nil)
             host.removeFromParent()
         }
+        onParentingChanged?()
     }
 
     /// Nearest view controller up the responder chain.

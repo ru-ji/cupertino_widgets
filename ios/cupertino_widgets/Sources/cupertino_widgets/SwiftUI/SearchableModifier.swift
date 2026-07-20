@@ -8,7 +8,7 @@ struct PageScrollBody: View {
     let engine: FlutterEngine?
     let scrollEdgeEffect: String?
     /// Native spinner while the body engine boots / renders its first frame.
-    var showLoadingIndicator = true
+    var showLoadingIndicator = false
 
     var body: some View {
         if let engine = engine {
@@ -43,7 +43,7 @@ struct SearchablePageBody: View {
 
     let engine: FlutterEngine?
     let scrollEdgeEffect: String?
-    var showLoadingIndicator = true
+    var showLoadingIndicator = false
     let onActiveChange: (Bool) -> Void
 
     var body: some View {

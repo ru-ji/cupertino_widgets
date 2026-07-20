@@ -7,6 +7,7 @@ import '../app.dart';
 import 'alert_demo_page.dart';
 import 'app_bar_demo_page.dart';
 import 'button_demo_page.dart';
+import 'context_menu_demo_page.dart';
 import 'date_picker_demo_page.dart';
 import 'effects_demo_page.dart';
 import 'liquid_glass_demo_page.dart';
@@ -34,6 +35,7 @@ class HomePage extends StatelessWidget {
     'segmented': (_) => const SegmentedControlDemoPage(),
     'button': (_) => const ButtonDemoPage(),
     'menu': (_) => const MenuDemoPage(),
+    'contextmenu': (_) => const ContextMenuDemoPage(),
     'textfield': (_) => const TextFieldDemoPage(),
     'tabbar': (_) => const StandaloneTabBarDemoPage(),
     'scaffold': (_) => const NativeScaffoldDemoPage(),
@@ -125,6 +127,13 @@ class HomePage extends StatelessWidget {
                           'Popup Menu',
                           CupertinoSymbols.ellipsisCircle,
                           CupertinoColors.systemIndigo,
+                        ),
+                        _row(
+                          'contextmenu',
+                          'Context Menu',
+                          null,
+                          CupertinoColors.systemBrown,
+                          rawSymbol: 'hand.point.up.left',
                         ),
                         _row(
                           'textfield',
