@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'internal/native_platform_view_mixin.dart';
@@ -35,6 +36,22 @@ class CupertinoNativeMenu extends StatefulWidget {
 
 class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
     with NativePlatformViewStateMixin {
+  bool? _lastIsDark;
+
+  // Follows the app's own theme brightness, not the device's — a light app
+  // forced on a dark-mode device should still get a light menu.
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-push config if the app toggled light/dark at runtime.
+    if (_lastIsDark != null && _lastIsDark != _isDark) {
+      updateNativeView('updateMenu', _toMap());
+    }
+    _lastIsDark = _isDark;
+  }
+
   @override
   void didUpdateWidget(covariant CupertinoNativeMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -58,6 +75,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),
+      'isDark': _isDark,
     };
   }
 

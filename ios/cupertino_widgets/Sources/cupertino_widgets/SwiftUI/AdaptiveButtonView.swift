@@ -86,6 +86,13 @@ struct AdaptiveButtonView: View {
         }
         .controlSize(controlSizeValue)
         .applyButtonShape(config.borderShape)
+        // When Flutter transforms (rotates/scales) the platform view, the
+        // engine sets the native view's frame to the transformed BOUNDING BOX
+        // — without this, the button stretches to fill that inflated frame
+        // and its glass/background balloons. fixedSize keeps the button at
+        // its natural size (centered) no matter what frame it's given.
+        // expand:true deliberately fills the frame, so it keeps stretching.
+        .applyFixedSize(config.expand != true)
     }
 
     @ViewBuilder
@@ -180,6 +187,15 @@ extension View {
     func applyExpand(_ expand: Bool) -> some View {
         if expand {
             self.frame(maxWidth: .infinity)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func applyFixedSize(_ fixed: Bool) -> some View {
+        if fixed {
+            self.fixedSize()
         } else {
             self
         }

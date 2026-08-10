@@ -29,4 +29,5 @@ struct MenuConfiguration: Codable {
     let fontSize: Double?
     let fontWeight: Int?
     let textColor: Int?
+    let isDark: Bool?
 }

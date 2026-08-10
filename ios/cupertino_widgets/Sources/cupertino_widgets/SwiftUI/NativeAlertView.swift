@@ -9,6 +9,7 @@ class AlertManager {
         title: String,
         message: String?,
         actions: [[String: Any]],
+        isDark: Bool,
         result: @escaping FlutterResult
     ) {
         // Find the top-most view controller to present the alert
@@ -24,6 +25,9 @@ class AlertManager {
             message: message,
             preferredStyle: .alert
         )
+        // Follows the app's own (possibly forced) theme, not the device's
+        // system appearance — same convention as every other native surface.
+        alertController.overrideUserInterfaceStyle = isDark ? .dark : .light
 
         for (index, actionData) in actions.enumerated() {
             let title = actionData["title"] as? String ?? ""

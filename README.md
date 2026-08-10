@@ -10,24 +10,17 @@
      3. Record demos at 2x device scale, crop to the phone frame, and keep
         GIFs under ~5 MB or pub.dev will feel sluggish.
      4. BONUS: add up to 10 entries to pubspec.yaml's `screenshots:` field —
-        those appear in pub.dev's screenshot carousel:
-          screenshots:
-            - description: 'Native slider in a Settings-style page'
-              path: doc/images/slider.png
+        those appear in pub.dev's screenshot carousel.
   Every spot that needs an image below is marked with:  📸 IMAGE
 ═══════════════════════════════════════════════════════════════════════ -->
 
 # cupertino_widgets
 
 Real UIKit & SwiftUI views inside Flutter — not lookalikes. Native buttons,
-toggles, sliders, menus, lists, sheets, tab bars, a full SwiftUI scaffold,
-and the iOS 26 **Liquid Glass** material, all driven from Dart at 120 fps.
+toggles, sliders, menus, tab bars, a full SwiftUI scaffold, and the iOS 26
+**Liquid Glass** material, all driven from Dart at 120 fps.
 
-<!-- 📸 IMAGE: hero — a banner or 3-phone montage of the demo app.
-<p align="center">
-  <img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/hero.png" width="800" alt="cupertino_widgets demo" />
-</p>
--->
+<!-- 📸 IMAGE: hero — a banner or 3-phone montage of the demo app. -->
 
 ## Why
 
@@ -41,30 +34,11 @@ haptics, Liquid Glass materials, Dynamic Type and accessibility come for free
 
 | | |
 |---|---|
-| iOS deployment target | 13.0+ (package links anywhere; views render on **iOS 15+**) |
+| iOS deployment target | 15.0+ |
 | Liquid Glass features | iOS 26+ (`glass` button styles, `CupertinoNativeGlassContainer`, glass tab bar/toolbars) — older versions get graceful material fallbacks |
 | Integration | Swift Package Manager (no CocoaPods needed) |
 
-## Widgets
-
-| Widget | Native counterpart |
-|---|---|
-| `CupertinoNativeButton` | SwiftUI `Button` (filled / tinted / plain / **glass** / **glassProminent**) |
-| `CupertinoNativeToggle` | `UISwitch` |
-| `CupertinoNativeSlider` | `UISlider` |
-| `CupertinoNativeSegmentedControl` | `UISegmentedControl` |
-| `CupertinoNativeMenu` | `UIMenu` (sections, submenus, toggles, destructive) |
-| `CupertinoNativeTextField` | `UITextField` (autofill, QuickType) |
-| `CupertinoNativeDatePicker` | compact `UIDatePicker` (popover calendar / time wheel) |
-| `CupertinoNativeProgressIndicator` | `ProgressView` (linear / circular) |
-| `CupertinoNativeAlert` | `UIAlertController` |
-| `CupertinoNativeList` / `CupertinoNativeForm` | SwiftUI-style inset-grouped sections (26 pt corners on iOS 26) |
-| `CupertinoNativeGlassContainer` | **Liquid Glass** `glassEffect` in a `GlassEffectContainer` |
-| `CupertinoNativeTabBar` | `UITabBar` (Liquid Glass, split search tab, minimize-on-scroll) |
-| `CupertinoNativeScaffold` | SwiftUI `NavigationStack` + `TabView` (collapsing large titles, native push/pop, `.searchable`) |
-| `CupertinoNativeSheet` | `UISheetPresentationController` (detents, grabber, pinned native app bar) |
-
-## Quick start
+## Install
 
 ```yaml
 dependencies:
@@ -73,18 +47,53 @@ dependencies:
 
 ```dart
 import 'package:cupertino_widgets/cupertino_widgets.dart';
+```
 
+## Widgets
+
+### Slider — `UISlider`
+
+<img src="doc/images/slider.jpg" width="320" alt="Native slider" />
+
+```dart
 CupertinoNativeSlider(
   value: _volume,
   onChanged: (v) => setState(() => _volume = v),
 )
 ```
 
-<!-- 📸 IMAGE: slider — the Settings-style volume page from the example app.
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/slider.png" width="320" alt="Native slider" />
--->
+`activeColor` tints the filled track, `divisions` snaps to steps,
+`onChanged: null` renders the native disabled look.
 
-### Buttons & icons (SF Symbols)
+### Toggle — `UISwitch`
+
+<img src="doc/images/toggle.jpg" width="320" alt="Native toggle" />
+
+```dart
+CupertinoNativeToggle(
+  value: _wifi,
+  onChanged: (v) => setState(() => _wifi = v),
+)
+```
+
+Press-and-slide works like the real thing; `activeColor` swaps the standard
+green for any tint.
+
+### Segmented Control — `UISegmentedControl`
+
+<img src="doc/images/segmented.jpg" width="320" alt="Native segmented control" />
+
+```dart
+CupertinoNativeSegmentedControl(
+  children: ['Day', 'Week', 'Month'],
+  groupValue: _range,
+  onValueChanged: (v) => setState(() => _range = v),
+)
+```
+
+### Button — SwiftUI `Button`
+
+<img src="doc/images/buttons.jpg" width="320" alt="Native buttons" />
 
 ```dart
 CupertinoNativeButton(
@@ -96,72 +105,163 @@ CupertinoNativeButton(
 )
 ```
 
-Icons come from a typo-safe `CupertinoSymbols` enum, any raw SF Symbol name
-via `CupertinoNativeIcon.named('...')`, or any Flutter `IconData` rendered
-natively via `CupertinoNativeIcon.flutter(...)`.
+Styles: `filled` / `tinted` / `plain` / **`glass`** / **`glassProminent`**;
+sizes `mini` → `extraLarge`; `expand: true` for full-width CTAs. Icons come
+from a typo-safe `CupertinoSymbols` enum or any raw SF Symbol name via
+`CupertinoNativeIcon.named('...')`.
 
-<!-- 📸 IMAGE: buttons — the contact-card demo page (call/message/record row).
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/buttons.png" width="320" alt="Native buttons" />
--->
+### Popup Menu — `UIMenu`
 
-### Liquid Glass container (iOS 26)
+<img src="doc/images/menu.jpg" width="320" alt="Native popup menu" />
+
+```dart
+CupertinoNativeMenu(
+  title: 'Actions',
+  items: [
+    CupertinoNativeMenuAction(
+        title: 'Rename', systemImage: 'pencil', actionId: 'rename'),
+    CupertinoNativeMenuAction(
+        title: 'Delete', systemImage: 'trash',
+        isDestructive: true, actionId: 'delete'),
+  ],
+  onAction: (id, _) => handle(id),
+)
+```
+
+Sections, submenus, checkable toggles and destructive items — the popup is a
+real `UIMenu` with SF Symbol item icons.
+
+### Context Menu — `UIContextMenuInteraction`
+
+<img src="doc/images/contextmenu.jpg" width="320" alt="Native context menu" />
+
+```dart
+CupertinoNativeContextMenu(
+  items: [/* same CupertinoNativeMenuItem model as the popup menu */],
+  onAction: (id, _) => handle(id),
+  blurBackground: true, // native blur over the whole app while open
+  child: PhotoCard(),
+)
+```
+
+Long-press lifts the Flutter child with the system blur and haptics. Pass
+`preview:` to show a different view while the menu is open.
+
+### Alert — `UIAlertController`
+
+<img src="doc/images/alert.jpg" width="320" alt="Native alert" />
+
+```dart
+CupertinoNativeAlert.show(
+  context: context,
+  title: 'Erase All Content and Settings?',
+  message: 'This cannot be undone.',
+  actions: [
+    CupertinoNativeAlertAction(title: 'Cancel', onPressed: () {}),
+    CupertinoNativeAlertAction(
+        title: 'Erase', isDestructive: true, onPressed: () {}),
+  ],
+)
+```
+
+### Progress — `ProgressView`
+
+<img src="doc/images/progress.jpg" width="320" alt="Native progress indicators" />
+
+```dart
+CupertinoNativeProgressIndicator(
+  value: downloaded, total: totalBytes,          // linear, determinate
+  style: CupertinoNativeProgressStyle.linear,
+)
+CupertinoNativeProgressIndicator(                // circular, indeterminate
+  style: CupertinoNativeProgressStyle.circular,
+)
+```
+
+### Text Field — `UITextField`
+
+<img src="doc/images/textfield.jpg" width="320" alt="Native text field" />
+
+```dart
+CupertinoNativeTextField(
+  placeholder: 'Search or enter text…',
+  glassEffect: true,                        // Liquid Glass capsule (iOS 26)
+  prefixIcon: CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
+  clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
+  onChanged: (v) => setState(() => _query = v),
+)
+```
+
+Real iOS autofill, keyboard types and QuickType; controller- or
+callback-driven, with `glassVariant`/`glassInteractive` for the glass look.
+
+### Date Picker — compact `UIDatePicker`
+
+<!-- 📸 IMAGE: datepicker.png -->
+
+```dart
+CupertinoNativeDatePicker(
+  value: _starts,
+  mode: CupertinoNativeDatePickerMode.dateAndTime,
+  onChanged: (d) => setState(() => _starts = d),
+)
+```
+
+The tappable pill pops the native calendar / time wheel over the app —
+overlay, dimming and animations are all UIKit's.
+
+### Liquid Glass — `glassEffect` (iOS 26)
+
+<img src="doc/images/glass.jpg" width="320" alt="Liquid Glass container" />
 
 ```dart
 CupertinoNativeGlassContainer(
   shape: CupertinoNativeGlassShape.capsule,
   variant: CupertinoGlassVariant.clear,  // .regular (default) or .clear
-  interactive: true,               // system touch shimmer
-  onPressed: () {},                // makes it a glass button
-  icon: CupertinoNativeIcon.symbol(CupertinoSymbols.paintbrush),
-  child: Text('Now Playing'),      // Flutter content on top of the glass
+  interactive: true,                     // system touch shimmer
+  onPressed: () {},                      // makes it a glass button
+  child: Text('Now Playing'),            // Flutter content on top of the glass
 )
 ```
 
 The glass is a real `glassEffect` refracting whatever Flutter renders behind
-it. `CupertinoGlassVariant.clear` picks the more transparent clear glass for
-media-rich backdrops. Check `CupertinoNativeGlassContainer.isSupported` to
-branch on devices below iOS 26 (they render a material fallback).
-`CupertinoNativeTextField(glassEffect: true)` takes the same variants via
-`glassVariant`, plus `glassInteractive` to toggle its touch shimmer.
+it. Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26
+(a static material stands in there).
 
-<!-- 📸 IMAGE (GIF recommended): glass — the Liquid Glass demo hero card over
-     the colorful backdrop, finger pressing the shapes.
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/glass.gif" width="320" alt="Liquid Glass container" />
--->
+### Tab Bar — `UITabBar`
 
-### Native list & form
+<img src="doc/images/tabbar.jpg" width="320" alt="Native tab bar" />
 
 ```dart
-CupertinoNativeList(
-  sections: [
-    CupertinoNativeListSection(
-      header: 'General',
-      rows: [
-        CupertinoNativeListRow(
-          id: 'about',
-          title: 'About',
-          icon: CupertinoNativeIcon.symbol(CupertinoSymbols.infoCircleFill),
-          showChevron: true,
-        ),
-      ],
-    ),
+CupertinoNativeTabBar(
+  selection: _tab,
+  split: true, rightCount: 1,            // iOS 26 split search tab
+  tabs: [
+    CupertinoNativeTab(
+        title: 'Home',
+        icon: CupertinoNativeIcon.symbol(CupertinoSymbols.houseFill),
+        id: 'home'),
+    CupertinoNativeTab(
+        title: '',
+        icon: CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
+        id: 'search',
+        role: CupertinoNativeTabRole.search),
   ],
-  onRowTap: (id) => debugPrint(id),
+  onSelectionChanged: (id) => setState(() => _tab = id),
 )
 ```
 
-Section corners automatically match the running iOS version (26 pt concentric
-on iOS 26, 10 pt earlier). Toggle rows report through `onToggle`.
+Liquid Glass on iOS 26. Standalone it floats over Flutter content; inside the
+scaffold it also gets minimize-on-scroll and the bottom accessory.
 
-<!-- 📸 IMAGE: list — the Settings-clone List & Form demo page.
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/list.png" width="320" alt="Native list and form" />
--->
+### Native Scaffold — SwiftUI `NavigationStack` + `TabView`
 
-### Full native scaffold
+<img src="doc/images/scaffold.jpg" width="320" alt="Native scaffold with bottom accessory" />
 
-Bodies are Flutter routes rendered inside a SwiftUI `NavigationStack` +
-`TabView`: large titles collapse on native scroll, tabs minimize (iOS 26),
-push/pop transitions and back-swipe are the system's.
+Bodies are Flutter routes rendered inside a real SwiftUI navigation stack:
+large titles collapse on native scroll, tabs minimize (iOS 26), push/pop
+transitions and back-swipe are the system's, and the tab bar can carry the
+iOS 26 bottom accessory (the Music-style "Now Playing" bar).
 
 ```dart
 // main.dart — bodies run in their own engines, resolved from a route table:
@@ -173,48 +273,59 @@ void main() {
 
 CupertinoNativeScaffold(
   appBar: CupertinoNativeAppBar(title: 'Library'),
-  tabBar: CupertinoNativeTabBar(tabs: [/* ... */]),
-  // A native spinner shows while a body engine boots its first frame.
-  // Pass false to show nothing (the page background) instead:
-  showLoadingIndicator: false,
+  tabBar: CupertinoNativeTabBar(
+    accessory: CupertinoNativeTabBarAccessory(
+        title: 'Now Playing', icon: CupertinoNativeIcon.named('music.note')),
+    tabs: [/* ... */],
+  ),
 )
 ```
 
-<!-- 📸 IMAGE (GIF recommended): scaffold — scroll collapsing the large title
-     and minimizing the tab bar.
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/scaffold.gif" width="320" alt="Native scaffold" />
--->
+Push native pages with `CupertinoNativeScaffold.push(...)` / `pop()`.
 
-### Native sheet
+## Routing — go_router & friends
+
+The scaffold is **router-agnostic**. Its bodies run in separate engines that
+short-circuit at the very top of `main()` — before `runApp`, before any
+router is even created — so your main app can use go_router, auto_route,
+plain `Navigator`, anything:
 
 ```dart
-await CupertinoNativeSheet.show(
-  route: 'newEvent',                       // same route table as the scaffold
-  appBar: CupertinoNativeAppBar(
-    title: 'New Event',
-    leading: [
-      CupertinoNativeBarItem(
-        icon: CupertinoNativeIcon.symbol(CupertinoSymbols.xmark),
-        actionId: 'close',
-      ),
-    ],
-    trailing: [CupertinoNativeBarItem(title: 'Add', actionId: 'add')],
-  ),
-  bottom: CupertinoNativeSheetSegmentedControl(segments: ['Event', 'Reminder']),
-  detents: [CupertinoNativeSheetDetent.medium, CupertinoNativeSheetDetent.large],
-  showGrabber: true,
-  onBarAction: (id) => CupertinoNativeSheet.dismiss(),
-); // completes on dismissal
+void main() {
+  // Body isolates take this branch and never reach the router below.
+  if (CupertinoNativeScaffold.maybeRun(scaffoldRoutes())) return;
+  runApp(MaterialApp.router(routerConfig: goRouter)); // your router, untouched
+}
 ```
 
-A real `UISheetPresentationController`: the presenting page recedes, content
-scrolls natively under the pinned bar, and pull-down-at-top drags the sheet
-between detents.
+Three rules:
 
-<!-- 📸 IMAGE (GIF recommended): sheet — presenting the New Event sheet,
-     scrolling it, dragging between detents.
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/sheet.gif" width="320" alt="Native sheet" />
--->
+1. The scaffold's internal navigation (tab switches, `push`/`pop` of native
+   pages) lives in the **native** `NavigationStack` — it never touches your
+   Flutter router's stack, and your router's routes never appear inside the
+   scaffold.
+2. A page *containing* a `CupertinoNativeScaffold` is a regular Flutter page:
+   route to it with `context.go(...)` or anything else, as usual.
+3. Scaffold **bodies** are their own widget roots in their own isolates —
+   don't call `context.go(...)` inside one (there is no router there). Talk
+   to the main app over the scaffold's callbacks (`onBarAction`,
+   `onTabChanged`, `onRouteChanged`) instead.
+
+## Also in the package
+
+Not pictured above, same native treatment:
+
+- **`CupertinoNativeSheet`** — `UISheetPresentationController` page sheet:
+  detents, grabber, pinned native app bar, Flutter content scrolling beneath.
+- **`CupertinoNativeList` / `CupertinoNativeForm`** — SwiftUI-style
+  inset-grouped sections (26 pt concentric corners on iOS 26), row taps and
+  toggles reporting back to Dart.
+- **`CupertinoSliverAppBar` / `CupertinoAppBar`** — the iOS 26 navigation bar
+  drawn in Flutter: blur-morph large-title collapse, Liquid Glass bar
+  buttons, a `.search` variant whose glass field collapses with the scroll
+  (`NavigationBarBottomMode`), all floating on a `CupertinoScrollEdgeEffect`.
+- **Native `.searchable`** — the scaffold's app bar takes a
+  `CupertinoNativeSearchField` for the real SwiftUI search experience.
 
 ## Performance
 
@@ -270,22 +381,18 @@ The [example](example/) is a full iOS-styled catalog — every widget in a
 realistic Settings-style screen. Run it on an iOS 26 device to see the
 Liquid Glass features.
 
-<!-- 📸 IMAGE: catalog — the example app home list (light + dark side by side).
-<img src="https://raw.githubusercontent.com/GITHUB_USER/REPO/main/doc/images/catalog.png" width="640" alt="Example catalog" />
--->
-
 ## Platform notes
 
 - **iOS only.** On other platforms widgets render simple Flutter fallbacks so
   shared code still builds.
 - **Standard Flutter effect widgets work on the native views.** `Transform`
-  (translate / scale / rotate), clipping, `Offstage` and `Visibility` reach
-  the underlying `UIView` through platform-view mutators, and `Opacity`
-  fades them too — with one iOS caveat: Liquid Glass / material backgrounds
+  translate, clipping, `Offstage` and `Visibility` reach the underlying
+  `UIView` through platform-view mutators, and `Opacity` fades them too —
+  with two iOS caveats: Liquid Glass / material backgrounds
   (`UIVisualEffectView`) keep rendering their effect at full intensity under
-  an inherited alpha, so to fully hide a glass surface use
-  `Visibility`/`Offstage` (or the component's own parameters). The example's
-  *Widget Effects* page exercises all of these on live native views.
+  an inherited alpha (use `Visibility`/`Offstage` to fully hide glass), and
+  they don't support live rotation/scaling (swap to a non-glass style while
+  transformed). The example's *Widget Effects* page exercises all of these.
 - **Works from iOS 15 up.** iOS 26 is not required: on iOS 15–18 every
   component renders its classic pre-26 system style (e.g. material blur
   instead of Liquid Glass, Flutter's `CupertinoSliverNavigationBar` behind

@@ -52,6 +52,7 @@ class NativeContextMenuView: NSObject, FlutterPlatformView, UIContextMenuInterac
     private var sessionSnapshot: UIImage?
     private var blurBackground = false
     private var backgroundBlurView: UIVisualEffectView?
+    private var isDark: Bool?
 
     init(
         frame: CGRect,
@@ -86,6 +87,26 @@ class NativeContextMenuView: NSObject, FlutterPlatformView, UIContextMenuInterac
             items = itemMaps.compactMap { decodeConfig(MenuItemConfig.self, from: $0) }
         }
         blurBackground = args["blurBackground"] as? Bool ?? false
+        if let dark = args["isDark"] as? Bool {
+            isDark = dark
+            container.overrideUserInterfaceStyle = dark ? .dark : .light
+        }
+    }
+
+    /// `UIContextMenuInteraction` presents its lifted content and menu chrome
+    /// in a separate system overlay window, not as a subview of `container` —
+    /// setting the style on `container` alone doesn't reach it. Override every
+    /// window in the scene so whichever one the system parents the menu chrome
+    /// to follows the app's own (possibly forced) theme, not the device's.
+    private func applyWindowStyle() {
+        guard let isDark else { return }
+        let style: UIUserInterfaceStyle = isDark ? .dark : .light
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                window.overrideUserInterfaceStyle = style
+            }
+        }
     }
 
     /// Blurs the app behind the menu. Lives in the app's own window, so it
@@ -98,6 +119,12 @@ class NativeContextMenuView: NSObject, FlutterPlatformView, UIContextMenuInterac
         if on {
             guard backgroundBlurView == nil, let window = container.window else { return }
             let effectView = UIVisualEffectView(effect: nil)
+            // The blur must follow the app's forced theme, not the device's —
+            // a dark device otherwise renders a darkened material over a
+            // light-themed app.
+            if let isDark {
+                effectView.overrideUserInterfaceStyle = isDark ? .dark : .light
+            }
             effectView.frame = window.bounds
             effectView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             effectView.isUserInteractionEnabled = false
@@ -148,6 +175,7 @@ class NativeContextMenuView: NSObject, FlutterPlatformView, UIContextMenuInterac
         configurationForMenuAtLocation location: CGPoint
     ) -> UIContextMenuConfiguration? {
         guard !items.isEmpty else { return nil }
+        applyWindowStyle()
         // Resolve the lift image ONCE per interaction: highlight, dismiss and
         // (absent a custom preview) the lift itself all reuse it. Flutter's
         // own render when available; the window snapshot only as a stopgap

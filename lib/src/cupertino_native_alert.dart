@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 class CupertinoNativeAlertAction {
   final String title;
@@ -29,6 +30,7 @@ class CupertinoNativeAlert {
   );
 
   static Future<void> show({
+    required BuildContext context,
     required String title,
     String? message,
     required List<CupertinoNativeAlertAction> actions,
@@ -38,6 +40,9 @@ class CupertinoNativeAlert {
         'title': title,
         'message': message,
         'actions': actions.map((a) => a.toMap()).toList(),
+        // Follows the app's own (possibly forced) theme, not the device's
+        // system appearance — same convention as every other native surface.
+        'isDark': Theme.of(context).brightness == Brightness.dark,
       });
 
       if (index != null && index >= 0 && index < actions.length) {

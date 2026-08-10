@@ -128,6 +128,7 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
                 return
             }
             let message = args["message"] as? String
+            let isDark = args["isDark"] as? Bool ?? false
 
             guard #available(iOS 15.0, *) else {
                 result(
@@ -138,7 +139,7 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
                 return
             }
             AlertManager.shared.show(
-                title: title, message: message, actions: actions, result: result)
+                title: title, message: message, actions: actions, isDark: isDark, result: result)
         } else {
             result(FlutterMethodNotImplemented)
         }

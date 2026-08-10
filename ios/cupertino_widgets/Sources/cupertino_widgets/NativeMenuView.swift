@@ -64,6 +64,20 @@ class NativeMenuView: NativeHostingView {
             self?.channel?.invokeMethod("onAction", arguments: args)
         }
         attach(AnyView(menuView))
+        // Follows the app's own (possibly forced) theme, not the device's
+        // system appearance. The UIMenu's blur/vibrancy chrome is presented
+        // in a system overlay window — not in this view's hierarchy — so the
+        // scene's windows need the override too, not just the anchor.
+        if let isDark = config.isDark {
+            let style: UIUserInterfaceStyle = isDark ? .dark : .light
+            hostingController?.overrideUserInterfaceStyle = style
+            for scene in UIApplication.shared.connectedScenes {
+                guard let windowScene = scene as? UIWindowScene else { continue }
+                for window in windowScene.windows {
+                    window.overrideUserInterfaceStyle = style
+                }
+            }
+        }
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

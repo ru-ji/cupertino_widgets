@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -101,6 +102,26 @@ class _CupertinoNativeContextMenuState extends State<CupertinoNativeContextMenu>
   /// restores it regardless.
   Timer? _restoreTimer;
 
+  bool? _lastIsDark;
+
+  // Follows the app's own theme brightness, not the device's — a light app
+  // forced on a dark-mode device should still get a light menu.
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-push config if the app toggled light/dark at runtime.
+    if (_lastIsDark != null && _lastIsDark != _isDark) {
+      updateNativeView(
+        'updateContextMenu',
+        _toMap(),
+        refreshIntrinsicSize: false,
+      );
+    }
+    _lastIsDark = _isDark;
+  }
+
   void _scheduleChildRestore() {
     _restoreTimer?.cancel();
     _restoreTimer = Timer(const Duration(milliseconds: 700), _restoreChild);
@@ -122,6 +143,7 @@ class _CupertinoNativeContextMenuState extends State<CupertinoNativeContextMenu>
     return {
       'items': widget.items.map((e) => e.toMap()).toList(),
       'blurBackground': widget.blurBackground,
+      'isDark': _isDark,
     };
   }
 

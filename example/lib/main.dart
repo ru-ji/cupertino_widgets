@@ -7,9 +7,10 @@ import 'scaffold_routes.dart';
 void main() {
   if (CupertinoNativeScaffold.maybeRun(scaffoldRoutes())) return;
   runApp(const MyApp());
-  // Warm the shared engine group in the background so the first body a
-  // native scaffold boots is cheap. Bodies boot lazily on first visit, then
-  // park & re-attach on later visits (no reload, Dart state kept). Pass
-  // routes: ['home'] only to pre-boot a page shown immediately at launch.
-  CupertinoNativeScaffold.prewarm();
+  // Warm the shared engine group AND fully pre-boot the scaffold demo's
+  // first tab ('home'): without listing it, bodies still boot lazily on
+  // first visit — the plain prewarm() only pays the engine-group cold
+  // start. Other routes stay lazy (each listed route costs startup time
+  // and holds memory).
+  CupertinoNativeScaffold.prewarm(routes: ['home']);
 }

@@ -6,10 +6,10 @@ import 'package:cupertino_widgets/cupertino_widgets.dart';
 import '../widgets/settings_ui.dart';
 
 /// Verifies that standard Flutter effect widgets apply to the plugin's
-/// native (Swift) views: the stage hosts a Liquid Glass button and a
-/// `UISwitch`, and the rows below wrap them in `Opacity`, `Visibility`,
-/// `Offstage` and `Transform` (translate / scale / rotate). All of these
-/// reach the underlying `UIView` through Flutter's platform-view mutators.
+/// native (Swift) views: the stage hosts a button and a `UISwitch`, and the
+/// rows below wrap them in `Opacity`, `Visibility`, `Offstage` and
+/// `Transform` (translate / scale / rotate). All of these reach the
+/// underlying `UIView` through Flutter's platform-view mutators.
 ///
 /// Known iOS caveat: a Liquid Glass / material background
 /// (`UIVisualEffectView`) keeps rendering its effect at full intensity under

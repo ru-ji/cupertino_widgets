@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:cupertino_widgets/cupertino_widgets.dart';
-import 'package:soft_edge_blur/soft_edge_blur.dart';
 import '../widgets/settings_ui.dart';
 
 /// Body for the scaffold's home tab. Runs in its own FlutterEngine inside the

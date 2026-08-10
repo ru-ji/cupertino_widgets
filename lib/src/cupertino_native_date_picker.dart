@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -53,6 +54,12 @@ class CupertinoNativeDatePicker extends StatefulWidget {
 
 class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
     with NativePlatformViewStateMixin {
+  bool? _lastIsDark;
+
+  // Follows the app's own theme brightness, not the device's — a light app
+  // forced on a dark-mode device should still get a light picker.
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   Map<String, dynamic> _toMap() {
     return {
       'value': widget.value.millisecondsSinceEpoch,
@@ -60,7 +67,18 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
       'minimumDate': widget.minimumDate?.millisecondsSinceEpoch,
       'maximumDate': widget.maximumDate?.millisecondsSinceEpoch,
       'tint': widget.tint?.toARGB32(),
+      'isDark': _isDark,
     };
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-push config if the app toggled light/dark at runtime.
+    if (_lastIsDark != null && _lastIsDark != _isDark) {
+      updateNativeView('updateDatePicker', _toMap(), refreshIntrinsicSize: false);
+    }
+    _lastIsDark = _isDark;
   }
 
   @override

@@ -105,6 +105,12 @@ class NativeDatePickerView: NativeHostingView {
         }
 
         attach(AnyView(AdaptiveDatePickerView(model: model)))
+        // Follows the app's own (possibly forced) theme, not the device's
+        // system appearance — the popped-open calendar/wheel otherwise reads
+        // the window's actual interface style.
+        if let isDark = argsMap["isDark"] as? Bool {
+            hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
+        }
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -121,6 +127,9 @@ class NativeDatePickerView: NativeHostingView {
             model.maximumDate = Self.date(from: args["maximumDate"])
             model.tint = (args["tint"] as? Int).map { Color(argb: $0) }
             model.suppressCallback = false
+            if let isDark = args["isDark"] as? Bool {
+                hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
+            }
             result(nil)
         case "getIntrinsicSize":
             result(intrinsicSize())

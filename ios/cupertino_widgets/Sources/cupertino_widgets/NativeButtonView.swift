@@ -59,7 +59,31 @@ class NativeButtonView: NativeHostingView {
         let buttonView = AdaptiveButtonView(config: config) { [weak self] in
             self?.channel?.invokeMethod("onPressed", arguments: nil)
         }
-        attach(AnyView(buttonView))
+        guard config.expand != true else {
+            // expand: true is explicitly "fill the box Flutter gave me".
+            attach(AnyView(buttonView))
+            return
+        }
+        // Otherwise size the hosting view to the button's own content and
+        // center it, instead of stretching it across the container.
+        //
+        // Flutter sizes a transformed platform view's box to the ROTATED
+        // BOUNDING BOX — at 45° a capsule button's box becomes square. A
+        // stretched button fills that box, and since its border shape is a
+        // capsule, a square capsule renders as the big circle seen when
+        // rotating. Pinning to the content's natural size keeps the button
+        // (and the glass material painting its background) at the right size
+        // and shape under any transform.
+        attach(AnyView(buttonView)) { host, container in
+            host.setContentHuggingPriority(.required, for: .horizontal)
+            host.setContentHuggingPriority(.required, for: .vertical)
+            NSLayoutConstraint.activate([
+                host.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                host.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                host.widthAnchor.constraint(lessThanOrEqualTo: container.widthAnchor),
+                host.heightAnchor.constraint(lessThanOrEqualTo: container.heightAnchor),
+            ])
+        }
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

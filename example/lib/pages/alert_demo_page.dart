@@ -33,6 +33,7 @@ class _AlertDemoPageState extends State<AlertDemoPage> {
               title: 'Mobile Data Is Off',
               titleColor: blue,
               onTap: () => CupertinoNativeAlert.show(
+                context: context,
                 title: 'Mobile Data is Off',
                 message:
                     'Turn on mobile data or use Wi-Fi to access data.',
@@ -52,6 +53,7 @@ class _AlertDemoPageState extends State<AlertDemoPage> {
               title: 'Erase All Content…',
               titleColor: red,
               onTap: () => CupertinoNativeAlert.show(
+                context: context,
                 title: 'Erase All Content and Settings?',
                 message: 'This cannot be undone. All media, data and settings '
                     'will be erased.',

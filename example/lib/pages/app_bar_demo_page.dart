@@ -82,42 +82,51 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 40),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate(
-                  _searching
-                      ? [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                            child: Text(
-                              _query.isEmpty ? 'SUGGESTED' : 'RESULTS',
-                              style: footnoteStyle(context),
-                            ),
-                          ),
-                          for (final (title, start, end) in results) ...[
-                            _AlbumRow(title: title, start: start, end: end),
-                          ],
-                          if (results.isEmpty)
+              // Cross-fade between browse and search content, timed with the
+              // bar's 300ms search morph, instead of an instant swap.
+              sliver: SliverToBoxAdapter(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Column(
+                    key: ValueKey(_searching),
+                    // Stretch so children get the full width, exactly as the
+                    // SliverList this replaced laid them out.
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _searching
+                        ? [
                             Padding(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                               child: Text(
-                                'No results for "$_query"',
+                                _query.isEmpty ? 'SUGGESTED' : 'RESULTS',
                                 style: footnoteStyle(context),
                               ),
                             ),
-                        ]
-                      : [
-                          Text(
-                            'Scroll — the large title blur-morphs into the '
-                            'inline one over a pure scroll-edge effect. Tap '
-                            'the search field to see the glass morph.',
-                            style: footnoteStyle(context),
-                          ),
-                          const SizedBox(height: 16),
-                          for (final (title, start, end) in _albums) ...[
-                            _AlbumCard(title: title, start: start, end: end),
-                            const SizedBox(height: 14),
+                            for (final (title, start, end) in results) ...[
+                              _AlbumRow(title: title, start: start, end: end),
+                            ],
+                            if (results.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  'No results for "$_query"',
+                                  style: footnoteStyle(context),
+                                ),
+                              ),
+                          ]
+                        : [
+                            Text(
+                              'Scroll — the large title blur-morphs into the '
+                              'inline one over a pure scroll-edge effect. Tap '
+                              'the search field to see the glass morph.',
+                              style: footnoteStyle(context),
+                            ),
+                            const SizedBox(height: 16),
+                            for (final (title, start, end) in _albums) ...[
+                              _AlbumCard(title: title, start: start, end: end),
+                              const SizedBox(height: 14),
+                            ],
                           ],
-                        ],
+                  ),
                 ),
               ),
             ),
