@@ -17,6 +17,7 @@ import 'native_scaffold_demo_page.dart';
 import 'native_searchable_demo_page.dart';
 import 'progress_demo_page.dart';
 import 'segmented_control_demo_page.dart';
+import 'settings_conformance_demo_page.dart';
 import 'sheet_demo_page.dart';
 import 'slider_demo_page.dart';
 import 'standalone_tab_bar_demo_page.dart';
@@ -46,6 +47,7 @@ class HomePage extends StatelessWidget {
     'sheet': (_) => const SheetDemoPage(),
     'datepicker': (_) => const DatePickerDemoPage(),
     'appbar': (_) => const AppBarDemoPage(),
+    'conformance': (_) => const SettingsConformanceDemoPage(),
     'alert': (_) => const AlertDemoPage(),
     'progress': (_) => const ProgressDemoPage(),
   };
@@ -186,6 +188,13 @@ class HomePage extends StatelessWidget {
                           null,
                           CupertinoColors.systemIndigo,
                           rawSymbol: 'rectangle.topthird.inset.filled',
+                        ),
+                        _row(
+                          'conformance',
+                          'Settings Conformance',
+                          null,
+                          CupertinoColors.systemGreen,
+                          rawSymbol: 'checkmark.seal',
                         ),
                       ],
                     ),

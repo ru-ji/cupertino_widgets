@@ -534,7 +534,10 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   // except the search field height, which is configurable and defaults to the
   // iOS 26 44pt capsule instead of Flutter's 36.
   static const double _barH = 44;
-  static const double _largeExtension = 52;
+  // 52 is UIKit's large-title band height, but its title label sits lower in
+  // the band than ours does: the visible gap under the leading row runs ~1.5x
+  // ours. The extra 5pt is bottom-anchored, so it lands entirely in that gap.
+  static const double _largeExtension = 59;
   static const double _bottomPadding = 8;
 
   // The native search bar's fade window, in points of *height reduction*:
@@ -722,7 +725,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     // arrives just after the title.
     Widget inlineFade(Widget child, double t) => Opacity(
       opacity: titleVisible ? t : 0.0,
-      child: Transform.translate(offset: Offset(0, (1 - t) * 16), child: child),
+      child: Transform.translate(offset: Offset(0, (1 - t) * 20), child: child),
     );
     // With a subtitle the system inline bar drops the title to 15pt (and the
     // subtitle to 12pt) so both lines read as one compact block.

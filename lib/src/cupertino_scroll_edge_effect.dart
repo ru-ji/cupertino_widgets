@@ -69,11 +69,12 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
   /// Peak blur at the screen edge, logical px. The system effect is lighter
   /// than it looks — its reach comes from spanning a tall region, not from a
   /// heavy sigma (compare Music/Library on iOS 26).
-  static const double _maxSigma = 10;
+  static const double _maxSigma = 3;
 
   /// Fallback-only: blur strength per horizontal slice, outermost first —
-  /// the shader's cosine falloff sampled at each slice's center.
-  static const _fallbackSigmas = [9.9, 9.4, 8.3, 6.8, 5.1, 3.2, 1.6, 0.3];
+  /// the shader's cosine falloff sampled at each slice's center, scaled to
+  /// [_maxSigma].
+  static const _fallbackSigmas = [2.97, 2.82, 2.49, 2.04, 1.53, 0.96, 0.48, 0.09];
 
   static ui.FragmentProgram? _cachedProgram;
   static Future<ui.FragmentProgram?>? _programFuture;
@@ -181,15 +182,13 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
     final isTop = widget.edge == CupertinoScrollEdgeEffectEdge.top;
     final hard = widget.style == CupertinoNativeScrollEdgeEffect.hard;
 
-    // Tint wash on the same cosine family as the blur, so the two read as one
-    // effect — but on a steeper exponent, because they must NOT die together:
-    // the system tint is near-opaque at the very edge and has cleared by the
-    // title, while the blur keeps softening well below it. Matching their
-    // rates is what made this read as a flat band that stops.
-    final peak = hard ? 1.0 : 0.96;
+    // Tint wash on the EXACT same falloff as the shader blur (same exponent,
+    // same 3% dead zone) — same fade-out start, same effective height, so
+    // the two layers read as one effect that dies together at the boundary.
+    final peak = hard ? 0.6 : 0.45;
     const steps = 16;
     double alphaAt(double t) =>
-        peak * math.pow(math.cos(t * math.pi / 2), 1.2).toDouble();
+        peak * math.pow(math.cos(t * math.pi / 2), 1.5).toDouble();
     // Same 3% dead zone as the shader: nothing is painted at the boundary.
     const fadeEnd = 0.97;
     final wash = DecoratedBox(
