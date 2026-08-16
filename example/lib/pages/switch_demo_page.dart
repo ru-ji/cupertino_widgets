@@ -3,16 +3,16 @@ import 'package:cupertino_widgets/cupertino_widgets.dart';
 
 import '../widgets/settings_ui.dart';
 
-/// [CupertinoNativeToggle] presented as a settings page: each row carries a
+/// [CupertinoNativeSwitch] presented as a settings page: each row carries a
 /// bare native UISwitch as its trailing control, exactly like Settings.
-class ToggleDemoPage extends StatefulWidget {
-  const ToggleDemoPage({super.key});
+class SwitchDemoPage extends StatefulWidget {
+  const SwitchDemoPage({super.key});
 
   @override
-  State<ToggleDemoPage> createState() => _ToggleDemoPageState();
+  State<SwitchDemoPage> createState() => _SwitchDemoPageState();
 }
 
-class _ToggleDemoPageState extends State<ToggleDemoPage> {
+class _SwitchDemoPageState extends State<SwitchDemoPage> {
   bool _airplane = false;
   bool _wifi = true;
   bool _bluetooth = true;
@@ -22,7 +22,7 @@ class _ToggleDemoPageState extends State<ToggleDemoPage> {
   @override
   Widget build(BuildContext context) {
     return DemoScaffold(
-      title: 'Toggle',
+      title: 'Switch',
       children: [
         SettingsSection(
           header: 'Connectivity',
@@ -32,7 +32,7 @@ class _ToggleDemoPageState extends State<ToggleDemoPage> {
           children: [
             SettingsRow(
               title: 'Airplane Mode',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _airplane,
                 onChanged: (v) => setState(() => _airplane = v),
               ),
@@ -40,16 +40,14 @@ class _ToggleDemoPageState extends State<ToggleDemoPage> {
             SettingsRow(
               title: 'Wi-Fi',
               subtitle: _wifi ? 'FlutterNet' : 'Off',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _wifi && !_airplane,
-                onChanged: _airplane
-                    ? null
-                    : (v) => setState(() => _wifi = v),
+                onChanged: _airplane ? null : (v) => setState(() => _wifi = v),
               ),
             ),
             SettingsRow(
               title: 'Bluetooth',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _bluetooth && !_airplane,
                 onChanged: _airplane
                     ? null
@@ -64,7 +62,7 @@ class _ToggleDemoPageState extends State<ToggleDemoPage> {
           children: [
             SettingsRow(
               title: 'Allow Notifications',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _notifications,
                 onChanged: (v) => setState(() => _notifications = v),
               ),
@@ -72,7 +70,7 @@ class _ToggleDemoPageState extends State<ToggleDemoPage> {
             SettingsRow(
               title: 'Critical Alerts',
               subtitle: 'Delivered even while muted',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _critical,
                 activeColor: CupertinoColors.systemRed,
                 onChanged: _notifications
@@ -88,7 +86,7 @@ class _ToggleDemoPageState extends State<ToggleDemoPage> {
           children: [
             SettingsRow(
               title: 'Managed by Profile',
-              trailing: CupertinoNativeToggle(value: true, onChanged: null),
+              trailing: CupertinoNativeSwitch(value: true, onChanged: null),
             ),
           ],
         ),

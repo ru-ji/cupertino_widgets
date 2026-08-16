@@ -226,4 +226,9 @@ enum CupertinoSymbols {
 /// - [palette]: distinct colors per layer (uses the symbol's default palette
 ///   here since a single tint color is provided).
 /// - [multicolor]: the symbol's intrinsic multicolor rendering.
-enum CupertinoSymbolRenderingMode { monochrome, hierarchical, palette, multicolor }
+enum CupertinoSymbolRenderingMode {
+  monochrome,
+  hierarchical,
+  palette,
+  multicolor,
+}

@@ -18,52 +18,52 @@ class _MenuDemoPageState extends State<MenuDemoPage> {
   bool _showHidden = false;
 
   List<CupertinoNativeMenuItem> get _fileMenuItems => [
-        const CupertinoNativeMenuSection(
-          items: [
-            CupertinoNativeMenuAction(
-              title: 'New File',
-              systemImage: 'doc',
-              actionId: 'new_file',
-            ),
-            CupertinoNativeMenuAction(
-              title: 'New Folder',
-              systemImage: 'folder',
-              actionId: 'new_folder',
-            ),
-          ],
+    const CupertinoNativeMenuSection(
+      items: [
+        CupertinoNativeMenuAction(
+          title: 'New File',
+          systemImage: 'doc',
+          actionId: 'new_file',
         ),
-        const CupertinoNativeMenuSection(
-          items: [
-            CupertinoNativeMenuAction(
-              title: 'Rename',
-              systemImage: 'pencil',
-              actionId: 'rename',
-            ),
-            CupertinoNativeMenuAction(
-              title: 'Delete',
-              systemImage: 'trash',
-              isDestructive: true,
-              actionId: 'delete',
-            ),
-          ],
+        CupertinoNativeMenuAction(
+          title: 'New Folder',
+          systemImage: 'folder',
+          actionId: 'new_folder',
         ),
-        CupertinoNativeSubmenu(
-          title: 'View',
-          systemImage: 'eye',
-          items: [
-            CupertinoNativeMenuToggle(
-              title: 'Show Hidden Files',
-              value: _showHidden,
-              actionId: 'toggle_hidden',
-              systemImage: 'eye.slash',
-            ),
-            const CupertinoNativeMenuAction(
-              title: 'Reset View',
-              actionId: 'reset_view',
-            ),
-          ],
+      ],
+    ),
+    const CupertinoNativeMenuSection(
+      items: [
+        CupertinoNativeMenuAction(
+          title: 'Rename',
+          systemImage: 'pencil',
+          actionId: 'rename',
         ),
-      ];
+        CupertinoNativeMenuAction(
+          title: 'Delete',
+          systemImage: 'trash',
+          isDestructive: true,
+          actionId: 'delete',
+        ),
+      ],
+    ),
+    CupertinoNativeSubmenu(
+      title: 'View',
+      systemImage: 'eye',
+      items: [
+        CupertinoNativeMenuToggle(
+          title: 'Show Hidden Files',
+          value: _showHidden,
+          actionId: 'toggle_hidden',
+          systemImage: 'eye.slash',
+        ),
+        const CupertinoNativeMenuAction(
+          title: 'Reset View',
+          actionId: 'reset_view',
+        ),
+      ],
+    ),
+  ];
 
   void _onAction(String id, Object? value) {
     setState(() {
@@ -111,7 +111,7 @@ class _MenuDemoPageState extends State<MenuDemoPage> {
                 title: 'Options',
                 systemImage: 'slider.horizontal.3',
                 style: CupertinoNativeButtonStyle.glassProminent,
-                color: CupertinoColors.systemPurple,
+                activeColor: CupertinoColors.systemPurple,
                 items: _fileMenuItems,
                 onAction: _onAction,
               ),
@@ -120,12 +120,11 @@ class _MenuDemoPageState extends State<MenuDemoPage> {
         ),
         const SettingsSection(
           header: 'About',
-          footer: 'The popup is a native UIMenu: sections, SF Symbol item '
+          footer:
+              'The popup is a native UIMenu: sections, SF Symbol item '
               'icons, a destructive action, a submenu and a checkable toggle '
               'that reports back to Flutter.',
-          children: [
-            SettingsRow(title: 'Menu items', value: '6 + submenu'),
-          ],
+          children: [SettingsRow(title: 'Menu items', value: '6 + submenu')],
         ),
       ],
     );

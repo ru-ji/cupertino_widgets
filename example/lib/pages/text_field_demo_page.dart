@@ -32,31 +32,34 @@ class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
       children: [
         SettingsSection(
           header: 'Liquid Glass',
-          footer: 'glass: true wraps the native field in the iOS 26 '
+          footer:
+              'A CupertinoGlass wraps the native field in the iOS 26 '
               'UIGlassEffect — with a prefix SF Symbol via the native '
-              'leftView slot. glassVariant picks regular or clear glass; '
-              'glassInteractive toggles the touch shimmer.',
+              'leftView slot. Its variant picks regular or clear glass; '
+              'interactive toggles the touch shimmer.',
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
               child: CupertinoNativeTextField(
                 placeholder: 'Search or enter text…',
-                glassEffect: true,
-                glassCornerRadius: 16,
-                glassVariant: _glassClear
-                    ? CupertinoGlassVariant.clear
-                    : CupertinoGlassVariant.regular,
-                glassInteractive: _glassInteractive,
+                glass: CupertinoGlass(
+                  cornerRadius: 16,
+                  variant: _glassClear
+                      ? CupertinoGlassVariant.clear
+                      : CupertinoGlassVariant.regular,
+                  interactive: _glassInteractive,
+                ),
                 height: 48,
-                prefixIcon:
-                    CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
-                clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
+                prefixIcon: CupertinoNativeIcon.symbol(
+                  CupertinoSymbols.magnifyingglass,
+                ),
+                clearButtonMode: OverlayVisibilityMode.editing,
               ),
             ),
             SettingsRow(
               title: 'Clear variant',
               subtitle: 'More transparent glass',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _glassClear,
                 onChanged: (v) => setState(() => _glassClear = v),
               ),
@@ -64,7 +67,7 @@ class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
             SettingsRow(
               title: 'Interactive',
               subtitle: 'Shimmer on touch',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _glassInteractive,
                 onChanged: (v) => setState(() => _glassInteractive = v),
               ),
@@ -75,7 +78,7 @@ class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
           header: 'Account',
           footer: _email.isEmpty
               ? 'Native UITextFields: real iOS autofill, keyboard types and '
-                  'QuickType.'
+                    'QuickType.'
               : 'Signing in as $_email',
           children: [
             _FieldRow(
@@ -101,14 +104,15 @@ class _TextFieldDemoPageState extends State<TextFieldDemoPage> {
         ),
         SettingsSection(
           header: 'Profile',
-          footer: 'The name field is controller-driven; the clear button is '
+          footer:
+              'The name field is controller-driven; the clear button is '
               'the native one.',
           children: [
             _FieldRow(
               label: 'Name',
               child: CupertinoNativeTextField(
                 controller: _nameController,
-                clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
+                clearButtonMode: OverlayVisibilityMode.editing,
                 textAlign: TextAlign.end,
               ),
             ),

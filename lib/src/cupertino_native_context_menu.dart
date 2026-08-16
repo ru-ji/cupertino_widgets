@@ -8,6 +8,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'callbacks.dart';
+
 import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_menu_item.dart';
 
@@ -57,7 +59,7 @@ class CupertinoNativeContextMenu extends StatefulWidget {
   final Widget? preview;
 
   /// Called with the tapped item's `actionId` (and the new value for toggles).
-  final Function(String, dynamic)? onAction;
+  final CupertinoNativeMenuActionCallback? onAction;
 
   /// Reports the menu opening/closing — e.g. to dim or swap [child] on the
   /// Flutter side while the menu is up. Fires `false` the instant the

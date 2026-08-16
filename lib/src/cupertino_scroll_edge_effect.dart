@@ -6,7 +6,7 @@ import 'package:flutter/cupertino.dart'
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import 'cupertino_native_tab_bar.dart' show CupertinoNativeScrollEdgeEffect;
+import 'cupertino_native_tab_bar.dart' show CupertinoScrollEdgeEffectStyle;
 
 /// Which screen edge a [CupertinoScrollEdgeEffect] hugs.
 enum CupertinoScrollEdgeEffectEdge { top, bottom }
@@ -43,7 +43,7 @@ class CupertinoScrollEdgeEffect extends StatefulWidget {
   const CupertinoScrollEdgeEffect({
     super.key,
     this.edge = CupertinoScrollEdgeEffectEdge.top,
-    this.style = CupertinoNativeScrollEdgeEffect.soft,
+    this.style = CupertinoScrollEdgeEffectStyle.soft,
     this.color,
   });
 
@@ -51,7 +51,7 @@ class CupertinoScrollEdgeEffect extends StatefulWidget {
 
   /// `soft` (blur-forward) or `hard` (stronger tint wash). `automatic` is
   /// treated as `soft`.
-  final CupertinoNativeScrollEdgeEffect style;
+  final CupertinoScrollEdgeEffectStyle style;
 
   /// Tint override. Defaults to the resolved system background — white in
   /// light mode, black in dark mode, like the system effect.
@@ -74,7 +74,16 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
   /// Fallback-only: blur strength per horizontal slice, outermost first —
   /// the shader's cosine falloff sampled at each slice's center, scaled to
   /// [_maxSigma].
-  static const _fallbackSigmas = [2.97, 2.82, 2.49, 2.04, 1.53, 0.96, 0.48, 0.09];
+  static const _fallbackSigmas = [
+    2.97,
+    2.82,
+    2.49,
+    2.04,
+    1.53,
+    0.96,
+    0.48,
+    0.09,
+  ];
 
   static ui.FragmentProgram? _cachedProgram;
   static Future<ui.FragmentProgram?>? _programFuture;
@@ -180,7 +189,7 @@ class _CupertinoScrollEdgeEffectState extends State<CupertinoScrollEdgeEffect> {
       context,
     );
     final isTop = widget.edge == CupertinoScrollEdgeEffectEdge.top;
-    final hard = widget.style == CupertinoNativeScrollEdgeEffect.hard;
+    final hard = widget.style == CupertinoScrollEdgeEffectStyle.hard;
 
     // Tint wash on the EXACT same falloff as the shader blur (same exponent,
     // same 3% dead zone) — same fade-out start, same effective height, so

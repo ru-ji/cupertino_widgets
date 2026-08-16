@@ -10,7 +10,12 @@ import 'models/cupertino_native_bar_item.dart';
 /// - [inlineLarge]: an inline title rendered at the large title's size
 ///   (iOS 17+; falls back to [large]).
 /// - [large]: the collapsible large title.
-enum CupertinoNativeToolbarTitleDisplayMode { automatic, inline, inlineLarge, large }
+enum CupertinoNativeToolbarTitleDisplayMode {
+  automatic,
+  inline,
+  inlineLarge,
+  large,
+}
 
 /// Where a [CupertinoNativeSearchField] is placed, mirroring SwiftUI's
 /// `SearchFieldPlacement`.
@@ -52,10 +57,7 @@ class CupertinoNativeSearchField {
 
   /// Serialized form embedded in [CupertinoNativeAppBar.toMap].
   Map<String, dynamic> toMap() {
-    return {
-      'placeholder': placeholder,
-      'placement': placement.name,
-    };
+    return {'placeholder': placeholder, 'placement': placement.name};
   }
 }
 

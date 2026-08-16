@@ -65,12 +65,12 @@ CupertinoNativeSlider(
 `activeColor` tints the filled track, `divisions` snaps to steps,
 `onChanged: null` renders the native disabled look.
 
-### Toggle — `UISwitch`
+### Switch — `UISwitch`
 
-<img src="doc/images/toggle.jpg" width="320" alt="Native toggle" />
+<img src="doc/images/toggle.jpg" width="320" alt="Native switch" />
 
 ```dart
-CupertinoNativeToggle(
+CupertinoNativeSwitch(
   value: _wifi,
   onChanged: (v) => setState(() => _wifi = v),
 )
@@ -87,7 +87,7 @@ green for any tint.
 CupertinoNativeSegmentedControl(
   children: ['Day', 'Week', 'Month'],
   groupValue: _range,
-  onValueChanged: (v) => setState(() => _range = v),
+  onChanged: (v) => setState(() => _range = v),
 )
 ```
 
@@ -185,15 +185,16 @@ CupertinoNativeProgressIndicator(                // circular, indeterminate
 ```dart
 CupertinoNativeTextField(
   placeholder: 'Search or enter text…',
-  glassEffect: true,                        // Liquid Glass capsule (iOS 26)
+  glass: CupertinoGlass(cornerRadius: 22),  // Liquid Glass capsule (iOS 26)
   prefixIcon: CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
-  clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
+  clearButtonMode: OverlayVisibilityMode.editing,
   onChanged: (v) => setState(() => _query = v),
 )
 ```
 
 Real iOS autofill, keyboard types and QuickType; controller- or
-callback-driven, with `glassVariant`/`glassInteractive` for the glass look.
+callback-driven, with `CupertinoGlass` carrying the whole glass look
+(`cornerRadius`, `variant`, `interactive`, `tint`).
 
 ### Date Picker — compact `UIDatePicker`
 
@@ -210,13 +211,13 @@ CupertinoNativeDatePicker(
 The tappable pill pops the native calendar / time wheel over the app —
 overlay, dimming and animations are all UIKit's.
 
-### Liquid Glass — `glassEffect` (iOS 26)
+### Liquid Glass (iOS 26)
 
 <img src="doc/images/glass.jpg" width="320" alt="Liquid Glass container" />
 
 ```dart
 CupertinoNativeGlassContainer(
-  shape: CupertinoNativeGlassShape.capsule,
+  shape: CupertinoGlassShape.capsule,
   variant: CupertinoGlassVariant.clear,  // .regular (default) or .clear
   interactive: true,                     // system touch shimmer
   onPressed: () {},                      // makes it a glass button
@@ -224,7 +225,7 @@ CupertinoNativeGlassContainer(
 )
 ```
 
-The glass is a real `glassEffect` refracting whatever Flutter renders behind
+The glass is a real native `glassEffect` refracting whatever Flutter renders behind
 it. Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26
 (a static material stands in there).
 
@@ -234,7 +235,7 @@ it. Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26
 
 ```dart
 CupertinoNativeTabBar(
-  selection: _tab,
+  value: _tab,
   split: true, rightCount: 1,            // iOS 26 split search tab
   tabs: [
     CupertinoNativeTab(
@@ -247,7 +248,7 @@ CupertinoNativeTabBar(
         id: 'search',
         role: CupertinoNativeTabRole.search),
   ],
-  onSelectionChanged: (id) => setState(() => _tab = id),
+  onChanged: (id) => setState(() => _tab = id),
 )
 ```
 
@@ -298,18 +299,87 @@ void main() {
 }
 ```
 
-Three rules:
+A page *containing* a `CupertinoNativeScaffold` is a regular Flutter page:
+route to it with `context.go(...)` or anything else, as usual.
 
-1. The scaffold's internal navigation (tab switches, `push`/`pop` of native
-   pages) lives in the **native** `NavigationStack` — it never touches your
-   Flutter router's stack, and your router's routes never appear inside the
-   scaffold.
-2. A page *containing* a `CupertinoNativeScaffold` is a regular Flutter page:
-   route to it with `context.go(...)` or anything else, as usual.
-3. Scaffold **bodies** are their own widget roots in their own isolates —
-   don't call `context.go(...)` inside one (there is no router there). Talk
-   to the main app over the scaffold's callbacks (`onBarAction`,
-   `onTabChanged`, `onRouteChanged`) instead.
+### The one real constraint
+
+Each scaffold body is its **own FlutterEngine** — a separate isolate with
+separate memory. A `GoRouter` (or any `Navigator`) built in your app does not
+exist inside a body: there is no object to share and no `BuildContext`
+spanning the two. So don't call `context.go(...)` inside a body; there is no
+router there.
+
+Navigation between scaffold pages happens on the **native**
+`NavigationStack` instead. What you *can* do is keep that native stack and
+your router mirrored, so your router stays the single source of truth.
+
+### Mirroring your router onto the native stack
+
+`CupertinoNativeRouteSync` drives the mirroring in both directions. It speaks
+plain route-id stacks (`['library', 'album']`), not URLs, so it never has to
+agree with your router about path syntax.
+
+```dart
+final controller = CupertinoNativeScaffoldController();
+
+late final sync = CupertinoNativeRouteSync(
+  controller: controller,
+  // Native back button or back-swipe fired — bring the router along.
+  onNativeStackChanged: (routes) => context.go(locationFromRoutes(routes)),
+  // Optional: give pushed pages their own navigation bars.
+  pageBuilder: (route) => CupertinoNativeScaffoldPage(
+    route: route,
+    appBar: CupertinoNativeAppBar(title: titles[route] ?? route),
+  ),
+);
+
+CupertinoNativeScaffold(
+  controller: controller,
+  body: 'library',
+  onRouteChanged: sync.reportNativeStack,   // native -> Dart
+  // ...
+)
+```
+
+Then push the router's location at it whenever that location changes —
+from a `build`, a `GoRouter` listener, wherever:
+
+```dart
+sync.syncTo(routesFromLocation(GoRouterState.of(context).uri.path));
+```
+
+`syncTo` diffs against the live native stack and emits the minimum
+push/pop sequence, keeping the shared prefix so a push still animates as a
+push. It is a no-op when the stack already matches, so calling it on every
+build is fine. While it applies its ops, the resulting stack reports are
+recognised as echoes and are *not* forwarded to `onNativeStackChanged`, so
+the two directions cannot loop.
+
+`routesFromLocation` / `locationFromRoutes` are just the default `/a/b/c`
+convention. If your locations don't nest that way, map them yourself — the
+sync only ever sees the resulting list.
+
+### Plain imperative Navigator
+
+If you aren't using a URL router at all, skip the sync and push by name:
+
+```dart
+controller.pushNamed('details');   // from the app
+controller.pop();
+```
+
+and from inside a body, where there is no `BuildContext` to hand to a
+`Navigator`:
+
+```dart
+CupertinoNativeScaffold.pushNamed('details');
+CupertinoNativeScaffold.pop();
+```
+
+Tab switches remain the scaffold's own business either way: swapping the
+root route is a tab change, not a stack operation, so `syncTo` never pops
+the root out from under you.
 
 ## Also in the package
 

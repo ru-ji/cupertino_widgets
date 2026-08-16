@@ -18,12 +18,11 @@ class CupertinoNativeBarItem extends CupertinoNativeBarEntry {
   final CupertinoNativeIcon? icon;
   final String actionId;
 
-  const CupertinoNativeBarItem({
-    required this.actionId,
-    this.title,
-    this.icon,
-  }) : assert(title != null || icon != null,
-            'Provide a title, an icon, or both');
+  const CupertinoNativeBarItem({required this.actionId, this.title, this.icon})
+    : assert(
+        title != null || icon != null,
+        'Provide a title, an icon, or both',
+      );
 
   @override
   Map<String, dynamic> toMap() {
@@ -59,9 +58,6 @@ class CupertinoNativeBarItemGroup extends CupertinoNativeBarEntry {
 
   @override
   Map<String, dynamic> toMap() {
-    return {
-      'type': 'group',
-      'items': items.map((e) => e.toMap()).toList(),
-    };
+    return {'type': 'group', 'items': items.map((e) => e.toMap()).toList()};
   }
 }

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../callbacks.dart';
+
 import '../models/cupertino_native_list_row.dart';
 import '../models/cupertino_native_list_section.dart';
 import 'native_platform_view_mixin.dart';
@@ -29,14 +31,14 @@ class NativeCollectionView extends StatefulWidget {
   /// self-sizes and the surrounding Flutter scroll view scrolls instead.
   final bool scrollable;
 
-  final Color? tint;
+  final Color? activeColor;
 
   /// Corner radius of the inset-grouped section cards. Null uses the native
   /// default (10). Tune this to match your iOS version's Settings app.
   final double? cornerRadius;
 
-  final void Function(String id)? onRowTap;
-  final void Function(String id, bool value)? onToggle;
+  final CupertinoNativeListRowCallback? onRowTap;
+  final CupertinoNativeListToggleCallback? onToggle;
 
   const NativeCollectionView({
     super.key,
@@ -45,7 +47,7 @@ class NativeCollectionView extends StatefulWidget {
     required this.sections,
     this.height,
     this.scrollable = false,
-    this.tint,
+    this.activeColor,
     this.cornerRadius,
     this.onRowTap,
     this.onToggle,
@@ -72,7 +74,9 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
       'scrollable': widget.scrollable,
       'isDark': _isDark,
       'cornerRadius': widget.cornerRadius,
-      'tint': widget.tint?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
+      'tint':
+          widget.activeColor?.toARGB32() ??
+          theme.colorScheme.primary.toARGB32(),
       'sections': widget.sections.map((s) => s.toMap()).toList(),
     };
   }
@@ -102,7 +106,7 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
       'variant': w.variant,
       'style': w.style,
       'scrollable': w.scrollable,
-      'tint': w.tint?.toARGB32(),
+      'tint': w.activeColor?.toARGB32(),
       'sections': w.sections.map((s) => s.toMap()).toList(),
     };
   }
@@ -166,35 +170,41 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
     final children = <Widget>[];
     for (final section in widget.sections) {
       if (section.header != null) {
-        children.add(Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(
-            section.header!.toUpperCase(),
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+        children.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text(
+              section.header!.toUpperCase(),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ),
-        ));
+        );
       }
       for (final row in section.rows) {
-        children.add(ListTile(
-          title: Text(row.title),
-          subtitle: row.subtitle != null ? Text(row.subtitle!) : null,
-          trailing: row.type == CupertinoNativeListRowType.toggle
-              ? Switch(
-                  value: row.toggleValue,
-                  onChanged: (v) => widget.onToggle?.call(row.id, v),
-                )
-              : (row.value != null ? Text(row.value!) : null),
-          onTap: () => widget.onRowTap?.call(row.id),
-        ));
+        children.add(
+          ListTile(
+            title: Text(row.title),
+            subtitle: row.subtitle != null ? Text(row.subtitle!) : null,
+            trailing: row.type == CupertinoNativeListRowType.toggle
+                ? Switch(
+                    value: row.toggleValue,
+                    onChanged: (v) => widget.onToggle?.call(row.id, v),
+                  )
+                : (row.value != null ? Text(row.value!) : null),
+            onTap: () => widget.onRowTap?.call(row.id),
+          ),
+        );
       }
       if (section.footer != null) {
-        children.add(Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Text(
-            section.footer!,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+        children.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              section.footer!,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ),
-        ));
+        );
       }
     }
     // Material ancestor so ListTile/Switch work even in Cupertino-only apps.

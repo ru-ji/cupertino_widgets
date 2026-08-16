@@ -17,12 +17,11 @@ import 'native_scaffold_demo_page.dart';
 import 'native_searchable_demo_page.dart';
 import 'progress_demo_page.dart';
 import 'segmented_control_demo_page.dart';
-import 'settings_conformance_demo_page.dart';
 import 'sheet_demo_page.dart';
 import 'slider_demo_page.dart';
 import 'standalone_tab_bar_demo_page.dart';
+import 'switch_demo_page.dart';
 import 'text_field_demo_page.dart';
-import 'toggle_demo_page.dart';
 
 /// The demo catalog. The catalog itself is a [CupertinoNativeList] — a real
 /// SwiftUI inset-grouped list — so the very first screen already shows native
@@ -32,7 +31,7 @@ class HomePage extends StatelessWidget {
 
   static final Map<String, WidgetBuilder> _routes = {
     'slider': (_) => const SliderDemoPage(),
-    'toggle': (_) => const ToggleDemoPage(),
+    'switch': (_) => const SwitchDemoPage(),
     'segmented': (_) => const SegmentedControlDemoPage(),
     'button': (_) => const ButtonDemoPage(),
     'menu': (_) => const MenuDemoPage(),
@@ -47,7 +46,6 @@ class HomePage extends StatelessWidget {
     'sheet': (_) => const SheetDemoPage(),
     'datepicker': (_) => const DatePickerDemoPage(),
     'appbar': (_) => const AppBarDemoPage(),
-    'conformance': (_) => const SettingsConformanceDemoPage(),
     'alert': (_) => const AlertDemoPage(),
     'progress': (_) => const ProgressDemoPage(),
   };
@@ -104,8 +102,8 @@ class HomePage extends StatelessWidget {
                           CupertinoColors.systemBlue,
                         ),
                         _row(
-                          'toggle',
-                          'Toggle',
+                          'switch',
+                          'Switch',
                           null,
                           CupertinoColors.systemGreen,
                           rawSymbol: 'switch.2',
@@ -188,13 +186,6 @@ class HomePage extends StatelessWidget {
                           null,
                           CupertinoColors.systemIndigo,
                           rawSymbol: 'rectangle.topthird.inset.filled',
-                        ),
-                        _row(
-                          'conformance',
-                          'Settings Conformance',
-                          null,
-                          CupertinoColors.systemGreen,
-                          rawSymbol: 'checkmark.seal',
                         ),
                       ],
                     ),

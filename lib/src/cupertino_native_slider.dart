@@ -75,11 +75,7 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider>
   }
 
   void _onPlatformViewCreated(int id) {
-    setUpChannel(
-      id,
-      'adaptive_slider_$id',
-      onMethodCall: _handleMethodCall,
-    );
+    setUpChannel(id, 'adaptive_slider_$id', onMethodCall: _handleMethodCall);
   }
 
   Future<void> _handleMethodCall(MethodCall call) async {

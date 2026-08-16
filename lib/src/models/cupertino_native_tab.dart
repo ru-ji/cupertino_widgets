@@ -1,3 +1,7 @@
+// The deprecated [CupertinoNativeTab.systemImage] has to keep working until
+// it is removed, so this file necessarily reads it.
+// ignore_for_file: deprecated_member_use_from_same_package
+
 import '../cupertino_native_app_bar.dart';
 import 'cupertino_native_icon.dart';
 
@@ -14,7 +18,9 @@ class CupertinoNativeTab {
   /// Raw SF Symbol name string — kept for backward compatibility. Prefer
   /// using [icon] with [CupertinoNativeIcon.symbol] or [CupertinoNativeIcon.named]
   /// for consistency with bar items.
-  @Deprecated('Use icon: CupertinoNativeIcon.symbol(...) or .named(...) instead')
+  @Deprecated(
+    'Use icon: CupertinoNativeIcon.symbol(...) or .named(...) instead',
+  )
   final String? systemImage;
 
   final String id;
@@ -30,7 +36,9 @@ class CupertinoNativeTab {
     required this.title,
     required this.id,
     this.icon,
-    @Deprecated('Use icon: CupertinoNativeIcon.symbol(...) or .named(...) instead')
+    @Deprecated(
+      'Use icon: CupertinoNativeIcon.symbol(...) or .named(...) instead',
+    )
     this.systemImage,
     this.role,
     this.search,

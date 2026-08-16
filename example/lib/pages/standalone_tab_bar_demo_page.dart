@@ -31,8 +31,8 @@ class _StandaloneTabBarDemoPageState extends State<StandaloneTabBarDemoPage> {
       title: 'Tab Bar',
       backgroundColor: CupertinoColors.systemBackground,
       bottomBar: CupertinoNativeTabBar(
-        selection: _selectedTab,
-        scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
+        value: _selectedTab,
+        scrollEdgeEffect: CupertinoScrollEdgeEffectStyle.soft,
         split: true,
         rightCount: 1,
         tabs: [
@@ -58,7 +58,7 @@ class _StandaloneTabBarDemoPageState extends State<StandaloneTabBarDemoPage> {
             role: CupertinoNativeTabRole.search,
           ),
         ],
-        onSelectionChanged: (id) => setState(() => _selectedTab = id),
+        onChanged: (id) => setState(() => _selectedTab = id),
       ),
       children: [_body()],
     );

@@ -12,7 +12,7 @@ class CupertinoNativeProgressIndicator extends StatefulWidget {
     this.total = 1.0,
     this.label,
     this.style = CupertinoNativeProgressStyle.automatic,
-    this.color,
+    this.activeColor,
   });
 
   /// The progress value.
@@ -30,7 +30,7 @@ class CupertinoNativeProgressIndicator extends StatefulWidget {
   final CupertinoNativeProgressStyle style;
 
   /// The tint color of the progress view.
-  final Color? color;
+  final Color? activeColor;
 
   @override
   State<CupertinoNativeProgressIndicator> createState() =>
@@ -46,7 +46,7 @@ class _CupertinoNativeProgressIndicatorState
       'total': widget.total,
       'label': widget.label,
       'style': widget.style.index,
-      'color': widget.color?.toARGB32(),
+      'color': widget.activeColor?.toARGB32(),
     };
   }
 
@@ -61,7 +61,7 @@ class _CupertinoNativeProgressIndicatorState
         widget.total != oldWidget.total ||
         widget.label != oldWidget.label ||
         widget.style != oldWidget.style ||
-        widget.color != oldWidget.color) {
+        widget.activeColor != oldWidget.activeColor) {
       updateNativeView('updateProgress', _toMap(), refreshIntrinsicSize: false);
     }
   }

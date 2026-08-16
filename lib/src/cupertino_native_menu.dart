@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+
+import 'callbacks.dart';
 import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_menu_item.dart';
 import 'models/cupertino_native_button_style.dart';
@@ -10,10 +12,10 @@ class CupertinoNativeMenu extends StatefulWidget {
   final String title;
   final String? systemImage;
   final CupertinoNativeButtonStyle style;
-  final Color? color;
+  final Color? activeColor;
   final TextStyle? textStyle;
   final List<CupertinoNativeMenuItem> items;
-  final Function(String, dynamic)? onAction;
+  final CupertinoNativeMenuActionCallback? onAction;
   final double? width;
   final double? height;
 
@@ -23,7 +25,7 @@ class CupertinoNativeMenu extends StatefulWidget {
     this.title = 'Options',
     this.systemImage,
     this.style = CupertinoNativeButtonStyle.automatic,
-    this.color,
+    this.activeColor,
     this.textStyle,
     this.onAction,
     this.width,
@@ -59,7 +61,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
         oldWidget.title != widget.title ||
         oldWidget.systemImage != widget.systemImage ||
         oldWidget.style != widget.style ||
-        oldWidget.color != widget.color ||
+        oldWidget.activeColor != widget.activeColor ||
         oldWidget.textStyle != widget.textStyle) {
       updateNativeView('updateMenu', _toMap());
     }
@@ -71,7 +73,7 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
       'systemImage': widget.systemImage,
       'items': widget.items.map((e) => e.toMap()).toList(),
       'style': widget.style.name,
-      'color': widget.color?.toARGB32(),
+      'color': widget.activeColor?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),

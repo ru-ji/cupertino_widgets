@@ -30,9 +30,7 @@ class _SheetDemoPageState extends State<SheetDemoPage> {
           actionId: 'close',
         ),
       ],
-      trailing: [
-        const CupertinoNativeBarItem(title: 'Add', actionId: 'add'),
-      ],
+      trailing: [const CupertinoNativeBarItem(title: 'Add', actionId: 'add')],
       search: withSearch
           ? const CupertinoNativeSearchField(
               placeholder: 'Search invitees',
@@ -63,11 +61,12 @@ class _SheetDemoPageState extends State<SheetDemoPage> {
       appBar: appBar,
       bottom: bottom,
       detents: detents,
-      showGrabber: true,
+      showDragHandle: true,
       // Match the body's background so the chrome regions (bar, safe areas)
       // don't show as a different-colored band.
-      backgroundColor:
-          CupertinoColors.systemGroupedBackground.resolveFrom(context),
+      backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(
+        context,
+      ),
       onBarAction: _onBarAction,
       onBottomChanged: (i) => setState(() => _last = 'Segment: $i'),
       onSearchChanged: (q) => setState(() => _last = 'Search: "$q"'),
@@ -89,10 +88,7 @@ class _SheetDemoPageState extends State<SheetDemoPage> {
               title: 'With App Bar',
               subtitle: 'Pinned title, ✕ leading, Add trailing — scrollable',
               titleColor: blue,
-              onTap: () => _present(
-                label: 'App bar sheet',
-                appBar: _appBar(),
-              ),
+              onTap: () => _present(label: 'App bar sheet', appBar: _appBar()),
             ),
             SettingsRow(
               title: 'With Bottom Segmented Control',
@@ -126,13 +122,12 @@ class _SheetDemoPageState extends State<SheetDemoPage> {
         ),
         const SettingsSection(
           header: 'About',
-          footer: 'A real UISheetPresentationController: this page scales '
+          footer:
+              'A real UISheetPresentationController: this page scales '
               'back as the sheet rises, content scrolls under the pinned bar, '
               'pull-down-at-top drags the sheet between detents, and the '
               'show() future completes on dismissal.',
-          children: [
-            SettingsRow(title: 'Content', value: 'Flutter route'),
-          ],
+          children: [SettingsRow(title: 'Content', value: 'Flutter route')],
         ),
       ],
     );

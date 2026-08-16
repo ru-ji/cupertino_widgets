@@ -29,7 +29,8 @@ class _SegmentedControlDemoPageState extends State<SegmentedControlDemoPage> {
       children: [
         SettingsSection(
           header: 'Appearance',
-          footer: 'A native UISegmentedControl — the sliding selection is the '
+          footer:
+              'A native UISegmentedControl — the sliding selection is the '
               'system animation. Selected: ${_appearances[_appearance]}.',
           children: [
             Padding(
@@ -37,7 +38,7 @@ class _SegmentedControlDemoPageState extends State<SegmentedControlDemoPage> {
               child: CupertinoNativeSegmentedControl(
                 children: _appearances,
                 groupValue: _appearance,
-                onValueChanged: (v) => setState(() => _appearance = v),
+                onChanged: (v) => setState(() => _appearance = v),
               ),
             ),
           ],
@@ -52,7 +53,7 @@ class _SegmentedControlDemoPageState extends State<SegmentedControlDemoPage> {
               child: CupertinoNativeSegmentedControl(
                 children: _ranges,
                 groupValue: _range,
-                onValueChanged: (v) => setState(() => _range = v),
+                onChanged: (v) => setState(() => _range = v),
               ),
             ),
           ],
@@ -66,8 +67,8 @@ class _SegmentedControlDemoPageState extends State<SegmentedControlDemoPage> {
               child: CupertinoNativeSegmentedControl(
                 children: _textSizes,
                 groupValue: _textSize,
-                color: CupertinoColors.systemPurple,
-                onValueChanged: (v) => setState(() => _textSize = v),
+                activeColor: CupertinoColors.systemPurple,
+                onChanged: (v) => setState(() => _textSize = v),
               ),
             ),
           ],

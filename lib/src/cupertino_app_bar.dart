@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 
 import 'cupertino_native_glass_container.dart';
-import 'cupertino_native_tab_bar.dart' show CupertinoNativeScrollEdgeEffect;
+import 'cupertino_native_tab_bar.dart' show CupertinoScrollEdgeEffectStyle;
 import 'cupertino_native_text_field.dart';
 import 'cupertino_scroll_edge_effect.dart';
 import 'internal/ios_version.dart';
@@ -84,7 +84,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.separateTrailing = false,
     this.bottom,
     this.bottomHeight = 44,
-    this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.soft,
+    this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.soft,
     this.tintColor,
   }) : searchPlaceholder = null,
        searchStyle = null,
@@ -116,7 +116,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.bottomMode = NavigationBarBottomMode.automatic,
     this.onSearchChanged,
     this.onSearchActiveChanged,
-    this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.soft,
+    this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.soft,
     this.tintColor,
   }) : bottom = null,
        bottomHeight = searchFieldHeight,
@@ -186,7 +186,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
   /// True for [CupertinoSliverAppBar.search].
   final bool _searchable;
 
-  final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
+  final CupertinoScrollEdgeEffectStyle scrollEdgeEffect;
 
   /// Tint of the edge effect. Defaults to the system background.
   final Color? tintColor;
@@ -373,7 +373,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     final closeButton = !widget._searchable
         ? null
         : CupertinoNativeGlassContainer(
-            shape: CupertinoNativeGlassShape.circle,
+            shape: CupertinoGlassShape.circle,
             interactive: true,
             width: 44,
             height: 44,
@@ -386,8 +386,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
         ? CupertinoNativeTextField(
             placeholder: widget.searchPlaceholder,
             style: widget.searchStyle,
-            glassEffect: true,
-            glassCornerRadius: widget.bottomHeight / 2,
+            glass: CupertinoGlass(cornerRadius: widget.bottomHeight / 2),
             height: widget.bottomHeight,
             // The capsule adopts the slot's height, so it physically
             // squeezes with the collapse instead of being clipped.
@@ -398,7 +397,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
                 widget.searchPrefixIcon ??
                 CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
             suffixIcon: widget.searchSuffixIcon,
-            clearButtonMode: CupertinoNativeClearButtonMode.whileEditing,
+            clearButtonMode: OverlayVisibilityMode.editing,
             onChanged: widget.onSearchChanged,
           )
         : widget.bottom;
@@ -988,7 +987,7 @@ class _GlassActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (action._isIconOnly) {
       return CupertinoNativeGlassContainer(
-        shape: CupertinoNativeGlassShape.circle,
+        shape: CupertinoGlassShape.circle,
         interactive: true,
         width: 44,
         height: 44,
@@ -999,7 +998,7 @@ class _GlassActionButton extends StatelessWidget {
       );
     }
     return CupertinoNativeGlassContainer(
-      shape: CupertinoNativeGlassShape.capsule,
+      shape: CupertinoGlassShape.capsule,
       interactive: true,
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1020,7 +1019,7 @@ class _GlassActionUnion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoNativeGlassContainer(
-      shape: CupertinoNativeGlassShape.capsule,
+      shape: CupertinoGlassShape.capsule,
       interactive: true,
       childInteractive: true,
       height: 44,
@@ -1057,7 +1056,7 @@ class CupertinoAppBar extends StatelessWidget {
     this.leading,
     this.trailing = const [],
     this.separateTrailing = false,
-    this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.soft,
+    this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.soft,
     this.tintColor,
   });
 
@@ -1067,7 +1066,7 @@ class CupertinoAppBar extends StatelessWidget {
   final CupertinoAppBarAction? leading;
   final List<CupertinoAppBarAction> trailing;
   final bool separateTrailing;
-  final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
+  final CupertinoScrollEdgeEffectStyle scrollEdgeEffect;
   final Color? tintColor;
 
   @override

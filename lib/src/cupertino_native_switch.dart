@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'internal/native_platform_view_mixin.dart';
 
-class CupertinoNativeToggle extends StatefulWidget {
+class CupertinoNativeSwitch extends StatefulWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
   final String? label;
@@ -14,7 +14,7 @@ class CupertinoNativeToggle extends StatefulWidget {
   final double? width;
   final double? height;
 
-  const CupertinoNativeToggle({
+  const CupertinoNativeSwitch({
     super.key,
     required this.value,
     this.onChanged,
@@ -26,13 +26,13 @@ class CupertinoNativeToggle extends StatefulWidget {
   });
 
   @override
-  State<CupertinoNativeToggle> createState() => _CupertinoNativeToggleState();
+  State<CupertinoNativeSwitch> createState() => _CupertinoNativeSwitchState();
 }
 
-class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
+class _CupertinoNativeSwitchState extends State<CupertinoNativeSwitch>
     with NativePlatformViewStateMixin {
   @override
-  void didUpdateWidget(covariant CupertinoNativeToggle oldWidget) {
+  void didUpdateWidget(covariant CupertinoNativeSwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value ||
         oldWidget.label != widget.label ||
@@ -74,6 +74,9 @@ class _CupertinoNativeToggleState extends State<CupertinoNativeToggle>
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final platformView = UiKitView(
+        // Must match FlutterCupertinoPlugin.swift's registration. The widget
+        // was renamed Toggle -> Switch on the Dart side only; this id is the
+        // native contract and deliberately keeps the old spelling.
         viewType: 'com.example.cupertino_widgets/cupertino_native_toggle',
         layoutDirection: TextDirection.ltr,
         creationParams: _toMap(),

@@ -75,11 +75,11 @@ class CupertinoNativeIcon {
     Color? color,
     CupertinoSymbolRenderingMode? renderingMode,
   }) : this._(
-          sfSymbol: symbol.value,
-          renderingMode: renderingMode,
-          size: size,
-          color: color,
-        );
+         sfSymbol: symbol.value,
+         renderingMode: renderingMode,
+         size: size,
+         color: color,
+       );
 
   /// A raw SF Symbol name, for symbols not covered by [CupertinoSymbols].
   const CupertinoNativeIcon.named(
@@ -88,11 +88,11 @@ class CupertinoNativeIcon {
     Color? color,
     CupertinoSymbolRenderingMode? renderingMode,
   }) : this._(
-          sfSymbol: sfSymbolName,
-          renderingMode: renderingMode,
-          size: size,
-          color: color,
-        );
+         sfSymbol: sfSymbolName,
+         renderingMode: renderingMode,
+         size: size,
+         color: color,
+       );
 
   /// A Flutter [IconData] (from any icon package) rendered natively.
   ///
@@ -143,12 +143,12 @@ class CupertinoNativeIcon {
 
   @override
   int get hashCode => Object.hash(
-        sfSymbol,
-        renderingMode,
-        codePoint,
-        fontFamily,
-        fontPackage,
-        size,
-        color,
-      );
+    sfSymbol,
+    renderingMode,
+    codePoint,
+    fontFamily,
+    fontPackage,
+    size,
+    color,
+  );
 }

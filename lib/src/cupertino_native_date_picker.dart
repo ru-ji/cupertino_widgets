@@ -30,7 +30,7 @@ class CupertinoNativeDatePicker extends StatefulWidget {
     this.mode = CupertinoNativeDatePickerMode.date,
     this.minimumDate,
     this.maximumDate,
-    this.tint,
+    this.activeColor,
     this.width,
     this.height,
   });
@@ -42,7 +42,7 @@ class CupertinoNativeDatePicker extends StatefulWidget {
   final DateTime? maximumDate;
 
   /// Accent color of the popped-open calendar / selected values.
-  final Color? tint;
+  final Color? activeColor;
 
   final double? width;
   final double? height;
@@ -66,7 +66,7 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
       'mode': widget.mode.name,
       'minimumDate': widget.minimumDate?.millisecondsSinceEpoch,
       'maximumDate': widget.maximumDate?.millisecondsSinceEpoch,
-      'tint': widget.tint?.toARGB32(),
+      'tint': widget.activeColor?.toARGB32(),
       'isDark': _isDark,
     };
   }
@@ -76,7 +76,11 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
     super.didChangeDependencies();
     // Re-push config if the app toggled light/dark at runtime.
     if (_lastIsDark != null && _lastIsDark != _isDark) {
-      updateNativeView('updateDatePicker', _toMap(), refreshIntrinsicSize: false);
+      updateNativeView(
+        'updateDatePicker',
+        _toMap(),
+        refreshIntrinsicSize: false,
+      );
     }
     _lastIsDark = _isDark;
   }
@@ -88,8 +92,12 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
         oldWidget.mode != widget.mode ||
         oldWidget.minimumDate != widget.minimumDate ||
         oldWidget.maximumDate != widget.maximumDate ||
-        oldWidget.tint != widget.tint) {
-      updateNativeView('updateDatePicker', _toMap(), refreshIntrinsicSize: false);
+        oldWidget.activeColor != widget.activeColor) {
+      updateNativeView(
+        'updateDatePicker',
+        _toMap(),
+        refreshIntrinsicSize: false,
+      );
     }
   }
 
@@ -106,8 +114,7 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     if (call.method == 'onChanged') {
       final ms = call.arguments as int;
-      widget.onChanged
-          ?.call(DateTime.fromMillisecondsSinceEpoch(ms));
+      widget.onChanged?.call(DateTime.fromMillisecondsSinceEpoch(ms));
     }
   }
 

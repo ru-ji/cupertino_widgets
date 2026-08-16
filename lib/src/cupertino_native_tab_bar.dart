@@ -47,7 +47,7 @@ enum CupertinoNativeTabBarMinimizeBehavior {
 /// iOS 26 Liquid Glass scroll-edge-effect style. Used both by the standalone
 /// [CupertinoNativeTabBar] (mapped to the bar's background material) and by
 /// `CupertinoNativeScaffold`'s native scroll views. No effect below iOS 26.
-enum CupertinoNativeScrollEdgeEffect { automatic, soft, hard }
+enum CupertinoScrollEdgeEffectStyle { automatic, soft, hard }
 
 /// A native iOS tab bar rendered by a bare `UITabBar` in a transparent
 /// container — no UITabBarController, so Flutter content stays visible
@@ -62,9 +62,9 @@ class CupertinoNativeTabBar extends StatefulWidget {
   final List<CupertinoNativeTab> tabs;
 
   /// Id of the selected tab (see [CupertinoNativeTab.id]).
-  final String selection;
-  final Function(String)? onSelectionChanged;
-  final Color? accentColor;
+  final String value;
+  final ValueChanged<String>? onChanged;
+  final Color? activeColor;
   final Color? backgroundColor;
 
   /// Fixed height; when null the native bar's intrinsic height is used.
@@ -84,7 +84,7 @@ class CupertinoNativeTabBar extends StatefulWidget {
   /// iOS 26 Liquid Glass scroll-edge-effect style for the bar's background.
   /// `soft`/`automatic` use the translucent default; `hard` uses an opaque
   /// background. No effect below iOS 26.
-  final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
+  final CupertinoScrollEdgeEffectStyle scrollEdgeEffect;
 
   /// iOS 26 bottom accessory shown above the tab bar. Only meaningful inside
   /// `CupertinoNativeScaffold`.
@@ -93,9 +93,9 @@ class CupertinoNativeTabBar extends StatefulWidget {
   const CupertinoNativeTabBar({
     super.key,
     required this.tabs,
-    required this.selection,
-    this.onSelectionChanged,
-    this.accentColor,
+    required this.value,
+    this.onChanged,
+    this.activeColor,
     this.backgroundColor,
     this.height,
     this.split = false,
@@ -103,7 +103,7 @@ class CupertinoNativeTabBar extends StatefulWidget {
     this.splitSpacing = 8.0,
     this.shrinkCentered = true,
     this.minimizeBehavior = CupertinoNativeTabBarMinimizeBehavior.automatic,
-    this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
+    this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.automatic,
     this.accessory,
   });
 
@@ -112,8 +112,8 @@ class CupertinoNativeTabBar extends StatefulWidget {
   Map<String, dynamic> toMap() {
     return {
       'tabs': tabs.map((e) => e.toMap()).toList(),
-      'selection': selection,
-      'accentColor': accentColor?.toARGB32(),
+      'selection': value,
+      'accentColor': activeColor?.toARGB32(),
       'minimizeBehavior': minimizeBehavior.name,
       'scrollEdgeEffect': scrollEdgeEffect.name,
       'accessory': accessory?.toMap(),
@@ -144,7 +144,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   int get _selectedIndex {
-    final idx = widget.tabs.indexWhere((t) => t.id == widget.selection);
+    final idx = widget.tabs.indexWhere((t) => t.id == widget.value);
     return idx < 0 ? 0 : idx;
   }
 
@@ -182,7 +182,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     _channel = channel;
     channel.setMethodCallHandler(_handleMethodCall);
     _lastIndex = _selectedIndex;
-    _lastTint = widget.accentColor?.toARGB32();
+    _lastTint = widget.activeColor?.toARGB32();
     _lastBg = widget.backgroundColor?.toARGB32();
     _lastScrollEdgeEffect = widget.scrollEdgeEffect.name;
     _lastIsDark = _isDark;
@@ -200,7 +200,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
       final idx = (args?['index'] as num?)?.toInt();
       if (idx != null && idx != _lastIndex && idx < widget.tabs.length) {
         _lastIndex = idx;
-        widget.onSelectionChanged?.call(widget.tabs[idx].id);
+        widget.onChanged?.call(widget.tabs[idx].id);
       }
     }
   }
@@ -211,7 +211,8 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
 
     final idx = _selectedIndex;
     final theme = Theme.of(context);
-    final tint = widget.accentColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32();
+    final tint =
+        widget.activeColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32();
     final bg = widget.backgroundColor?.toARGB32();
     final labels = _labels;
     final symbols = _symbols;
@@ -239,7 +240,8 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
       await channel.invokeMethod('setStyle', style);
     }
 
-    if (!listEquals(_lastLabels, labels) || !listEquals(_lastSymbols, symbols)) {
+    if (!listEquals(_lastLabels, labels) ||
+        !listEquals(_lastSymbols, symbols)) {
       await channel.invokeMethod('setItems', {
         'labels': labels,
         'sfSymbols': symbols,
@@ -305,13 +307,12 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
           children: [
             for (var i = 0; i < widget.tabs.length; i++)
               GestureDetector(
-                onTap: () =>
-                    widget.onSelectionChanged?.call(widget.tabs[i].id),
+                onTap: () => widget.onChanged?.call(widget.tabs[i].id),
                 child: Text(
                   widget.tabs[i].title,
                   style: TextStyle(
                     color: i == _selectedIndex
-                        ? (widget.accentColor ?? const Color(0xFF007AFF))
+                        ? (widget.activeColor ?? const Color(0xFF007AFF))
                         : const Color(0xFF8E8E93),
                   ),
                 ),
@@ -328,7 +329,9 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
       'icons': _iconConfigs,
       'selectedIndex': _selectedIndex,
       'isDark': _isDark,
-      'tint': widget.accentColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
+      'tint':
+          widget.activeColor?.toARGB32() ??
+          theme.colorScheme.primary.toARGB32(),
       'backgroundColor': widget.backgroundColor?.toARGB32(),
       'split': widget.split,
       'rightCount': widget.rightCount,
@@ -358,7 +361,7 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
     // explicitly requested: it reaches above the bar and down through the
     // home-indicator area, melting Flutter content into the screen edge.
     if (isIOS26OrLater &&
-        widget.scrollEdgeEffect != CupertinoNativeScrollEdgeEffect.automatic) {
+        widget.scrollEdgeEffect != CupertinoScrollEdgeEffectStyle.automatic) {
       final bottomInset = MediaQuery.paddingOf(context).bottom;
       bar = Stack(
         clipBehavior: Clip.none,

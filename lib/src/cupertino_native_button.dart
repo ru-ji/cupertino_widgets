@@ -6,6 +6,10 @@ import 'models/cupertino_native_button_style.dart';
 import 'models/cupertino_native_button_extra_options.dart';
 import 'models/cupertino_native_icon.dart';
 
+// The deprecated [CupertinoNativeButton.systemImage] has to keep working until
+// it is removed, so this file necessarily reads it.
+// ignore_for_file: deprecated_member_use_from_same_package
+
 class CupertinoNativeButton extends StatefulWidget {
   final String title;
 
@@ -16,6 +20,9 @@ class CupertinoNativeButton extends StatefulWidget {
 
   /// Convenience for a raw SF Symbol name. Ignored when [icon] is set. Prefer
   /// [icon] for typed symbols or Flutter icons.
+  @Deprecated(
+    'Use icon: CupertinoNativeIcon.symbol(...) or .named(...) instead',
+  )
   final String? systemImage;
   final CupertinoNativeButtonStyle style;
   final CupertinoNativeControlSize controlSize;
@@ -25,13 +32,16 @@ class CupertinoNativeButton extends StatefulWidget {
   final VoidCallback? onPressed;
   final double? width;
   final double? height;
-  final Color? color;
+  final Color? activeColor;
   final TextStyle? textStyle;
 
   const CupertinoNativeButton({
     super.key,
     this.title = '',
     this.icon,
+    @Deprecated(
+      'Use icon: CupertinoNativeIcon.symbol(...) or .named(...) instead',
+    )
     this.systemImage,
     this.style = CupertinoNativeButtonStyle.automatic,
     this.controlSize = CupertinoNativeControlSize.regular,
@@ -41,7 +51,7 @@ class CupertinoNativeButton extends StatefulWidget {
     this.onPressed,
     this.width,
     this.height,
-    this.color,
+    this.activeColor,
     this.textStyle,
   });
 
@@ -70,7 +80,7 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
         oldWidget.borderShape != widget.borderShape ||
         oldWidget.labelStyle != widget.labelStyle ||
         oldWidget.expand != widget.expand ||
-        oldWidget.color != widget.color ||
+        oldWidget.activeColor != widget.activeColor ||
         oldWidget.textStyle != widget.textStyle) {
       updateNativeView('updateButton', _toMap());
     }
@@ -85,7 +95,7 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
       'borderShape': widget.borderShape.name,
       'labelStyle': widget.labelStyle.name,
       'expand': widget.expand,
-      'color': widget.color?.toARGB32(),
+      'color': widget.activeColor?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),

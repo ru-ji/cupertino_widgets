@@ -8,13 +8,58 @@ import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_icon.dart';
 
 /// The shape of a [CupertinoNativeGlassContainer].
-enum CupertinoNativeGlassShape { capsule, circle, roundedRect }
+enum CupertinoGlassShape { capsule, circle, roundedRect }
 
 /// Which Liquid Glass material variant to render (SwiftUI `Glass` /
 /// `UIGlassEffect.Style`): [regular] is the standard adaptive glass,
 /// [clear] is the more transparent variant for media-rich backdrops.
 /// Ignored below iOS 26, where the material fallback has no variants.
 enum CupertinoGlassVariant { regular, clear }
+
+/// Liquid Glass settings for a control that renders *on* glass rather than
+/// being a glass container itself — currently [CupertinoNativeTextField.glass].
+///
+/// Passing one enables the effect; leaving it null renders the plain control.
+/// The field names match [CupertinoNativeGlassContainer]'s, so the same
+/// vocabulary describes glass wherever it appears.
+///
+/// ```dart
+/// CupertinoNativeTextField(
+///   placeholder: 'Search',
+///   glass: CupertinoGlass(cornerRadius: 22),
+/// )
+/// ```
+class CupertinoGlass {
+  /// Corner radius of the glass shape (continuous corners).
+  final double cornerRadius;
+
+  /// Standard adaptive glass, or the more transparent clear variant (iOS 26).
+  final CupertinoGlassVariant variant;
+
+  /// Whether the glass reacts to touches with the system shimmer (iOS 26).
+  final bool interactive;
+
+  /// Optional tint mixed into the glass material.
+  final Color? tint;
+
+  const CupertinoGlass({
+    this.cornerRadius = 16,
+    this.variant = CupertinoGlassVariant.regular,
+    this.interactive = true,
+    this.tint,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is CupertinoGlass &&
+      other.cornerRadius == cornerRadius &&
+      other.variant == variant &&
+      other.interactive == interactive &&
+      other.tint == tint;
+
+  @override
+  int get hashCode => Object.hash(cornerRadius, variant, interactive, tint);
+}
 
 /// A container backed by the iOS 26 **Liquid Glass** material
 /// (SwiftUI's `.glassEffect`). The glass is a real native view that refracts
@@ -23,7 +68,7 @@ enum CupertinoGlassVariant { regular, clear }
 ///
 /// ```dart
 /// CupertinoNativeGlassContainer(
-///   shape: CupertinoNativeGlassShape.capsule,
+///   shape: CupertinoGlassShape.capsule,
 ///   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
 ///   child: Text('Now Playing'),
 /// )
@@ -37,7 +82,7 @@ class CupertinoNativeGlassContainer extends StatefulWidget {
   const CupertinoNativeGlassContainer({
     super.key,
     this.child,
-    this.shape = CupertinoNativeGlassShape.roundedRect,
+    this.shape = CupertinoGlassShape.roundedRect,
     this.cornerRadius = 26,
     this.variant = CupertinoGlassVariant.regular,
     this.tint,
@@ -54,9 +99,9 @@ class CupertinoNativeGlassContainer extends StatefulWidget {
   /// child (plus [padding]) unless [width]/[height] are given.
   final Widget? child;
 
-  final CupertinoNativeGlassShape shape;
+  final CupertinoGlassShape shape;
 
-  /// Corner radius for [CupertinoNativeGlassShape.roundedRect]
+  /// Corner radius for [CupertinoGlassShape.roundedRect]
   /// (continuous corners, default 26 to match iOS 26 cards).
   final double cornerRadius;
 
@@ -195,14 +240,17 @@ class _CupertinoNativeGlassContainerState
       // Non-iOS fallback: a translucent rounded box.
       Widget box = DecoratedBox(
         decoration: BoxDecoration(
-          color: (widget.tint ?? const Color(0xFF787880)).withValues(alpha: 0.2),
-          borderRadius: widget.shape == CupertinoNativeGlassShape.circle
+          color: (widget.tint ?? const Color(0xFF787880)).withValues(
+            alpha: 0.2,
+          ),
+          borderRadius: widget.shape == CupertinoGlassShape.circle
               ? null
               : BorderRadius.circular(
-                  widget.shape == CupertinoNativeGlassShape.capsule
+                  widget.shape == CupertinoGlassShape.capsule
                       ? 999
-                      : widget.cornerRadius),
-          shape: widget.shape == CupertinoNativeGlassShape.circle
+                      : widget.cornerRadius,
+                ),
+          shape: widget.shape == CupertinoGlassShape.circle
               ? BoxShape.circle
               : BoxShape.rectangle,
         ),
@@ -222,7 +270,11 @@ class _CupertinoNativeGlassContainerState
     }
 
     if (widget.width != null || widget.height != null) {
-      return SizedBox(width: widget.width, height: widget.height, child: content);
+      return SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: content,
+      );
     }
     return content;
   }

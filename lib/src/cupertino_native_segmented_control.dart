@@ -8,8 +8,8 @@ import 'internal/native_platform_view_mixin.dart';
 class CupertinoNativeSegmentedControl extends StatefulWidget {
   final List<String> children;
   final int groupValue;
-  final ValueChanged<int>? onValueChanged;
-  final Color? color;
+  final ValueChanged<int>? onChanged;
+  final Color? activeColor;
   final double? width;
   final double? height;
 
@@ -17,8 +17,8 @@ class CupertinoNativeSegmentedControl extends StatefulWidget {
     super.key,
     required this.children,
     required this.groupValue,
-    this.onValueChanged,
-    this.color,
+    this.onChanged,
+    this.activeColor,
     this.width,
     this.height,
   });
@@ -36,7 +36,7 @@ class _CupertinoNativeSegmentedControlState
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.children, widget.children) ||
         oldWidget.groupValue != widget.groupValue ||
-        oldWidget.color != widget.color) {
+        oldWidget.activeColor != widget.activeColor) {
       updateNativeView('updateSegmentedControl', _toMap());
     }
   }
@@ -45,7 +45,7 @@ class _CupertinoNativeSegmentedControlState
     return {
       'items': widget.children,
       'selectedIndex': widget.groupValue,
-      'color': widget.color?.toARGB32(),
+      'color': widget.activeColor?.toARGB32(),
     };
   }
 
@@ -62,7 +62,7 @@ class _CupertinoNativeSegmentedControlState
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     if (call.method == 'onValueChanged') {
       final int newValue = call.arguments;
-      widget.onValueChanged?.call(newValue);
+      widget.onChanged?.call(newValue);
     }
   }
 
@@ -109,11 +109,11 @@ class _CupertinoNativeSegmentedControlState
         children: List.generate(widget.children.length, (index) {
           final isSelected = widget.groupValue == index;
           return GestureDetector(
-            onTap: () => widget.onValueChanged?.call(index),
+            onTap: () => widget.onChanged?.call(index),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               color: isSelected
-                  ? (widget.color ?? const Color(0xFF007AFF))
+                  ? (widget.activeColor ?? const Color(0xFF007AFF))
                   : null,
               child: Center(
                 child: Text(

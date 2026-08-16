@@ -1,19 +1,18 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show OverlayVisibilityMode;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'cupertino_native_glass_container.dart' show CupertinoGlassVariant;
+import 'cupertino_native_glass_container.dart'
+    show CupertinoGlass, CupertinoGlassVariant;
 import 'internal/native_platform_view_mixin.dart';
+import 'internal/text_field_wire.dart';
 import 'search_row_visibility.dart';
 import 'models/cupertino_native_icon.dart';
-
-/// Where the single line of text sits within the field's height, mapped to
-/// `UIControl.contentVerticalAlignment`.
-enum CupertinoNativeTextVerticalAlignment { top, center, bottom }
 
 /// Disambiguates a quick drag (scroll the ancestor `Scrollable`, like a plain
 /// Flutter `TextField` allows) from a press-and-hold (enter native text
@@ -96,10 +95,6 @@ class _NativeTextFieldGestureRecognizer extends OneSequenceGestureRecognizer {
   String get debugDescription => 'CupertinoNativeTextField selection gesture';
 }
 
-/// When the built-in clear (×) button appears in a [CupertinoNativeTextField].
-/// Mirrors UIKit's `UITextField.ViewMode`.
-enum CupertinoNativeClearButtonMode { never, whileEditing, unlessEditing, always }
-
 /// A native single-line iOS text field backed by `UITextField`, exposing
 /// customization comparable to Flutter's [TextField]/`CupertinoTextField`.
 ///
@@ -134,7 +129,11 @@ class CupertinoNativeTextField extends StatefulWidget {
   /// Text style. `fontSize`, `fontWeight`, and `color` are forwarded natively.
   final TextStyle? style;
   final Color? cursorColor;
-  final CupertinoNativeClearButtonMode clearButtonMode;
+
+  /// When the built-in clear (×) button appears — the same
+  /// [OverlayVisibilityMode] `CupertinoTextField.clearButtonMode` takes,
+  /// forwarded to UIKit's `UITextField.ViewMode`.
+  final OverlayVisibilityMode clearButtonMode;
 
   /// Background color. Defaults to transparent (iOS default).
   final Color? backgroundColor;
@@ -142,21 +141,9 @@ class CupertinoNativeTextField extends StatefulWidget {
   /// Renders the field on a **Liquid Glass** background (iOS 26 `UIGlassEffect`;
   /// an ultra-thin material stands in on earlier versions). The text gets a
   /// 16pt horizontal inset inside the glass.
-  final bool glassEffect;
-
-  /// Corner radius of the [glass] shape (continuous corners).
-  final double glassCornerRadius;
-
-  /// Glass material variant — regular (default) or the more transparent
-  /// clear glass (iOS 26). Only used with [glassEffect].
-  final CupertinoGlassVariant glassVariant;
-
-  /// Whether the glass reacts to touches with the system shimmer (iOS 26).
-  /// Only used with [glassEffect].
-  final bool glassInteractive;
-
-  /// Optional tint mixed into the [glass] material.
-  final Color? glassTint;
+  ///
+  /// Null (the default) renders the plain field.
+  final CupertinoGlass? glass;
 
   /// Leading SF Symbol inside the field (native `UITextField.leftView`).
   /// SF Symbols only — Flutter widgets can't be embedded in a native control;
@@ -169,7 +156,12 @@ class CupertinoNativeTextField extends StatefulWidget {
   /// Where the (single) line of text sits within the field's height — useful
   /// with an explicit [height]. UITextField is single-line; multi-line input
   /// would use UITextView and is not covered yet.
-  final CupertinoNativeTextVerticalAlignment verticalAlignment;
+  ///
+  /// Takes the same [TextAlignVertical] as [TextField.textAlignVertical].
+  /// `UIControl.contentVerticalAlignment` only has three positions, so the
+  /// continuous [TextAlignVertical.y] is snapped: negative → top, positive →
+  /// bottom, zero → center.
+  final TextAlignVertical verticalAlignment;
 
   /// iOS autofill/content type hint (e.g. `'password'`, `'username'`,
   /// `'emailAddress'`, `'oneTimeCode'`, `'name'`, `'telephoneNumber'`,
@@ -217,16 +209,12 @@ class CupertinoNativeTextField extends StatefulWidget {
     this.autofocus = false,
     this.style,
     this.cursorColor,
-    this.clearButtonMode = CupertinoNativeClearButtonMode.never,
+    this.clearButtonMode = OverlayVisibilityMode.never,
     this.backgroundColor,
-    this.glassEffect = false,
-    this.glassCornerRadius = 16,
-    this.glassVariant = CupertinoGlassVariant.regular,
-    this.glassInteractive = true,
-    this.glassTint,
+    this.glass,
     this.prefixIcon,
     this.suffixIcon,
-    this.verticalAlignment = CupertinoNativeTextVerticalAlignment.center,
+    this.verticalAlignment = TextAlignVertical.center,
     this.textContentType,
     this.onChanged,
     this.onSubmitted,
@@ -261,12 +249,12 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   /// [_NativeTextFieldGestureRecognizer].
   late final Set<Factory<OneSequenceGestureRecognizer>> _gestureRecognizers =
       <Factory<OneSequenceGestureRecognizer>>{
-    Factory<OneSequenceGestureRecognizer>(
-      () => _NativeTextFieldGestureRecognizer(
-        isSelectionActive: () => _selectionActive,
-      ),
-    ),
-  };
+        Factory<OneSequenceGestureRecognizer>(
+          () => _NativeTextFieldGestureRecognizer(
+            isSelectionActive: () => _selectionActive,
+          ),
+        ),
+      };
 
   /// The text native currently holds — used to break the controller<->native
   /// sync feedback loop.
@@ -297,8 +285,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   /// post-settle blips (autocorrect bar, emoji switch) never move the scroll.
   @override
   void didChangeMetrics() {
-    final view =
-        WidgetsBinding.instance.platformDispatcher.implicitView;
+    final view = WidgetsBinding.instance.platformDispatcher.implicitView;
     if (view == null) return;
     final bottomInset = view.viewInsets.bottom;
     final rising = bottomInset > _lastBottomInset;
@@ -420,11 +407,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         o.clearButtonMode != widget.clearButtonMode ||
         o.textContentType != widget.textContentType ||
         o.backgroundColor != widget.backgroundColor ||
-        o.glassEffect != widget.glassEffect ||
-        o.glassCornerRadius != widget.glassCornerRadius ||
-        o.glassVariant != widget.glassVariant ||
-        o.glassInteractive != widget.glassInteractive ||
-        o.glassTint != widget.glassTint ||
+        o.glass != widget.glass ||
         o.prefixIcon != widget.prefixIcon ||
         o.suffixIcon != widget.suffixIcon ||
         o.verticalAlignment != widget.verticalAlignment;
@@ -459,18 +442,19 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       'fontWeight': widget.style?.fontWeight?.value,
       'textColor': widget.style?.color?.toARGB32(),
       'cursorColor': widget.cursorColor?.toARGB32(),
-      'clearButtonMode': widget.clearButtonMode.name,
+      'clearButtonMode': clearButtonModeName(widget.clearButtonMode),
       'textContentType': widget.textContentType,
       'isDark': _isDark,
       'backgroundColor': widget.backgroundColor?.toARGB32(),
-      'glass': widget.glassEffect,
-      'glassCornerRadius': widget.glassCornerRadius,
-      'glassVariant': widget.glassVariant.name,
-      'glassInteractive': widget.glassInteractive,
-      'glassTint': widget.glassTint?.toARGB32(),
+      'glass': widget.glass != null,
+      'glassCornerRadius': widget.glass?.cornerRadius ?? 16,
+      'glassVariant':
+          (widget.glass?.variant ?? CupertinoGlassVariant.regular).name,
+      'glassInteractive': widget.glass?.interactive ?? true,
+      'glassTint': widget.glass?.tint?.toARGB32(),
       'prefixIcon': widget.prefixIcon?.toMap(),
       'suffixIcon': widget.suffixIcon?.toMap(),
-      'verticalAlignment': widget.verticalAlignment.name,
+      'verticalAlignment': verticalAlignmentName(widget.verticalAlignment),
     };
   }
 
@@ -548,8 +532,9 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         // really resizes — e.g. the app bar's collapsing search slot.
         sized = LayoutBuilder(
           builder: (context, constraints) {
-            final width =
-                constraints.maxWidth.isFinite ? constraints.maxWidth : 200.0;
+            final width = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : 200.0;
             final height = constraints.maxHeight.isFinite
                 ? constraints.maxHeight
                 : (widget.height ?? intrinsicHeight ?? 52);
@@ -570,8 +555,9 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         // Fill available width (like Flutter's TextField); intrinsic height.
         sized = LayoutBuilder(
           builder: (context, constraints) {
-            final width =
-                constraints.maxWidth.isFinite ? constraints.maxWidth : 200.0;
+            final width = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : 200.0;
             return SizedBox(
               width: width,
               height: intrinsicHeight ?? 52,

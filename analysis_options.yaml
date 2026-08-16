@@ -1,4 +1,10 @@
 include: package:flutter_lints/flutter.yaml
 
+linter:
+  rules:
+    # Surface uses of our own deprecated aliases (lib/src/legacy_names.dart)
+    # so the package migrates itself off them before 0.3.0 removes them.
+    - deprecated_member_use_from_same_package
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

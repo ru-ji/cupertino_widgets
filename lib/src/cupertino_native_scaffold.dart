@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'callbacks.dart';
+
 import 'cupertino_native_app_bar.dart';
 import 'cupertino_native_tab_bar.dart';
 import 'cupertino_widgets_settings.dart';
@@ -69,6 +71,11 @@ class CupertinoNativeScaffoldController {
     await _channel?.invokeMethod('push', page.toMap());
   }
 
+  /// Pushes [route] with no navigation bar of its own — the string-only form
+  /// of [push], for when you don't need to configure the destination's bar.
+  Future<void> pushNamed(String route) =>
+      push(CupertinoNativeScaffoldPage(route: route));
+
   Future<void> pop() async {
     await _channel?.invokeMethod('pop');
   }
@@ -98,11 +105,11 @@ class CupertinoNativeScaffold extends StatefulWidget {
   final CupertinoNativeTabBar? tabBar;
 
   final CupertinoNativeScaffoldController? controller;
-  final void Function(String route, String actionId)? onBarAction;
-  final Function(String)? onTabChanged;
+  final CupertinoNativeBarActionCallback? onBarAction;
+  final ValueChanged<String>? onTabChanged;
 
   /// iOS 26 scroll edge effect style for the native scroll views.
-  final CupertinoNativeScrollEdgeEffect scrollEdgeEffect;
+  final CupertinoScrollEdgeEffectStyle scrollEdgeEffect;
 
   /// Background color for the scaffold. Defaults to
   /// [Theme.of(context).scaffoldBackgroundColor].
@@ -110,21 +117,21 @@ class CupertinoNativeScaffold extends StatefulWidget {
 
   /// Primary/accent color used for interactive elements (buttons, toggles,
   /// etc.). Defaults to [Theme.of(context).colorScheme.primary].
-  final Color? primaryColor;
+  final Color? activeColor;
 
   /// Reports the current tab's native stack (root route first) whenever a
   /// push/pop happens — including native back button and back-swipe.
-  final void Function(List<String> routes)? onRouteChanged;
+  final CupertinoNativeRouteChangedCallback? onRouteChanged;
 
   /// Fires on every keystroke in a page's [CupertinoNativeAppBar.search] field.
   /// [route] is the searchable page's root route.
-  final void Function(String route, String query)? onSearchChanged;
+  final CupertinoNativeSearchCallback? onSearchChanged;
 
   /// Fires when the user submits the search (keyboard search/return key).
-  final void Function(String route, String query)? onSearchSubmitted;
+  final CupertinoNativeSearchCallback? onSearchSubmitted;
 
   /// Fires when a search field becomes active/inactive (SwiftUI `isSearching`).
-  final void Function(String route, bool active)? onSearchActiveChanged;
+  final CupertinoNativeSearchActiveCallback? onSearchActiveChanged;
 
   const CupertinoNativeScaffold({
     super.key,
@@ -134,16 +141,18 @@ class CupertinoNativeScaffold extends StatefulWidget {
     this.controller,
     this.onBarAction,
     this.onTabChanged,
-    this.scrollEdgeEffect = CupertinoNativeScrollEdgeEffect.automatic,
+    this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.automatic,
     this.backgroundColor,
-    this.primaryColor,
+    this.activeColor,
     this.showLoadingIndicator,
     this.onRouteChanged,
     this.onSearchChanged,
     this.onSearchSubmitted,
     this.onSearchActiveChanged,
-  }) : assert(tabBar != null || body != null,
-            'Provide a tabBar (tab ids double as body routes) or a body route');
+  }) : assert(
+         tabBar != null || body != null,
+         'Provide a tabBar (tab ids double as body routes) or a body route',
+       );
 
   /// Whether a native spinner shows while a body engine boots and renders
   /// its first frame. Defaults to the global
@@ -151,8 +160,9 @@ class CupertinoNativeScaffold extends StatefulWidget {
   final bool? showLoadingIndicator;
 
   /// Well-known channel the native side attaches to every body engine.
-  static const MethodChannel _bodyChannel =
-      MethodChannel('cupertino_widgets/scaffold_body');
+  static const MethodChannel _bodyChannel = MethodChannel(
+    'cupertino_widgets/scaffold_body',
+  );
 
   /// Route prefix used by body engines so that [maybeRun] can intercept and
   /// `main()` with `cn-scaffold://<route>` as the initial route.
@@ -214,9 +224,12 @@ class CupertinoNativeScaffold extends StatefulWidget {
     });
     // Pull the app's brightness once on startup so the body matches the app
     // from the first frame (falls back to device brightness until it arrives).
-    _bodyChannel.invokeMethod<bool>('getBrightness').then((isDark) {
-      if (isDark != null) _bodyIsDark.value = isDark;
-    }).catchError((_) {});
+    _bodyChannel
+        .invokeMethod<bool>('getBrightness')
+        .then((isDark) {
+          if (isDark != null) _bodyIsDark.value = isDark;
+        })
+        .catchError((_) {});
   }
 
   /// Pays body-engine start-up costs ahead of time.
@@ -242,11 +255,12 @@ class CupertinoNativeScaffold extends StatefulWidget {
   /// `--release`.
   static Future<void> prewarm({List<String> routes = const []}) async {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
-    final isDark = ui.PlatformDispatcher.instance.platformBrightness ==
-        ui.Brightness.dark;
+    final isDark =
+        ui.PlatformDispatcher.instance.platformBrightness == ui.Brightness.dark;
     try {
-      await const MethodChannel('com.example.cupertino_widgets/alert')
-          .invokeMethod<void>('prewarmScaffold', {
+      await const MethodChannel(
+        'com.example.cupertino_widgets/alert',
+      ).invokeMethod<void>('prewarmScaffold', {
         'routes': routes,
         'isDark': isDark,
       });
@@ -282,8 +296,9 @@ class CupertinoNativeScaffold extends StatefulWidget {
   /// Call this inside your `@pragma('vm:entry-point')` function. It reads the
   /// route from the engine's initial route and runs the matching builder.
   static void run(Map<String, Widget Function()> builders) {
-    final route =
-        _consumeBrightnessQuery(ui.PlatformDispatcher.instance.defaultRouteName);
+    final route = _consumeBrightnessQuery(
+      ui.PlatformDispatcher.instance.defaultRouteName,
+    );
     final builder = builders[route];
 
     // Wrap the body in basic inherited widgets only (no Scaffold/MaterialApp,
@@ -323,6 +338,11 @@ class CupertinoNativeScaffold extends StatefulWidget {
   static Future<void> push(CupertinoNativeScaffoldPage page) {
     return _bodyChannel.invokeMethod('push', page.toMap());
   }
+
+  /// Pushes [route] with no navigation bar of its own — the string-only form
+  /// of [push]. Only usable inside body isolates.
+  static Future<void> pushNamed(String route) =>
+      push(CupertinoNativeScaffoldPage(route: route));
 
   /// Pops the enclosing scaffold's native stack. Only usable inside body
   /// isolates; the system back button and back-swipe also pop natively.
@@ -398,8 +418,9 @@ class _DynamicEnvWrapperState extends State<_DynamicEnvWrapper>
     // to LIGHT regardless of the app/device brightness. Provide one with
     // the effective brightness so dynamic colors resolve correctly.
     return MediaQuery(
-      data: MediaQueryData.fromView(View.of(context))
-          .copyWith(platformBrightness: brightness),
+      data: MediaQueryData.fromView(
+        View.of(context),
+      ).copyWith(platformBrightness: brightness),
       child: Directionality(
         textDirection: TextDirection.ltr,
         child: Localizations(
@@ -414,8 +435,10 @@ class _DynamicEnvWrapperState extends State<_DynamicEnvWrapper>
                 : ThemeData.light(),
             // Ensure the main widget takes the full width but its natural height.
             // Material provides the default text styles so text isn't white-on-white.
-            child:
-                Material(type: MaterialType.transparency, child: widget.child),
+            child: Material(
+              type: MaterialType.transparency,
+              child: widget.child,
+            ),
           ),
         ),
       ),
@@ -447,10 +470,13 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
       'scrollEdgeEffect': widget.scrollEdgeEffect.name,
       'isDark': _isDark,
       'backgroundColor':
-          widget.backgroundColor?.toARGB32() ?? theme.scaffoldBackgroundColor.toARGB32(),
+          widget.backgroundColor?.toARGB32() ??
+          theme.scaffoldBackgroundColor.toARGB32(),
       'primaryColor':
-          widget.primaryColor?.toARGB32() ?? theme.colorScheme.primary.toARGB32(),
-      'showLoadingIndicator': widget.showLoadingIndicator ??
+          widget.activeColor?.toARGB32() ??
+          theme.colorScheme.primary.toARGB32(),
+      'showLoadingIndicator':
+          widget.showLoadingIndicator ??
           CupertinoWidgetsSettings.showLoadingIndicator,
     };
   }
@@ -570,9 +596,6 @@ class _CupertinoNativeScaffoldState extends State<CupertinoNativeScaffold>
     // Flutter route's iOS back-swipe gesture so it doesn't compete with the
     // native one. At the root level, let the Flutter back-swipe proceed so the
     // user can pop the scaffold page itself.
-    return PopScope(
-      canPop: _nativeStackDepth <= 1,
-      child: platformView,
-    );
+    return PopScope(canPop: _nativeStackDepth <= 1, child: platformView);
   }
 }

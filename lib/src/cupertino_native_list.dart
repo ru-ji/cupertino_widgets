@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'callbacks.dart';
+
 import 'internal/native_collection_view.dart';
 import 'models/cupertino_native_list_section.dart';
 
@@ -41,15 +43,15 @@ class CupertinoNativeList extends StatelessWidget {
   final CupertinoNativeListStyle style;
   final double? height;
   final bool scrollable;
-  final Color? tint;
+  final Color? activeColor;
 
   /// Corner radius of the inset-grouped section cards. Null matches the
   /// running iOS version's Settings app automatically (26 on iOS 26+, 10 on
   /// earlier releases); set a value to override.
   final double? cornerRadius;
 
-  final void Function(String id)? onRowTap;
-  final void Function(String id, bool value)? onToggle;
+  final CupertinoNativeListRowCallback? onRowTap;
+  final CupertinoNativeListToggleCallback? onToggle;
 
   const CupertinoNativeList({
     super.key,
@@ -57,7 +59,7 @@ class CupertinoNativeList extends StatelessWidget {
     this.style = CupertinoNativeListStyle.insetGrouped,
     this.height,
     this.scrollable = false,
-    this.tint,
+    this.activeColor,
     this.cornerRadius,
     this.onRowTap,
     this.onToggle,
@@ -71,7 +73,7 @@ class CupertinoNativeList extends StatelessWidget {
       sections: sections,
       height: height,
       scrollable: scrollable,
-      tint: tint,
+      activeColor: activeColor,
       cornerRadius: cornerRadius,
       onRowTap: onRowTap,
       onToggle: onToggle,

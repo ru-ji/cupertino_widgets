@@ -34,10 +34,10 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
       _clear ? CupertinoGlassVariant.clear : CupertinoGlassVariant.regular;
 
   Color? get _tint => switch (_tintIndex) {
-        1 => CupertinoColors.systemBlue,
-        2 => CupertinoColors.systemPink,
-        _ => null,
-      };
+    1 => CupertinoColors.systemBlue,
+    2 => CupertinoColors.systemPink,
+    _ => null,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +58,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
               // Glass card — Flutter text composited on top of native glass.
               Center(
                 child: CupertinoNativeGlassContainer(
-                  shape: CupertinoNativeGlassShape.roundedRect,
+                  shape: CupertinoGlassShape.roundedRect,
                   cornerRadius: 26,
                   variant: _variant,
                   tint: _tint,
@@ -70,16 +70,20 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Liquid Glass',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            decoration: TextDecoration.none,
-                            color: CupertinoColors.label.resolveFrom(context),
-                          )),
+                      Text(
+                        'Liquid Glass',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          decoration: TextDecoration.none,
+                          color: CupertinoColors.label.resolveFrom(context),
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('Native refraction · Flutter content',
-                          style: footnoteStyle(context)),
+                      Text(
+                        'Native refraction · Flutter content',
+                        style: footnoteStyle(context),
+                      ),
                     ],
                   ),
                 ),
@@ -90,7 +94,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                 right: 24,
                 bottom: 20,
                 child: CupertinoNativeGlassContainer(
-                  shape: CupertinoNativeGlassShape.capsule,
+                  shape: CupertinoGlassShape.capsule,
                   variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
@@ -98,8 +102,10 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Now Playing — Deep Focus',
-                        style: rowTitleStyle(context)),
+                    child: Text(
+                      'Now Playing — Deep Focus',
+                      style: rowTitleStyle(context),
+                    ),
                   ),
                 ),
               ),
@@ -109,7 +115,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                 top: 20,
                 right: 20,
                 child: CupertinoNativeGlassContainer(
-                  shape: CupertinoNativeGlassShape.circle,
+                  shape: CupertinoGlassShape.circle,
                   variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
@@ -117,7 +123,8 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   height: 56,
                   icon: CupertinoNativeIcon.symbol(CupertinoSymbols.paintbrush),
                   onPressed: () => setState(
-                      () => _tintIndex = (_tintIndex + 1) % _tints.length),
+                    () => _tintIndex = (_tintIndex + 1) % _tints.length,
+                  ),
                 ),
               ),
             ],
@@ -126,19 +133,21 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
         SettingsSection(
           header: 'Glass',
           footer: switch (_supported) {
-            true => 'This device renders real Liquid Glass (iOS 26+). Touch '
-                'and hold the shapes — interactive glass shimmers and '
-                'stretches under your finger. The circle is a glass button: '
-                'tap it to cycle the tint.',
-            false => 'This device runs iOS 25 or earlier: a static material '
-                'stands in. The real effect is iOS 26+ only.',
+            true =>
+              'This device renders real Liquid Glass (iOS 26+). Touch '
+                  'and hold the shapes — interactive glass shimmers and '
+                  'stretches under your finger. The circle is a glass button: '
+                  'tap it to cycle the tint.',
+            false =>
+              'This device runs iOS 25 or earlier: a static material '
+                  'stands in. The real effect is iOS 26+ only.',
             null => 'Checking Liquid Glass availability…',
           },
           children: [
             SettingsRow(
               title: 'Interactive',
               subtitle: 'Shimmer on touch',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _interactive,
                 onChanged: (v) => setState(() => _interactive = v),
               ),
@@ -146,7 +155,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
             SettingsRow(
               title: 'Clear variant',
               subtitle: 'More transparent glass',
-              trailing: CupertinoNativeToggle(
+              trailing: CupertinoNativeSwitch(
                 value: _clear,
                 onChanged: (v) => setState(() => _clear = v),
               ),
@@ -157,7 +166,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
               child: CupertinoNativeSegmentedControl(
                 children: _tints,
                 groupValue: _tintIndex,
-                onValueChanged: (v) => setState(() => _tintIndex = v),
+                onChanged: (v) => setState(() => _tintIndex = v),
               ),
             ),
           ],
@@ -218,9 +227,7 @@ class _Blob extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0)],
-          ),
+          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
         ),
       ),
     );

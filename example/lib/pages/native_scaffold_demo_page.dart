@@ -13,7 +13,7 @@ class NativeScaffoldDemoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox.expand(
       child: CupertinoNativeScaffold(
-        scrollEdgeEffect: CupertinoNativeScrollEdgeEffect.soft,
+        scrollEdgeEffect: CupertinoScrollEdgeEffectStyle.soft,
         appBar: CupertinoNativeAppBar(
           title: 'Library',
           subtitle: '128 items',
@@ -32,7 +32,7 @@ class NativeScaffoldDemoPage extends StatelessWidget {
           ],
         ),
         tabBar: CupertinoNativeTabBar(
-          selection: 'home',
+          value: 'home',
           minimizeBehavior: CupertinoNativeTabBarMinimizeBehavior.onScrollDown,
           // iOS 26 bottom accessory (a persistent bar above the tab bar). It
           // shows its subtitle only in the system's `.expanded` placement.

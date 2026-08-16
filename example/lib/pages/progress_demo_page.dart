@@ -45,7 +45,8 @@ class _ProgressDemoPageState extends State<ProgressDemoPage> {
       children: [
         SettingsSection(
           header: 'Downloads',
-          footer: 'A determinate native ProgressView driven from Flutter — '
+          footer:
+              'A determinate native ProgressView driven from Flutter — '
               'value updates stream to the platform view.',
           children: [
             Padding(
@@ -56,8 +57,10 @@ class _ProgressDemoPageState extends State<ProgressDemoPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Xcode 26.pkg',
-                            style: rowTitleStyle(context)),
+                        child: Text(
+                          'Xcode 26.pkg',
+                          style: rowTitleStyle(context),
+                        ),
                       ),
                       Text(
                         '${_downloadedMb.round()} of ${_totalMb.round()} MB · '
@@ -92,7 +95,7 @@ class _ProgressDemoPageState extends State<ProgressDemoPage> {
               subtitle: '1,204 items remaining',
               trailing: const CupertinoNativeProgressIndicator(
                 style: CupertinoNativeProgressStyle.circular,
-                color: CupertinoColors.systemPink,
+                activeColor: CupertinoColors.systemPink,
               ),
             ),
           ],
@@ -108,7 +111,7 @@ class _ProgressDemoPageState extends State<ProgressDemoPage> {
                 total: 256,
                 label: 'iPhone — 205 GB of 256 GB used',
                 style: CupertinoNativeProgressStyle.linear,
-                color: CupertinoColors.systemOrange,
+                activeColor: CupertinoColors.systemOrange,
               ),
             ),
           ],

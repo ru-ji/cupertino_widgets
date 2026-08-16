@@ -26,7 +26,8 @@ class _DatePickerDemoPageState extends State<DatePickerDemoPage> {
       children: [
         SettingsSection(
           header: 'Event',
-          footer: 'Tap a pill — the calendar overlay is the real '
+          footer:
+              'Tap a pill — the calendar overlay is the real '
               'UIDatePicker (compact style); picks stream back to Flutter.',
           children: [
             SettingsRow(
@@ -50,7 +51,8 @@ class _DatePickerDemoPageState extends State<DatePickerDemoPage> {
         ),
         SettingsSection(
           header: 'Alarm',
-          footer: 'time mode shows only the hour wheel; tint colors the '
+          footer:
+              'time mode shows only the hour wheel; tint colors the '
               'selection.',
           children: [
             SettingsRow(
@@ -58,7 +60,7 @@ class _DatePickerDemoPageState extends State<DatePickerDemoPage> {
               trailing: CupertinoNativeDatePicker(
                 value: _alarm,
                 mode: CupertinoNativeDatePickerMode.time,
-                tint: CupertinoColors.systemOrange,
+                activeColor: CupertinoColors.systemOrange,
                 onChanged: (d) => setState(() => _alarm = d),
               ),
             ),

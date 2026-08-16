@@ -50,7 +50,7 @@ class _EffectsDemoPageState extends State<EffectsDemoPage> {
           onPressed: () {},
         ),
         const SizedBox(width: 20),
-        CupertinoNativeToggle(
+        CupertinoNativeSwitch(
           value: _toggleValue,
           onChanged: (v) => setState(() => _toggleValue = v),
         ),
@@ -63,10 +63,7 @@ class _EffectsDemoPageState extends State<EffectsDemoPage> {
         angle: _rotations[_rotationIndex] * math.pi / 180,
         child: Transform.scale(
           scale: _scales[_scaleIndex],
-          child: Opacity(
-            opacity: _opacities[_opacityIndex],
-            child: stage,
-          ),
+          child: Opacity(opacity: _opacities[_opacityIndex], child: stage),
         ),
       ),
     );
@@ -83,7 +80,8 @@ class _EffectsDemoPageState extends State<EffectsDemoPage> {
         SizedBox(height: 140, child: Center(child: stage)),
         SettingsSection(
           header: 'Effects',
-          footer: 'Every effect reaches the UIView through platform-view '
+          footer:
+              'Every effect reaches the UIView through platform-view '
               'mutators. Note: an inherited Opacity fades the glass button\'s '
               'label but iOS keeps rendering the glass material itself — use '
               'Visibility or Offstage to fully hide glass surfaces.',
@@ -91,8 +89,9 @@ class _EffectsDemoPageState extends State<EffectsDemoPage> {
             SettingsRow(
               title: 'Opacity',
               value: '${(_opacities[_opacityIndex] * 100).round()}%',
-              onTap: () => setState(() =>
-                  _opacityIndex = (_opacityIndex + 1) % _opacities.length),
+              onTap: () => setState(
+                () => _opacityIndex = (_opacityIndex + 1) % _opacities.length,
+              ),
             ),
             SettingsRow(
               title: 'Visibility',
@@ -108,19 +107,23 @@ class _EffectsDemoPageState extends State<EffectsDemoPage> {
               title: 'Scale',
               value: '×${_scales[_scaleIndex]}',
               onTap: () => setState(
-                  () => _scaleIndex = (_scaleIndex + 1) % _scales.length),
+                () => _scaleIndex = (_scaleIndex + 1) % _scales.length,
+              ),
             ),
             SettingsRow(
               title: 'Rotation',
               value: '${_rotations[_rotationIndex]}°',
-              onTap: () => setState(() =>
-                  _rotationIndex = (_rotationIndex + 1) % _rotations.length),
+              onTap: () => setState(
+                () => _rotationIndex = (_rotationIndex + 1) % _rotations.length,
+              ),
             ),
             SettingsRow(
               title: 'Translate',
               value: '${_translations[_translationIndex].round()}px',
-              onTap: () => setState(() => _translationIndex =
-                  (_translationIndex + 1) % _translations.length),
+              onTap: () => setState(
+                () => _translationIndex =
+                    (_translationIndex + 1) % _translations.length,
+              ),
             ),
           ],
         ),

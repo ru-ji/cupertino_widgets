@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'cupertino_native_app_bar.dart';
-import 'cupertino_native_tab_bar.dart' show CupertinoNativeScrollEdgeEffect;
+import 'cupertino_native_tab_bar.dart' show CupertinoScrollEdgeEffectStyle;
 import 'cupertino_widgets_settings.dart';
 
 /// The heights a [CupertinoNativeSheet] can rest at, mirroring
@@ -54,7 +54,7 @@ class CupertinoNativeSheetSegmentedControl {
 ///     segments: ['Event', 'Reminder'],
 ///   ),
 ///   detents: [CupertinoNativeSheetDetent.medium, CupertinoNativeSheetDetent.large],
-///   showGrabber: true,
+///   showDragHandle: true,
 ///   onBarAction: (id) => CupertinoNativeSheet.dismiss(),
 /// );
 /// // The future completes when the sheet is dismissed.
@@ -64,8 +64,7 @@ class CupertinoNativeSheetSegmentedControl {
 abstract final class CupertinoNativeSheet {
   static const _channel = MethodChannel('com.example.cupertino_widgets/alert');
   static const _bodyChannel = MethodChannel('cupertino_widgets/scaffold_body');
-  static const _eventsChannel =
-      MethodChannel('cupertino_widgets/sheet_events');
+  static const _eventsChannel = MethodChannel('cupertino_widgets/sheet_events');
 
   static bool _eventsHandlerInstalled = false;
   static void Function(String actionId)? _onBarAction;
@@ -91,10 +90,10 @@ abstract final class CupertinoNativeSheet {
     List<CupertinoNativeSheetDetent> detents = const [
       CupertinoNativeSheetDetent.large,
     ],
-    bool showGrabber = false,
+    bool showDragHandle = false,
     double? cornerRadius,
-    CupertinoNativeScrollEdgeEffect scrollEdgeEffect =
-        CupertinoNativeScrollEdgeEffect.soft,
+    CupertinoScrollEdgeEffectStyle scrollEdgeEffect =
+        CupertinoScrollEdgeEffectStyle.soft,
     Color? backgroundColor,
     bool? showLoadingIndicator,
     bool? isDark,
@@ -111,7 +110,8 @@ abstract final class CupertinoNativeSheet {
     _onSearchSubmitted = onSearchSubmitted;
     _ensureEventsHandler();
 
-    final dark = isDark ??
+    final dark =
+        isDark ??
         ui.PlatformDispatcher.instance.platformBrightness == ui.Brightness.dark;
     try {
       await _channel.invokeMethod<void>('showSheet', {
@@ -120,11 +120,12 @@ abstract final class CupertinoNativeSheet {
         'bottomSegments': bottom?.segments,
         'bottomSelectedIndex': bottom?.selectedIndex,
         'detents': detents.map((d) => d.name).toList(),
-        'showGrabber': showGrabber,
+        'showGrabber': showDragHandle,
         'cornerRadius': cornerRadius,
         'scrollEdgeEffect': scrollEdgeEffect.name,
         'backgroundColor': backgroundColor?.toARGB32(),
-        'showLoadingIndicator': showLoadingIndicator ??
+        'showLoadingIndicator':
+            showLoadingIndicator ??
             CupertinoWidgetsSettings.showLoadingIndicator,
         'isDark': dark,
       });

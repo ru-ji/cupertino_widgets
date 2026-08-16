@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+
+      # pub.dev's score comes from static analysis only, so these two mirror
+      # what pana will check at publish time.
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      # pub.dev never runs these — this workflow is the only thing that does.
+      - name: Test
+        run: flutter test
+
+  # Reports the same score pub.dev will show, so surprises land here first.
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart pub global activate pana
+      - run: dart pub global run pana --no-warning --exit-code-threshold 20 .
