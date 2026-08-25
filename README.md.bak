@@ -16,27 +16,20 @@
 
 # cupertino_widgets
 
-Real UIKit & SwiftUI views inside Flutter — not lookalikes. Native buttons,
-toggles, sliders, menus, tab bars, a full SwiftUI scaffold, and the iOS 26
-**Liquid Glass** material, all driven from Dart at 120 fps.
+A handful of iOS controls Flutter can only approximate — buttons, toggles,
+sliders, menus, tab bars, a SwiftUI navigation scaffold and the iOS 26
+**Liquid Glass** material — brought over as-is, with Flutter-style APIs.
 
 <!-- 📸 IMAGE: hero — a banner or 3-phone montage of the demo app. -->
 
 ## Why
 
-Flutter's Cupertino widgets are pixel-perfect *drawings* of iOS controls.
-This package embeds the *real* controls as platform views: system animations,
-haptics, Liquid Glass materials, Dynamic Type and accessibility come for free
-— while your app state stays in Dart with Flutter-style APIs
-(`value` / `onChanged`, `const` constructors).
-
-## Requirements
-
-| | |
-|---|---|
-| iOS deployment target | 15.0+ |
-| Liquid Glass features | iOS 26+ (`glass` button styles, `CupertinoNativeGlassContainer`, glass tab bar/toolbars) — older versions get graceful material fallbacks |
-| Integration | Swift Package Manager (no CocoaPods needed) |
+Flutter's Cupertino widgets are *drawings* of iOS controls, and the gap shows
+in the details: gesture feel, haptics, Dynamic Type, accessibility, and
+anything Apple ships next year. Embedding the system control closes that gap
+for the few places it matters. Everything else stays ordinary Flutter — this
+is not a native-UI framework, just better fidelity where iOS users notice.
+State lives in Dart with the usual `value` / `onChanged` API.
 
 ## Install
 
@@ -51,7 +44,7 @@ import 'package:cupertino_widgets/cupertino_widgets.dart';
 
 ## Widgets
 
-### Slider — `UISlider`
+### Slider
 
 <img src="doc/images/slider.jpg" width="320" alt="Native slider" />
 
@@ -62,10 +55,7 @@ CupertinoNativeSlider(
 )
 ```
 
-`activeColor` tints the filled track, `divisions` snaps to steps,
-`onChanged: null` renders the native disabled look.
-
-### Switch — `UISwitch`
+### Switch
 
 <img src="doc/images/toggle.jpg" width="320" alt="Native switch" />
 
@@ -76,10 +66,7 @@ CupertinoNativeSwitch(
 )
 ```
 
-Press-and-slide works like the real thing; `activeColor` swaps the standard
-green for any tint.
-
-### Segmented Control — `UISegmentedControl`
+### Segmented Control
 
 <img src="doc/images/segmented.jpg" width="320" alt="Native segmented control" />
 
@@ -91,7 +78,7 @@ CupertinoNativeSegmentedControl(
 )
 ```
 
-### Button — SwiftUI `Button`
+### Button
 
 <img src="doc/images/buttons.jpg" width="320" alt="Native buttons" />
 
@@ -105,12 +92,7 @@ CupertinoNativeButton(
 )
 ```
 
-Styles: `filled` / `tinted` / `plain` / **`glass`** / **`glassProminent`**;
-sizes `mini` → `extraLarge`; `expand: true` for full-width CTAs. Icons come
-from a typo-safe `CupertinoSymbols` enum or any raw SF Symbol name via
-`CupertinoNativeIcon.named('...')`.
-
-### Popup Menu — `UIMenu`
+### Popup Menu
 
 <img src="doc/images/menu.jpg" width="320" alt="Native popup menu" />
 
@@ -128,10 +110,7 @@ CupertinoNativeMenu(
 )
 ```
 
-Sections, submenus, checkable toggles and destructive items — the popup is a
-real `UIMenu` with SF Symbol item icons.
-
-### Context Menu — `UIContextMenuInteraction`
+### Context Menu
 
 <img src="doc/images/contextmenu.jpg" width="320" alt="Native context menu" />
 
@@ -144,10 +123,7 @@ CupertinoNativeContextMenu(
 )
 ```
 
-Long-press lifts the Flutter child with the system blur and haptics. Pass
-`preview:` to show a different view while the menu is open.
-
-### Alert — `UIAlertController`
+### Alert
 
 <img src="doc/images/alert.jpg" width="320" alt="Native alert" />
 
@@ -164,7 +140,7 @@ CupertinoNativeAlert.show(
 )
 ```
 
-### Progress — `ProgressView`
+### Progress
 
 <img src="doc/images/progress.jpg" width="320" alt="Native progress indicators" />
 
@@ -178,7 +154,7 @@ CupertinoNativeProgressIndicator(                // circular, indeterminate
 )
 ```
 
-### Text Field — `UITextField`
+### Text Field
 
 <img src="doc/images/textfield.jpg" width="320" alt="Native text field" />
 
@@ -192,11 +168,7 @@ CupertinoNativeTextField(
 )
 ```
 
-Real iOS autofill, keyboard types and QuickType; controller- or
-callback-driven, with `CupertinoGlass` carrying the whole glass look
-(`cornerRadius`, `variant`, `interactive`, `tint`).
-
-### Date Picker — compact `UIDatePicker`
+### Date Picker
 
 <!-- 📸 IMAGE: datepicker.png -->
 
@@ -207,9 +179,6 @@ CupertinoNativeDatePicker(
   onChanged: (d) => setState(() => _starts = d),
 )
 ```
-
-The tappable pill pops the native calendar / time wheel over the app —
-overlay, dimming and animations are all UIKit's.
 
 ### Liquid Glass (iOS 26)
 
@@ -225,11 +194,9 @@ CupertinoNativeGlassContainer(
 )
 ```
 
-The glass is a real native `glassEffect` refracting whatever Flutter renders behind
-it. Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26
-(a static material stands in there).
+Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26.
 
-### Tab Bar — `UITabBar`
+### Tab Bar
 
 <img src="doc/images/tabbar.jpg" width="320" alt="Native tab bar" />
 
@@ -252,17 +219,14 @@ CupertinoNativeTabBar(
 )
 ```
 
-Liquid Glass on iOS 26. Standalone it floats over Flutter content; inside the
-scaffold it also gets minimize-on-scroll and the bottom accessory.
-
-### Native Scaffold — SwiftUI `NavigationStack` + `TabView`
+### Native Scaffold
 
 <img src="doc/images/scaffold.jpg" width="320" alt="Native scaffold with bottom accessory" />
 
-Bodies are Flutter routes rendered inside a real SwiftUI navigation stack:
-large titles collapse on native scroll, tabs minimize (iOS 26), push/pop
-transitions and back-swipe are the system's, and the tab bar can carry the
-iOS 26 bottom accessory (the Music-style "Now Playing" bar).
+Your Flutter pages, rendered inside a SwiftUI `NavigationStack`: system
+push/pop transitions and back-swipe, large titles collapsing on scroll. The
+one thing here with real architectural weight — read the routing and
+performance sections before reaching for it.
 
 ```dart
 // main.dart — bodies run in their own engines, resolved from a route table:
@@ -385,7 +349,7 @@ the root out from under you.
 
 Not pictured above, same native treatment:
 
-- **`CupertinoNativeSheet`** — `UISheetPresentationController` page sheet:
+- **`CupertinoNativeSheet`** — page sheet:
   detents, grabber, pinned native app bar, Flutter content scrolling beneath.
 - **`CupertinoNativeList` / `CupertinoNativeForm`** — SwiftUI-style
   inset-grouped sections (26 pt concentric corners on iOS 26), row taps and
@@ -414,7 +378,7 @@ each one costs a few MB, not a whole app. Their lifecycle:
    reload, no spinner, scroll position and state intact.
 3. Pushed detail pages are per-instance and are discarded when popped.
 
-### `prewarm()` — what it's for and how to use it
+### `prewarm()`
 
 The one boot users can still feel is the **very first engine after app
 launch**: the engine group pays its one-time cost (loading the Dart
