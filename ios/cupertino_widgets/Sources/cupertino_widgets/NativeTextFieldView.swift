@@ -168,6 +168,12 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         if let bg = c.backgroundColor {
             container.backgroundColor = UIColor(argb: bg)
         }
+        // ...and its corner radius, drawn natively so a filled search capsule
+        // needs nothing on the Flutter side.
+        let radius = CGFloat(c.cornerRadius ?? 0)
+        container.layer.cornerRadius = radius
+        container.layer.cornerCurve = .continuous
+        container.clipsToBounds = radius > 0
 
         // Where the single line of text sits within the field's height.
         switch c.verticalAlignment {
@@ -207,8 +213,11 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         glassView?.removeFromSuperview()
         glassView = nil
         let hasGlass = c.glass == true
-        leadingConstraint?.constant = hasGlass ? 16 : 0
-        trailingConstraint?.constant = hasGlass ? -16 : 0
+        // A rounded background needs the same breathing room as the glass, or
+        // the text runs into the capsule's curve.
+        let inset: CGFloat = hasGlass || CGFloat(c.cornerRadius ?? 0) > 0 ? 16 : 0
+        leadingConstraint?.constant = inset
+        trailingConstraint?.constant = -inset
         guard hasGlass else { return }
 
         let effectView: UIVisualEffectView

@@ -24,6 +24,7 @@ struct TextFieldConfig: Codable {
     let textContentType: String?
     let isDark: Bool?  // Flutter brightness → override UITextField appearance
     let backgroundColor: Int?  // ARGB — nil = transparent (iOS default)
+    let cornerRadius: Double?  // rounds the background; nil/0 = square, no inset
     let glass: Bool?  // Liquid Glass background (iOS 26; material fallback below)
     let glassCornerRadius: Double?  // glass shape radius; nil = 16
     let glassVariant: String?  // "regular" | "clear"; nil = regular

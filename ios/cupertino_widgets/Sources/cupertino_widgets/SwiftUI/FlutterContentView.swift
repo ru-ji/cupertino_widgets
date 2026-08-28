@@ -150,6 +150,11 @@ final class FlutterHostViewController: UIViewController {
     private func reportIfChanged(_ size: CGSize) {
         guard size.width > 1, size.height > 1, size != lastReportedSize else { return }
         lastReportedSize = size
-        onSizeChange?(size)
+        // Rounded UP to a whole point before it becomes the SwiftUI frame:
+        // a fractional Dart height (947.5) laid out at a snapped-down host
+        // height (947.33) leaves the body a sliver short of its own content,
+        // which Flutter reports as a sub-pixel RenderFlex overflow. Comparison
+        // stays on the raw size, so this never oscillates.
+        onSizeChange?(CGSize(width: size.width, height: size.height.rounded(.up)))
     }
 }

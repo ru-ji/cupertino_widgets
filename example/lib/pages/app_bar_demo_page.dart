@@ -71,7 +71,7 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
               // bottomMode.automatic collapses it with the scroll (before
               // the page moves); .always keeps it visible.
               searchPlaceholder: 'Search records',
-              bottomMode: NavigationBarBottomMode.automatic,
+              bottomMode: NavigationBarBottomMode.always,
               onSearchChanged: (q) => setState(() => _query = q),
               onSearchActiveChanged: (active) {
                 setState(() {

@@ -61,9 +61,9 @@ class CupertinoAppBarAction {
 ///
 /// The default constructor takes an optional [bottom] widget under the large
 /// title that stays visible when scrolling. [CupertinoSliverAppBar.search]
-/// builds the search bar itself (a glass `CupertinoNativeTextField`
-/// configured with [searchPlaceholder]/[searchStyle]/[searchPrefixIcon]/
-/// [searchSuffixIcon]): tapping it morphs the field to the top with a glass
+/// builds the search bar itself (a `CupertinoNativeTextField` configured with
+/// [searchPlaceholder]/[searchStyle]/[searchPrefixIcon]/[searchSuffixIcon],
+/// filled by default and glass via [searchGlass]): tapping it morphs the field to the top with a glass
 /// ✕, and [bottomMode] — only available there — decides whether the row
 /// collapses with the scroll ([NavigationBarBottomMode.automatic], the
 /// default: consumed *before* the page starts scrolling, shrinking while its
@@ -90,14 +90,16 @@ class CupertinoSliverAppBar extends StatefulWidget {
        searchStyle = null,
        searchPrefixIcon = null,
        searchSuffixIcon = null,
+       searchGlass = false,
        bottomMode = NavigationBarBottomMode.always,
        onSearchChanged = null,
        onSearchActiveChanged = null,
        _searchable = false;
 
-  /// A bar whose bottom row is a built-in search bar — the iOS 26 glass
-  /// capsule, backed by a native `UITextField`. Focus, the top-dock morph and
-  /// the glass ✕ are managed internally; listen to [onSearchChanged] for the
+  /// A bar whose bottom row is a built-in search bar — the system's filled
+  /// capsule, backed by a native `UITextField` (pass [searchGlass] for the
+  /// Liquid Glass variant). Focus, the top-dock morph and the glass ✕ are
+  /// managed internally; listen to [onSearchChanged] for the
   /// query and [onSearchActiveChanged] to swap the page content.
   const CupertinoSliverAppBar.search({
     super.key,
@@ -112,6 +114,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.searchStyle,
     this.searchPrefixIcon,
     this.searchSuffixIcon,
+    this.searchGlass = false,
     double searchFieldHeight = 44,
     this.bottomMode = NavigationBarBottomMode.automatic,
     this.onSearchChanged,
@@ -171,6 +174,14 @@ class CupertinoSliverAppBar extends StatefulWidget {
   /// Trailing SF Symbol inside the built-in search field.
   final CupertinoNativeIcon? searchSuffixIcon;
 
+  /// Whether the built-in search field rests on Liquid Glass. False (the
+  /// default) rests it on the system's plain filled capsule.
+  ///
+  /// Either way, on iOS 26 the field turns to glass while the search is open,
+  /// and — with [NavigationBarBottomMode.always] — as soon as the title
+  /// collapses and the row starts floating over content, like the system's.
+  final bool searchGlass;
+
   /// Whether the search row collapses with the scroll (`automatic`) or stays
   /// visible (`always`). Only settable on [CupertinoSliverAppBar.search]; the
   /// default constructor's [bottom] always behaves as `always`.
@@ -197,13 +208,21 @@ class CupertinoSliverAppBar extends StatefulWidget {
 
 class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     with TickerProviderStateMixin {
-  // Mirrors Flutter's CupertinoSliverNavigationBar.search
-  // (_kNavBarSearchDuration = 300ms): the morph geometry is driven linearly
-  // by the controller, exactly like the framework's persistent/large-title
-  // height tweens.
+  // 380ms on an ease-in-out, measured off a 60fps capture of the system
+  // search morph (the field's travel to the top, tracked frame by frame:
+  // 0.16 of the distance at a quarter of the way, 0.52 at half, 0.87 at three
+  // quarters — a symmetric S). Flutter's own nav bar runs 300ms linear
+  // (_kNavBarSearchDuration), which arrives noticeably early and flat.
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 300),
+    duration: const Duration(milliseconds: 380),
+  );
+
+  /// The morph progress every piece of the bar's geometry is driven by.
+  late final CurvedAnimation _searchT = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOut,
+    reverseCurve: Curves.easeInOut.flipped,
   );
 
   /// The large-title → inline-title collapse. Unlike the header's height
@@ -279,6 +298,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     _detachScrollListeners();
     _searchRowVisibility.dispose();
     _searchFocusNode.dispose();
+    _searchT.dispose();
     _controller.dispose();
     _titleT.dispose();
     _titleCollapse.dispose();
@@ -287,8 +307,13 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
 
   /// Scroll offset at which the collapse fires. The middle of the large-title
   /// region — the same point the snap below resolves towards, so a light
-  /// scroll can still peek at the title instead of collapsing it outright.
-  double get _collapseTrigger => _bottomScrollOffset + _largeTitleHeight / 2;
+  /// scroll can still peek at the title instead of collapsing it outright —
+  /// plus [_triggerSlack], so it takes that much more travel to fire.
+  double get _collapseTrigger =>
+      _bottomScrollOffset + _largeTitleHeight / 2 + _triggerSlack;
+
+  /// Extra travel past the halfway point before the collapse fires.
+  static const double _triggerSlack = 19;
 
   double get _bottomScrollOffset =>
       widget._searchable &&
@@ -313,7 +338,14 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
   void _handleScrollTick() {
     final past = _isPastTrigger;
     if (past == _collapsed) return;
-    _collapsed = past;
+    // setState, not a bare assignment: the search field is built in this
+    // State's build (outside the header's AnimatedBuilder), and whether it is
+    // glass reads [_collapsed].
+    if (mounted) {
+      setState(() => _collapsed = past);
+    } else {
+      _collapsed = past;
+    }
     past ? _titleCollapse.forward() : _titleCollapse.reverse();
   }
 
@@ -443,13 +475,35 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
             icon: CupertinoNativeIcon.symbol(CupertinoSymbols.xmark, size: 20),
             onPressed: () => _setSearchActive(false),
           );
-    // The bottom slot: the built-in glass search field (.search) or the
-    // user's always-visible bottom widget.
+    // The bottom slot: the built-in search field (.search) or the user's
+    // always-visible bottom widget.
+    // When the field is glass. Besides the opt-in resting look, iOS 26 puts it
+    // on glass whenever it stops sitting on the page: while the search is open
+    // (the whole morph, both directions — it turns on as the open starts and
+    // off only once the close has landed, never mid-slide), and, in `always`
+    // mode, from the moment the title collapses and the row starts floating
+    // over content.
+    final glassy =
+        isIOS26OrLater &&
+        (widget.searchGlass ||
+            _searchActive ||
+            _controller.value > 0 ||
+            (widget.bottomMode == NavigationBarBottomMode.always &&
+                _collapsed));
     final Widget? bottomSlot = widget._searchable
         ? CupertinoNativeTextField(
             placeholder: widget.searchPlaceholder,
             style: widget.searchStyle,
-            glass: CupertinoGlass(cornerRadius: widget.bottomHeight / 2),
+            glass: glassy
+                ? CupertinoGlass(cornerRadius: widget.bottomHeight / 2)
+                : null,
+            // Both looks are drawn by the native field itself — the capsule is
+            // a UIKit background with a radius, not a Flutter box behind a
+            // transparent platform view.
+            backgroundColor: glassy
+                ? null
+                : CupertinoColors.tertiarySystemFill.resolveFrom(context),
+            cornerRadius: widget.bottomHeight / 2,
             height: widget.bottomHeight,
             // The capsule adopts the slot's height, so it physically
             // squeezes with the collapse instead of being clipped.
@@ -458,7 +512,14 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
             textInputAction: TextInputAction.search,
             prefixIcon:
                 widget.searchPrefixIcon ??
-                CupertinoNativeIcon.symbol(CupertinoSymbols.magnifyingglass),
+                // 20pt in the primary label colour, like the system field:
+                // the glyph reads brighter and larger than the placeholder
+                // next to it, not as another piece of grey text.
+                CupertinoNativeIcon.symbol(
+                  CupertinoSymbols.magnifyingglass,
+                  size: 20,
+                  color: CupertinoColors.label.resolveFrom(context),
+                ),
             suffixIcon: widget.searchSuffixIcon,
             clearButtonMode: OverlayVisibilityMode.editing,
             onChanged: widget.onSearchChanged,
@@ -466,7 +527,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
         : widget.bottom;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([_controller, _titleT]),
+      animation: Listenable.merge([_searchT, _titleT]),
       builder: (context, _) => SliverPersistentHeader(
         pinned: true,
         delegate: _IOS26SliverAppBarDelegate(
@@ -483,7 +544,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           closeButton: closeButton,
           edgeEffect: edgeEffect,
           searchRowVisibility: _searchRowVisibility,
-          searchT: _controller.value,
+          searchT: _searchT.value,
           titleT: _titleT.value,
           searchActive: _searchActive,
           morphing: _controller.isAnimating,
@@ -616,14 +677,18 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   // instantly deform the search bar.
   static const double _collapseDeadZone = 10;
 
-  /// How far the scroll-edge effect reaches BELOW the header. The system
-  /// effect fades out past the bar; ending it at the header's own edge is
-  /// what reads as an abrupt stop. 64pt is the fade extension used by the
-  /// common recreation of the system header effect (ProgressiveBlurHeader).
-  static const double _effectOverhang = 64;
+  /// How far the scroll-edge effect reaches past the bottom of the last thing
+  /// in the header — the search field when there is one (NOT the row's bottom
+  /// padding), the header's own edge otherwise.
+  static const double _effectOverhang = 3;
 
+  /// The row the search field lives in: the field, the gap above it (14 —
+  /// measured off the system's own floating search row, between the toolbar
+  /// button's bottom edge and the capsule's top) and the padding below.
   static double _searchRowHeight(double fieldHeight) =>
-      fieldHeight + _bottomPadding + 6;
+      fieldHeight + _bottomPadding + _searchRowTopGap;
+
+  static const double _searchRowTopGap = 14;
 
   final String largeTitle;
   final String? subtitle;
@@ -715,12 +780,23 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     final height = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
+    // Scroll the header has absorbed beyond its own collapse (a pinned sliver
+    // keeps reporting it; see [consumedBySearch]).
+    final titleOvershoot = (shrinkOffset - (maxExtent - minExtent)).clamp(
+      0.0,
+      double.infinity,
+    );
 
     // Sequenced collapse, like Flutter's bottomMode.automatic: the scroll
     // consumes the search row FIRST (it shrinks and fades to nothing before
     // the page moves), then the large title collapses.
+    // Faded out by the morph: once the search is open the header is pinned at
+    // a fixed extent, but a PINNED sliver still reports the page's entire
+    // scrollOffset as shrinkOffset (it is not clamped to maxExtent-minExtent).
+    // Left raw, any scroll while the search is open reads as "the row is fully
+    // collapsed" and drops the docked field by the row's bottom padding.
     final consumedBySearch = _collapsibleSearch
-        ? shrinkOffset.clamp(0.0, _searchRowH)
+        ? shrinkOffset.clamp(0.0, _searchRowH) * (1 - searchT)
         : 0.0;
     final searchCollapseT = _collapsibleSearch
         ? consumedBySearch / _searchRowH
@@ -829,24 +905,12 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
       );
     }
 
-    // The effect covers the bar + large-title region only — NOT the resting
-    // search row. A search bar's taller header would otherwise stretch the
-    // blur falloff and tint wash ~a row further down the content than a bar
-    // without one (the HomePage look). As the row collapses — or the search
-    // morph docks the field at the top — the effect grows back to full.
-    final restEffectH = !_hasSearch
-        ? height
-        : (height -
-                  _searchRowH *
-                      (bottomMode == NavigationBarBottomMode.always
-                          ? 1.0
-                          : (1 - searchCollapseT)))
-              .clamp(topPadding + _barH, height);
-    // The system effect keeps thinning well past the bar's own bounds, so the
-    // effect deliberately overflows the header (unclipped) — that trailing
-    // reach is what makes it read as fading out instead of stopping.
-    final effectH =
-        ui.lerpDouble(restEffectH, height, searchT)! + _effectOverhang;
+    // The effect is the header, whatever the header currently is: a bar alone,
+    // a bar plus a large title, plus a search row when there is one, or — with
+    // the search open, no title and no actions — just the docked field. It
+    // therefore shrinks and grows with the collapse and the morph on its own,
+    // with no special-casing per configuration.
+    final effectH = (_hasSearch ? fieldTop + fieldH : height) + _effectOverhang;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -863,6 +927,64 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // Painted BEFORE the bar row: the glass leading/trailing
+              // buttons are native views, and a UIGlassEffect can only
+              // refract what is *behind* it. Above them the title would just
+              // sit on top of the glass — which is exactly what a plain
+              // transparent container looks like.
+              // Large title (+ subtitle), anchored above the search row.
+              // The anchor shrinks 1:1 with the header while the scroll
+              // consumes the search row — the framework's geometry (its
+              // title band is pinned below the bar with its bottom inset
+              // tracking the row's visible height exactly), so the title
+              // sits perfectly still through that phase, then collapses.
+              Positioned(
+                left: 16,
+                right: 16,
+                // At rest: 8pt above the search FIELD's top edge. Falls with
+                // the consumed scroll point-for-point, floored at the plain
+                // bottom padding for the title-collapse phase.
+                bottom:
+                    (_hasSearch
+                        ? (fieldHeight + _bottomPadding - consumedBySearch)
+                              .clamp(0.0, double.infinity)
+                        : 0) +
+                    _bottomPadding,
+                // Past the header's own collapse the title keeps travelling
+                // with the scroll instead of parking at the pinned height: a
+                // pinned sliver stops shrinking at minExtent, and a
+                // bottom-anchored title would freeze there, in full view,
+                // until the collapse animation catches up (visible on a fast
+                // flick). Carried on by the leftover scroll it just slides up
+                // under the bar and out, the way the content does.
+                child: Transform.translate(
+                  offset: Offset(0, -titleOvershoot),
+                  child: AnimatedOpacity(
+                    opacity: searchActive ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 150),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Opacity(
+                          opacity: largeOpacity,
+                          child: Text(
+                            largeTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: largeTitleStyle,
+                          ),
+                        ),
+                        if (subtitle != null)
+                          Opacity(
+                            opacity: largeSubOpacity,
+                            child: Text(subtitle!, style: subtitleStyle),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               // Inline bar row. Hidden outright while search is active —
               // the framework's Visibility treatment, not a fade/slide —
               // via Offstage so the glass-action platform views stay alive
@@ -915,52 +1037,6 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
                               ),
                           ],
                         ),
-                ),
-              ),
-              // Large title (+ subtitle), anchored above the search row.
-              // The anchor shrinks 1:1 with the header while the scroll
-              // consumes the search row — the framework's geometry (its
-              // title band is pinned below the bar with its bottom inset
-              // tracking the row's visible height exactly), so the title
-              // sits perfectly still through that phase, then collapses.
-              Positioned(
-                left: 16,
-                right: 16,
-                // At rest: 8pt above the search FIELD's top edge. Falls with
-                // the consumed scroll point-for-point, floored at the plain
-                // bottom padding for the title-collapse phase.
-                bottom:
-                    (_hasSearch
-                        ? (fieldHeight + _bottomPadding - consumedBySearch)
-                              .clamp(0.0, double.infinity)
-                        : 0) +
-                    _bottomPadding,
-                // The framework fades the large title over 150ms
-                // (_kNavBarTitleFadeDuration) while the search morph runs —
-                // without this it slides visibly up into the status bar.
-                child: AnimatedOpacity(
-                  opacity: searchActive ? 0.0 : 1.0,
-                  duration: const Duration(milliseconds: 150),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Opacity(
-                        opacity: largeOpacity,
-                        child: Text(
-                          largeTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: largeTitleStyle,
-                        ),
-                      ),
-                      if (subtitle != null)
-                        Opacity(
-                          opacity: largeSubOpacity,
-                          child: Text(subtitle!, style: subtitleStyle),
-                        ),
-                    ],
-                  ),
                 ),
               ),
               if (_hasSearch) ...[

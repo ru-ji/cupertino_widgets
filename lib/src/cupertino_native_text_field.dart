@@ -138,6 +138,12 @@ class CupertinoNativeTextField extends StatefulWidget {
   /// Background color. Defaults to transparent (iOS default).
   final Color? backgroundColor;
 
+  /// Corner radius of that background, drawn natively. Ignored when [glass]
+  /// is set (the glass carries its own radius). A radius also gives the text
+  /// the same 16pt horizontal inset the glass variant uses, so it doesn't hug
+  /// the capsule's edge.
+  final double? cornerRadius;
+
   /// Renders the field on a **Liquid Glass** background (iOS 26 `UIGlassEffect`;
   /// an ultra-thin material stands in on earlier versions). The text gets a
   /// 16pt horizontal inset inside the glass.
@@ -211,6 +217,7 @@ class CupertinoNativeTextField extends StatefulWidget {
     this.cursorColor,
     this.clearButtonMode = OverlayVisibilityMode.never,
     this.backgroundColor,
+    this.cornerRadius,
     this.glass,
     this.prefixIcon,
     this.suffixIcon,
@@ -407,6 +414,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
         o.clearButtonMode != widget.clearButtonMode ||
         o.textContentType != widget.textContentType ||
         o.backgroundColor != widget.backgroundColor ||
+        o.cornerRadius != widget.cornerRadius ||
         o.glass != widget.glass ||
         o.prefixIcon != widget.prefixIcon ||
         o.suffixIcon != widget.suffixIcon ||
@@ -446,6 +454,7 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       'textContentType': widget.textContentType,
       'isDark': _isDark,
       'backgroundColor': widget.backgroundColor?.toARGB32(),
+      'cornerRadius': widget.cornerRadius,
       'glass': widget.glass != null,
       'glassCornerRadius': widget.glass?.cornerRadius ?? 16,
       'glassVariant':
