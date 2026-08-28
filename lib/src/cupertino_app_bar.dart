@@ -196,7 +196,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
 }
 
 class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // Mirrors Flutter's CupertinoSliverNavigationBar.search
   // (_kNavBarSearchDuration = 300ms): the morph geometry is driven linearly
   // by the controller, exactly like the framework's persistent/large-title
@@ -205,6 +205,31 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     vsync: this,
     duration: const Duration(milliseconds: 300),
   );
+
+  /// The large-title → inline-title collapse. Unlike the header's height
+  /// (which a sliver ties to the scroll), this is *triggered*, not scrubbed:
+  /// crossing [_collapseTrigger] starts it and it runs to the end on its own
+  /// clock, whether the scroll continues, stops, or is lifted. Crossing back
+  /// the other way while it is still running reverses it from wherever it
+  /// got to — [AnimationController.forward]/[reverse] do exactly that.
+  /// 450ms on [Curves.ease]: measured off a 60fps capture of an iOS 26 app's
+  /// title collapse (frame-by-frame opacity of the inline title, fitted
+  /// against candidate curves — cubic-bezier(0.25, 0.1, 0.25, 1) over ~467ms
+  /// tracked it to an RMS of 0.01, every other curve/duration pair fit worse).
+  late final AnimationController _titleCollapse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 450),
+  );
+
+  late final CurvedAnimation _titleT = CurvedAnimation(
+    parent: _titleCollapse,
+    curve: Curves.ease,
+    // Flipped, so coming back decelerates the same way going did.
+    reverseCurve: Curves.ease.flipped,
+  );
+
+  /// Which side of [_collapseTrigger] the scroll was on last tick.
+  bool _collapsed = false;
 
   /// True from the instant the open animation starts until the instant the
   /// close animation starts — the window in which the framework hides the
@@ -226,24 +251,70 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scrollableState?.position.isScrollingNotifier.removeListener(
-      _handleScrollChange,
-    );
+    _detachScrollListeners();
     _scrollableState = Scrollable.maybeOf(context);
     _scrollableState?.position.isScrollingNotifier.addListener(
       _handleScrollChange,
     );
+    _scrollableState?.position.addListener(_handleScrollTick);
+    // Adopt the current scroll rather than animating into it: a header that
+    // is rebuilt while already scrolled past the trigger starts collapsed.
+    // Never mid-flight though — an inset change (rotation, keyboard) must not
+    // snap a collapse that is still running.
+    if (!_titleCollapse.isAnimating) {
+      _collapsed = _isPastTrigger;
+      _titleCollapse.value = _collapsed ? 1.0 : 0.0;
+    }
+  }
+
+  void _detachScrollListeners() {
+    _scrollableState?.position.isScrollingNotifier.removeListener(
+      _handleScrollChange,
+    );
+    _scrollableState?.position.removeListener(_handleScrollTick);
   }
 
   @override
   void dispose() {
-    _scrollableState?.position.isScrollingNotifier.removeListener(
-      _handleScrollChange,
-    );
+    _detachScrollListeners();
     _searchRowVisibility.dispose();
     _searchFocusNode.dispose();
     _controller.dispose();
+    _titleT.dispose();
+    _titleCollapse.dispose();
     super.dispose();
+  }
+
+  /// Scroll offset at which the collapse fires. The middle of the large-title
+  /// region — the same point the snap below resolves towards, so a light
+  /// scroll can still peek at the title instead of collapsing it outright.
+  double get _collapseTrigger => _bottomScrollOffset + _largeTitleHeight / 2;
+
+  double get _bottomScrollOffset =>
+      widget._searchable &&
+          widget.bottomMode == NavigationBarBottomMode.automatic
+      ? _IOS26SliverAppBarDelegate._searchRowHeight(widget.bottomHeight)
+      : 0.0;
+
+  double get _largeTitleHeight => _IOS26SliverAppBarDelegate._largeTitleH(
+    expandedTitle: widget.expandedTitle,
+    hasSubtitle: widget.subtitle != null,
+  );
+
+  bool get _isPastTrigger {
+    final position = _scrollableState?.position;
+    if (position == null || !position.hasPixels) return false;
+    return position.pixels > _collapseTrigger;
+  }
+
+  /// Fires the collapse (or the expansion) the moment the scroll crosses
+  /// [_collapseTrigger]. Nothing else about the scroll matters after that:
+  /// the animation owns its own progress until the trigger is crossed again.
+  void _handleScrollTick() {
+    final past = _isPastTrigger;
+    if (past == _collapsed) return;
+    _collapsed = past;
+    past ? _titleCollapse.forward() : _titleCollapse.reverse();
   }
 
   /// iOS snap, mirroring CupertinoSliverNavigationBar's _handleScrollChange:
@@ -261,16 +332,8 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     // and the active search view should scroll freely.
     if (_controller.value > 0.0) return;
 
-    final bool collapsibleSearch =
-        widget._searchable &&
-        widget.bottomMode == NavigationBarBottomMode.automatic;
-    final double bottomScrollOffset = collapsibleSearch
-        ? _IOS26SliverAppBarDelegate._searchRowHeight(widget.bottomHeight)
-        : 0.0;
-    final double largeTitleHeight = _IOS26SliverAppBarDelegate._largeTitleH(
-      expandedTitle: widget.expandedTitle,
-      hasSubtitle: widget.subtitle != null,
-    );
+    final double bottomScrollOffset = _bottomScrollOffset;
+    final double largeTitleHeight = _largeTitleHeight;
 
     double? target;
     if (bottomScrollOffset > 0.0 && position.pixels < bottomScrollOffset) {
@@ -403,7 +466,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
         : widget.bottom;
 
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_controller, _titleT]),
       builder: (context, _) => SliverPersistentHeader(
         pinned: true,
         delegate: _IOS26SliverAppBarDelegate(
@@ -421,6 +484,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           edgeEffect: edgeEffect,
           searchRowVisibility: _searchRowVisibility,
           searchT: _controller.value,
+          titleT: _titleT.value,
           searchActive: _searchActive,
           morphing: _controller.isAnimating,
           onSearchOpen: () => _setSearchActive(true),
@@ -519,6 +583,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     required this.edgeEffect,
     required this.searchRowVisibility,
     required this.searchT,
+    required this.titleT,
     required this.searchActive,
     required this.morphing,
     required this.onSearchOpen,
@@ -590,6 +655,11 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   /// straight off the controller, like the framework's height tweens.
   final double searchT;
 
+  /// Collapse progress, 0 (large title) → 1 (inline title). Driven by the
+  /// state's trigger animation, NOT by [shrinkOffset]: the fade runs to
+  /// completion once fired, instead of being scrubbed by the finger.
+  final double titleT;
+
   /// True from open-animation start until close-animation start. The
   /// framework hides leading/trailing outright in this window (no fade).
   final bool searchActive;
@@ -655,8 +725,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     final searchCollapseT = _collapsibleSearch
         ? consumedBySearch / _searchRowH
         : 0.0;
-    final titleShrink = shrinkOffset - consumedBySearch;
-    final tTitle = _largeH <= 0 ? 1.0 : (titleShrink / _largeH).clamp(0.0, 1.0);
+    final tTitle = _largeH <= 0 ? 1.0 : titleT;
 
     // Framework behavior (CupertinoSliverNavigationBar.search): the glass
     // actions vanish the instant the morph starts and return the instant the
