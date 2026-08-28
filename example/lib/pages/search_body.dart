@@ -97,6 +97,18 @@ class _SearchBodyState extends State<SearchBody> {
 
   @override
   Widget build(BuildContext context) {
+    // The body engine hands the root a height snapped to whole device pixels,
+    // so content whose natural height lands on a fraction (947.5 here) misses
+    // its slot by a third of a point and a bare Column reports an overflow.
+    // A scroll view takes the content unbounded instead; the native ScrollView
+    // above still owns the actual scrolling.
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: _body(context),
+    );
+  }
+
+  Widget _body(BuildContext context) {
     if (!_active) {
       return _list('Languages', _all);
     }
@@ -122,7 +134,6 @@ class _SearchBodyState extends State<SearchBody> {
           child: Text(header.toUpperCase(), style: footnoteStyle(context)),
         ),
         SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           children: [
             for (final (name, category) in items)
               SettingsRow(
@@ -148,7 +159,6 @@ class _SearchBodyState extends State<SearchBody> {
           child: Text('SUGGESTED', style: footnoteStyle(context)),
         ),
         SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           children: [
             for (final s in _suggestions)
               SettingsRow(title: s, onTap: () {}),

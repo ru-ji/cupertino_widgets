@@ -5,6 +5,7 @@ import 'cupertino_scroll_edge_effect.dart';
 import 'internal/ios_version.dart';
 import 'models/cupertino_native_icon.dart';
 import 'models/cupertino_native_tab.dart';
+import 'internal/platform_view_transition_guard.dart';
 
 /// iOS 26 tab-view bottom accessory: a persistent view shown above the tab bar
 /// (like the Music mini-player). Only takes effect inside
@@ -339,12 +340,14 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
       'scrollEdgeEffect': widget.scrollEdgeEffect.name,
     };
 
-    final platformView = UiKitView(
-      viewType: 'com.example.cupertino_widgets/cupertino_native_tabbar',
-      layoutDirection: TextDirection.ltr,
-      creationParams: creationParams,
-      creationParamsCodec: const StandardMessageCodec(),
-      onPlatformViewCreated: _onPlatformViewCreated,
+    final platformView = PlatformViewTransitionGuard(
+      child: UiKitView(
+        viewType: 'com.example.cupertino_widgets/cupertino_native_tabbar',
+        layoutDirection: TextDirection.ltr,
+        creationParams: creationParams,
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onPlatformViewCreated,
+      ),
     );
 
     final h = widget.height ?? _intrinsicHeight ?? 50.0;

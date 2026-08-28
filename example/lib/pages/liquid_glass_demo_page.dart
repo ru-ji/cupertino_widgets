@@ -42,6 +42,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
   @override
   Widget build(BuildContext context) {
     return DemoScaffold(
+      largeTitle: false,
       title: 'Liquid Glass',
       children: [
         const SizedBox(height: 20),

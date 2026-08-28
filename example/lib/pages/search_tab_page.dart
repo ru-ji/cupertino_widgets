@@ -27,7 +27,6 @@ class SearchTabPage extends StatelessWidget {
           child: Text('TRENDING', style: footnoteStyle(context)),
         ),
         SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           children: [
             for (final (query, category) in _trending)
               SettingsRow(

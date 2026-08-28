@@ -74,6 +74,7 @@ class _EffectsDemoPageState extends State<EffectsDemoPage> {
     stage = Offstage(offstage: _offstage, child: stage);
 
     return DemoScaffold(
+      largeTitle: false,
       title: 'Widget Effects',
       children: [
         // Fixed-height stage so hiding the natives doesn't reflow the page.

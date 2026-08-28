@@ -79,6 +79,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.subtitle,
     this.centerTitle = true,
     this.expandedTitle = true,
+    this.collapseTitle = true,
     this.leading,
     this.trailing = const [],
     this.separateTrailing = false,
@@ -91,6 +92,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
        searchPrefixIcon = null,
        searchSuffixIcon = null,
        searchGlass = false,
+       scrollToTopOnSearch = true,
        bottomMode = NavigationBarBottomMode.always,
        onSearchChanged = null,
        onSearchActiveChanged = null,
@@ -107,6 +109,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.subtitle,
     this.centerTitle = true,
     this.expandedTitle = true,
+    this.collapseTitle = true,
     this.leading,
     this.trailing = const [],
     this.separateTrailing = false,
@@ -115,6 +118,7 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.searchPrefixIcon,
     this.searchSuffixIcon,
     this.searchGlass = false,
+    this.scrollToTopOnSearch = true,
     double searchFieldHeight = 44,
     this.bottomMode = NavigationBarBottomMode.automatic,
     this.onSearchChanged,
@@ -130,6 +134,13 @@ class CupertinoSliverAppBar extends StatefulWidget {
   /// Whether the expanded (large) title row exists. When false the bar is
   /// inline-only: the title is always in the bar and nothing collapses.
   final bool expandedTitle;
+
+  /// Whether the large title collapses into the bar on scroll. False keeps it
+  /// expanded for good — the header never shrinks and no inline title appears,
+  /// like the iOS apps whose title stays large — while the scroll edge effect
+  /// still comes up at the point the collapse would have fired. iOS 26+ only;
+  /// the pre-26 fallback bar always collapses.
+  final bool collapseTitle;
 
   /// Secondary line — under the large title (like Photos' "3,356 Items") and
   /// under the inline title when collapsed.
@@ -173,6 +184,19 @@ class CupertinoSliverAppBar extends StatefulWidget {
 
   /// Trailing SF Symbol inside the built-in search field.
   final CupertinoNativeIcon? searchSuffixIcon;
+
+  /// Whether opening the search sends the page back to the top (and cancelling
+  /// puts it back where it was).
+  ///
+  /// True (the default) suits a search that *replaces* the page's content —
+  /// suggestions, then results: the new, usually shorter body would otherwise
+  /// come up mid-list, at whatever offset the page was left at.
+  ///
+  /// Set it false when the search leaves the content in place — the common
+  /// case of filtering the list or grid already on screen. Nothing about the
+  /// bar forces a separate results view; opening the search only runs the
+  /// morph, and what (if anything) changes below is entirely yours.
+  final bool scrollToTopOnSearch;
 
   /// Whether the built-in search field rests on Liquid Glass. False (the
   /// default) rests it on the system's plain filled capsule.
@@ -279,8 +303,11 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     // Adopt the current scroll rather than animating into it: a header that
     // is rebuilt while already scrolled past the trigger starts collapsed.
     // Never mid-flight though — an inset change (rotation, keyboard) must not
-    // snap a collapse that is still running.
-    if (!_titleCollapse.isAnimating) {
+    // snap a collapse that is still running. And never during the search: the
+    // keyboard coming up IS an inset change, so this runs right after the page
+    // was parked at the top for the search, and would read that as "expanded"
+    // — killing the scroll edge effect until the page comes back.
+    if (!_titleCollapse.isAnimating && !_searchMorphing) {
       _collapsed = _isPastTrigger;
       _titleCollapse.value = _collapsed ? 1.0 : 0.0;
     }
@@ -335,7 +362,16 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
   /// Fires the collapse (or the expansion) the moment the scroll crosses
   /// [_collapseTrigger]. Nothing else about the scroll matters after that:
   /// the animation owns its own progress until the trigger is crossed again.
+  /// The search owns the page's scroll for the length of its morph — parked
+  /// at the top on open, put back on cancel. Those jumps are not the user
+  /// collapsing or expanding the header, so the collapse state (and with it
+  /// the scroll edge effect) is frozen while this is true. Without the freeze
+  /// the effect drops to nothing on open and ramps back up over 450ms on the
+  /// way back, which reads as a flash the moment the page lands.
+  bool get _searchMorphing => _searchActive || _controller.value > 0;
+
   void _handleScrollTick() {
+    if (_searchMorphing) return;
     final past = _isPastTrigger;
     if (past == _collapsed) return;
     // setState, not a bare assignment: the search field is built in this
@@ -377,7 +413,8 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
                   _IOS26SliverAppBarDelegate._collapseDeadZone
           ? bottomScrollOffset
           : 0.0;
-    } else if (position.pixels > bottomScrollOffset &&
+    } else if (widget.collapseTitle &&
+        position.pixels > bottomScrollOffset &&
         position.pixels < bottomScrollOffset + largeTitleHeight) {
       target = position.pixels > bottomScrollOffset + largeTitleHeight / 2
           ? bottomScrollOffset + largeTitleHeight
@@ -394,11 +431,53 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     }
   }
 
+  /// Where the page was before the search opened, to put it back on cancel.
+  double? _offsetBeforeSearch;
+
+  /// Puts the page back at [target] once the page's own content is back.
+  ///
+  /// Not on this frame: closing the search hands the app back its list through
+  /// [onSearchActiveChanged], and until that content is laid out the position's
+  /// maxScrollExtent is still the search view's — usually much shorter — so an
+  /// immediate jump lands clamped at the top, which reads as the page having
+  /// been reset.
+  void _restoreOffsetAfterLayout(double target) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final position = _scrollableState?.position;
+      if (!mounted || position == null || !position.hasPixels) return;
+      final clamped = target.clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if (position.pixels != clamped) position.jumpTo(clamped);
+    });
+  }
+
   void _setSearchActive(bool active) {
     setState(() => _searchActive = active);
+    // The search view is its own thing: it opens at the top rather than
+    // inheriting however far the page underneath happened to be scrolled
+    // (which shows up as suggestions that start mid-list). Cancelling puts
+    // the page back where it was.
+    final position = _scrollableState?.position;
+    if (widget.scrollToTopOnSearch && position != null && position.hasPixels) {
+      if (active) {
+        _offsetBeforeSearch = position.pixels;
+        if (position.pixels != 0) position.jumpTo(0);
+      } else {
+        final restore = _offsetBeforeSearch;
+        _offsetBeforeSearch = null;
+        if (restore != null) _restoreOffsetAfterLayout(restore);
+      }
+    }
     if (active) {
       _controller.forward();
-      _searchFocusNode.requestFocus();
+      // Next frame, not this one: until the rebuild lands the field still sits
+      // under the slot's AbsorbPointer, and a native UITextField whose view is
+      // not live refuses first responder — the keyboard simply never comes up.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _searchActive) _searchFocusNode.requestFocus();
+      });
     } else {
       _controller.reverse();
       _searchFocusNode.unfocus();
@@ -451,13 +530,6 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     final theme = CupertinoTheme.of(context);
     // Built once per build (not per animation tick): identical child
     // instances let elements/render objects be reused across ticks.
-    final edgeEffect = RepaintBoundary(
-      child: CupertinoScrollEdgeEffect(
-        edge: CupertinoScrollEdgeEffectEdge.top,
-        style: widget.scrollEdgeEffect,
-        color: widget.tintColor,
-      ),
-    );
     final actionStyle = theme.textTheme.textStyle.copyWith(
       decoration: TextDecoration.none,
     );
@@ -535,6 +607,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           subtitle: widget.subtitle,
           centerTitle: widget.centerTitle,
           expandedTitle: widget.expandedTitle,
+          collapseTitle: widget.collapseTitle,
           leading: leading,
           trailing: trailing,
           searchField: bottomSlot,
@@ -542,10 +615,24 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           fieldHeight: widget.bottomHeight,
           bottomMode: widget.bottomMode,
           closeButton: closeButton,
-          edgeEffect: edgeEffect,
+          // Rebuilt per tick: its strength rides the collapse animation.
+          edgeEffect: RepaintBoundary(
+            child: CupertinoScrollEdgeEffect(
+              edge: CupertinoScrollEdgeEffectEdge.top,
+              style: widget.scrollEdgeEffect,
+              color: widget.tintColor,
+              // The system effect is not on at rest — blur and scrim both come
+              // up from zero at the moment the collapse fires, which is why a
+              // slow scroll shows the first rows darkening slightly before any
+              // blur is noticeable (a small sigma simply doesn't read yet).
+              // Tied to the trigger, not to the collapse itself, so it still
+              // happens with [collapseTitle] off.
+              intensity: _titleT.value,
+            ),
+          ),
           searchRowVisibility: _searchRowVisibility,
           searchT: _searchT.value,
-          titleT: _titleT.value,
+          titleT: widget.collapseTitle ? _titleT.value : 0.0,
           searchActive: _searchActive,
           morphing: _controller.isAnimating,
           onSearchOpen: () => _setSearchActive(true),
@@ -634,6 +721,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     required this.subtitle,
     required this.centerTitle,
     required this.expandedTitle,
+    required this.collapseTitle,
     required this.leading,
     required this.trailing,
     required this.searchField,
@@ -680,7 +768,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   /// How far the scroll-edge effect reaches past the bottom of the last thing
   /// in the header — the search field when there is one (NOT the row's bottom
   /// padding), the header's own edge otherwise.
-  static const double _effectOverhang = 3;
+  static const double _effectOverhang = 30;
 
   /// The row the search field lives in: the field, the gap above it (14 —
   /// measured off the system's own floating search row, between the toolbar
@@ -694,6 +782,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final String? subtitle;
   final bool centerTitle;
   final bool expandedTitle;
+  final bool collapseTitle;
   final Widget? leading;
   final Widget? trailing;
 
@@ -756,12 +845,15 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   double get _restingMax =>
       topPadding + _barH + _largeH + (_hasSearch ? _searchRowH : 0);
-  double get _restingMin =>
-      topPadding +
-      _barH +
-      (_hasSearch && bottomMode == NavigationBarBottomMode.always
-          ? _searchRowH
-          : 0);
+  double get _restingMin => !collapseTitle
+      // Nothing collapses: the header keeps its full height and the content
+      // scrolls under it.
+      ? _restingMax
+      : topPadding +
+            _barH +
+            (_hasSearch && bottomMode == NavigationBarBottomMode.always
+                ? _searchRowH
+                : 0);
   double get _activeExtent => topPadding + fieldHeight + 12;
 
   @override
@@ -782,10 +874,9 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     final height = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
     // Scroll the header has absorbed beyond its own collapse (a pinned sliver
     // keeps reporting it; see [consumedBySearch]).
-    final titleOvershoot = (shrinkOffset - (maxExtent - minExtent)).clamp(
-      0.0,
-      double.infinity,
-    );
+    final titleOvershoot = !collapseTitle
+        ? 0.0
+        : (shrinkOffset - (maxExtent - minExtent)).clamp(0.0, double.infinity);
 
     // Sequenced collapse, like Flutter's bottomMode.automatic: the scroll
     // consumes the search row FIRST (it shrinks and fades to nothing before
@@ -910,7 +1001,8 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     // the search open, no title and no actions — just the docked field. It
     // therefore shrinks and grows with the collapse and the morph on its own,
     // with no special-casing per configuration.
-    final effectH = (_hasSearch ? fieldTop + fieldH : height) + _effectOverhang;
+    final effectH =
+        (_hasSearch ? fieldTop + fieldH + 5 : height) + _effectOverhang;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -1051,8 +1143,10 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
                   height: fieldH,
                   child: _SearchSlot(
                     // A plain bottom widget receives its touches directly; the
-                    // search field only becomes interactive once docked.
-                    interactive: !searchable || searchT > 0.05,
+                    // search field starts absorbing them the moment the search
+                    // opens, not a few frames into the morph — the native view
+                    // has to be live to take first responder.
+                    interactive: !searchable || searchActive,
                     onTap: onSearchOpen,
                     child: CupertinoSearchRowVisibility(
                       listenable: searchRowVisibility,
@@ -1109,15 +1203,21 @@ class _SearchSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget slot = ClipRect(child: child);
-    if (!interactive) {
-      slot = GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AbsorbPointer(child: slot),
-      );
-    }
-    return slot;
+    // Same widgets in the same order whether the slot is interactive or not,
+    // toggled by their properties. Adding/removing the GestureDetector and
+    // AbsorbPointer instead changes the shape of the subtree, so Flutter tears
+    // the child down and rebuilds it — which for a platform view means the
+    // native UITextField is destroyed and recreated the moment the search
+    // opens, losing both its channel (a pending 'focus' call goes nowhere, so
+    // the keyboard never comes up) and its first-responder state.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: interactive ? null : onTap,
+      child: AbsorbPointer(
+        absorbing: !interactive,
+        child: ClipRect(child: child),
+      ),
+    );
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'internal/native_platform_view_mixin.dart';
+import 'internal/platform_view_transition_guard.dart';
 
 /// Which components a [CupertinoNativeDatePicker] edits.
 enum CupertinoNativeDatePickerMode { date, time, dateAndTime }
@@ -132,18 +133,20 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
       );
     }
 
-    final platformView = UiKitView(
-      viewType: 'com.example.cupertino_widgets/cupertino_native_date_picker',
-      layoutDirection: TextDirection.ltr,
-      creationParams: _toMap(),
-      creationParamsCodec: const StandardMessageCodec(),
-      onPlatformViewCreated: _onPlatformViewCreated,
-      // Taps must reach the native pill immediately so the system popover
-      // opens on first touch, even inside scrollables.
-      hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-      gestureRecognizers: {
-        Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
-      },
+    final platformView = PlatformViewTransitionGuard(
+      child: UiKitView(
+        viewType: 'com.example.cupertino_widgets/cupertino_native_date_picker',
+        layoutDirection: TextDirection.ltr,
+        creationParams: _toMap(),
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onPlatformViewCreated,
+        // Taps must reach the native pill immediately so the system popover
+        // opens on first touch, even inside scrollables.
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
+      ),
     );
 
     return SizedBox(

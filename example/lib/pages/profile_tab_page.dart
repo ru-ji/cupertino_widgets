@@ -47,7 +47,6 @@ class ProfileTabPage extends StatelessWidget {
         Text('casey@example.com', style: footnoteStyle(context)),
         const SizedBox(height: 8),
         const SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           children: [
             SettingsRow(title: 'Name', value: 'Casey Rivera'),
             SettingsRow(title: 'Phone', value: '+1 (555) 010-9265'),
@@ -55,7 +54,6 @@ class ProfileTabPage extends StatelessWidget {
           ],
         ),
         const SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           children: [
             SettingsRow(title: 'Subscription', value: 'Pro', showChevron: true),
             SettingsRow(title: 'Devices', value: '3', showChevron: true),

@@ -9,15 +9,33 @@ struct PageScrollBody: View {
     let scrollEdgeEffect: String?
     /// Native spinner while the body engine boots / renders its first frame.
     var showLoadingIndicator = false
+    /// Bumped to send the scroll back to the top — the search view opens as
+    /// its own thing, not at whatever offset the page was left at.
+    var scrollToTopSignal = 0
+
+    private static let topAnchor = "cupertino_widgets.page_top"
 
     var body: some View {
         if let engine = engine {
-            ScrollView {
-                FlutterContentView(
-                    engine: engine, showLoadingIndicator: showLoadingIndicator)
-                    .frame(maxWidth: .infinity)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Color.clear
+                            .frame(height: 0)
+                            .id(Self.topAnchor)
+                        FlutterContentView(
+                            engine: engine,
+                            showLoadingIndicator: showLoadingIndicator)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                // Stays on the ScrollView itself — the edge effect is a
+                // property of the scroll view, not of the reader around it.
+                .applyScrollEdgeEffect(scrollEdgeEffect)
+                .onChange(of: scrollToTopSignal) { _ in
+                    proxy.scrollTo(Self.topAnchor, anchor: .top)
+                }
             }
-            .applyScrollEdgeEffect(scrollEdgeEffect)
         } else if showLoadingIndicator {
             // Engine not yet created (lazy tab). Show a native spinner
             // while the Dart isolate boots — avoids a blank white flash.
@@ -46,13 +64,20 @@ struct SearchablePageBody: View {
     var showLoadingIndicator = false
     let onActiveChange: (Bool) -> Void
 
+    @State private var scrollToTopSignal = 0
+
     var body: some View {
         PageScrollBody(
             engine: engine,
             scrollEdgeEffect: scrollEdgeEffect,
-            showLoadingIndicator: showLoadingIndicator)
+            showLoadingIndicator: showLoadingIndicator,
+            scrollToTopSignal: scrollToTopSignal)
             .onChange(of: isSearching) { newValue in
                 onActiveChange(newValue)
+                // Opening search shows a different body (suggestions, then
+                // results); it starts at the top instead of keeping the
+                // browsing offset.
+                if newValue { scrollToTopSignal += 1 }
             }
     }
 }

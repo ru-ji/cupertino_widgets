@@ -78,6 +78,43 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
             withId: "com.example.cupertino_widgets/cupertino_native_date_picker")
     }
 
+    /// Rasterizes an SF Symbol to PNG bytes so Flutter can draw it as a normal
+    /// image instead of hosting a platform view for a 17pt glyph. Platform
+    /// views are composited outside Flutter's layer tree, so anything drawn
+    /// through one is invisible to a `BackdropFilter` — an icon rendered that
+    /// way would punch a hole in the app bar's scroll edge effect.
+    @available(iOS 15.0, *)
+    private static func renderSymbol(name: String, args: [String: Any]) -> FlutterStandardTypedData?
+    {
+        let size = CGFloat(args["size"] as? Double ?? 17)
+        let weight: UIImage.SymbolWeight
+        switch args["weight"] as? String {
+        case "light": weight = .light
+        case "medium": weight = .medium
+        case "semibold": weight = .semibold
+        case "bold": weight = .bold
+        default: weight = .regular
+        }
+        let config = UIImage.SymbolConfiguration(pointSize: size, weight: weight)
+        guard var image = UIImage(systemName: name, withConfiguration: config) else { return nil }
+        if let argb = args["color"] as? Int {
+            image = image.withTintColor(UIColor(argb: argb), renderingMode: .alwaysOriginal)
+        }
+        // Rasterized at the caller's device pixel ratio: Flutter is handed raw
+        // pixels and has no scale factor to read off the PNG.
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = CGFloat(args["scale"] as? Double ?? 3)
+        format.opaque = false
+        // sRGB, not the display's wide gamut: `pngData()` is unreliable for
+        // extended-range bitmaps, which is what `.preferred()` yields on every
+        // modern device.
+        format.preferredRange = .standard
+        let rendered = UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(at: .zero)
+        }
+        return rendered.pngData().map { FlutterStandardTypedData(bytes: $0) }
+    }
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         if call.method == "prewarmScaffold" {
             if #available(iOS 15.0, *) {
@@ -108,6 +145,16 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
             } else {
                 result(nil)
             }
+            return
+        }
+        if call.method == "renderSymbol" {
+            guard #available(iOS 15.0, *), let args = call.arguments as? [String: Any],
+                let name = args["name"] as? String
+            else {
+                result(nil)
+                return
+            }
+            result(FlutterCupertinoPlugin.renderSymbol(name: name, args: args))
             return
         }
         if call.method == "isLiquidGlassSupported" {

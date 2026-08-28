@@ -1,239 +1,90 @@
-import 'dart:ui' show ImageFilter;
-
+import 'package:cupertino_widgets/cupertino_widgets.dart';
 import 'package:flutter/cupertino.dart'
     show CupertinoColors, CupertinoDynamicColor, CupertinoTheme;
+import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter/widgets.dart';
 
 /// Shared iOS-Settings-style scaffolding used by every demo page.
 ///
-/// The demo pages are styled like real Settings screens (grouped background,
-/// inset cards, footnote headers/footers) so each native control is shown in
-/// the context it would actually be used in. All chrome here is custom-drawn:
-/// no Material widgets and no Flutter Cupertino widgets (their navigation
-/// bars mis-resolve dark-mode colors when content scrolls under them) — only
-/// the `CupertinoColors` palette is used. Every icon in the app comes from SF
-/// Symbols via the plugin, or is drawn with a `CustomPainter`.
+/// The demo pages are styled like real Settings screens (white page, inset
+/// cards, footnote headers/footers) so each native control is shown in the
+/// context it would actually be used in. The page chrome is the package's own
+/// [CupertinoSliverAppBar]; everything else here is custom-drawn: no Material
+/// widgets beyond [Scaffold], only the `CupertinoColors` palette. Every icon
+/// in the app comes from SF Symbols via the plugin, or a `CustomPainter`.
 
 /// Inset-grouped card corner radius, matching iOS 26's Settings app (and the
 /// plugin's native list/form default on iOS 26+).
 const double kCardCornerRadius = 26;
 
-/// A page scaffold with a custom, pinned iOS-style navigation bar.
-///
-/// The bar is transparent at rest (so it is exactly the page background) and
-/// gains a blur + hairline when content scrolls under it — the color itself
-/// never changes, in either appearance. With [largeTitle] the title starts as
-/// a 34pt heading in the scroll content and fades into the bar on scroll.
-class DemoScaffold extends StatefulWidget {
+/// A white page under a [CupertinoSliverAppBar], which brings its own back
+/// button, Liquid Glass actions, scroll edge effect and title collapse.
+class DemoScaffold extends StatelessWidget {
   const DemoScaffold({
     super.key,
     required this.title,
     required this.children,
-    this.largeTitle = false,
-    this.trailing,
+    this.largeTitle = true,
     this.bottomBar,
-    this.backgroundColor,
   });
 
   final String title;
   final List<Widget> children;
+
+  /// Whether the title starts as a 34pt heading and collapses into the bar on
+  /// scroll (iOS Settings style). False keeps it inline, for screens whose
+  /// content is the hero and needs the room.
   final bool largeTitle;
-  final Widget? trailing;
 
   /// Optional widget floated at the bottom center (e.g. a native tab bar).
   final Widget? bottomBar;
 
-  /// Page background. Defaults to the grouped-settings background.
-  final Color? backgroundColor;
-
-  @override
-  State<DemoScaffold> createState() => _DemoScaffoldState();
-}
-
-class _DemoScaffoldState extends State<DemoScaffold> {
-  final _controller = ScrollController();
-  bool _scrolled = false;
-  late bool _showBarTitle = !widget.largeTitle;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    final offset = _controller.offset;
-    final scrolled = offset > 0.5;
-    final showBarTitle = !widget.largeTitle || offset > 40;
-    if (scrolled != _scrolled || showBarTitle != _showBarTitle) {
-      setState(() {
-        _scrolled = scrolled;
-        _showBarTitle = showBarTitle;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final background = CupertinoDynamicColor.resolve(
-        widget.backgroundColor ?? CupertinoColors.systemGroupedBackground,
-        context);
+    final body = CustomScrollView(
+      slivers: [
+        CupertinoSliverAppBar(
+          largeTitle: title,
+          expandedTitle: largeTitle,
+          leading: Navigator.canPop(context)
+              ? CupertinoAppBarAction.back(
+                  onPressed: () => Navigator.pop(context),
+                )
+              : null,
+          tintColor: CupertinoColors.systemGroupedBackground,
+        ),
+        SliverPadding(
+          padding: EdgeInsets.only(
+            bottom:
+                MediaQuery.paddingOf(context).bottom +
+                (bottomBar != null ? 88 : 40),
+          ),
+          sliver: SliverList.list(children: children),
+        ),
+      ],
+    );
+
     // Follows the APP theme (incl. the home toggle's forced mode), not the
     // device setting — platformBrightnessOf would ignore a forced ThemeMode.
     final isDark = CupertinoTheme.brightnessOf(context) == Brightness.dark;
-    final topPadding = MediaQuery.paddingOf(context).top;
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    final barHeight = topPadding + 44;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      // The DefaultTextStyle wraps the whole page (bar included): outside a
-      // Material ancestor, MaterialApp's fallback style is the yellow
-      // double-underline debug decoration.
-      child: DefaultTextStyle(
-        style: rowTitleStyle(context),
-        child: ColoredBox(
-          color: background,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ListView(
-                  controller: _controller,
-                  padding: EdgeInsets.only(
-                    top: barHeight,
-                    bottom: widget.bottomBar != null
-                        ? bottomPadding + 88
-                        : bottomPadding + 40,
-                  ),
+      child: Scaffold(
+        backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(
+          context,
+        ),
+        body: DefaultTextStyle(
+          style: rowTitleStyle(context),
+          child: bottomBar == null
+              ? body
+              : Stack(
                   children: [
-                    if (widget.largeTitle)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                        child: Text(
-                          widget.title,
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.37,
-                            color: CupertinoColors.label.resolveFrom(context),
-                          ),
-                        ),
-                      ),
-                    ...widget.children,
+                    body,
+                    Align(alignment: Alignment.bottomCenter, child: bottomBar!),
                   ],
                 ),
-              ),
-              if (widget.bottomBar != null)
-                Align(
-                    alignment: Alignment.bottomCenter,
-                    child: widget.bottomBar!),
-              _bar(context, background, barHeight, topPadding),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _bar(
-      BuildContext context, Color background, double height, double topPadding) {
-    final canPop = Navigator.canPop(context);
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            height: height,
-            padding: EdgeInsets.only(top: topPadding),
-            decoration: BoxDecoration(
-              color: background.withValues(alpha: 0.78),
-              border: Border(
-                bottom: BorderSide(
-                  color: _scrolled
-                      ? CupertinoColors.separator.resolveFrom(context)
-                      : const Color(0x00000000),
-                  width: 0.5,
-                ),
-              ),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedOpacity(
-                  opacity: _showBarTitle ? 1 : 0,
-                  duration: const Duration(milliseconds: 150),
-                  child: Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.43,
-                      color: CupertinoColors.label.resolveFrom(context),
-                    ),
-                  ),
-                ),
-                if (canPop)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: BackButtonIOS(onTap: () => Navigator.pop(context)),
-                  ),
-                if (widget.trailing != null)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: widget.trailing!,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The iOS back control — drawn chevron + "Back" label, no icon fonts.
-class BackButtonIOS extends StatelessWidget {
-  const BackButtonIOS({super.key, required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final blue = CupertinoColors.activeBlue.resolveFrom(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Transform.flip(
-              flipX: true,
-              child: CustomPaint(
-                size: const Size(10, 19),
-                painter: _ChevronPainter(color: blue, strokeWidth: 2.6),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Back',
-              style: TextStyle(fontSize: 17, letterSpacing: -0.43, color: blue),
-            ),
-          ],
         ),
       ),
     );
@@ -249,18 +100,12 @@ class SettingsSection extends StatelessWidget {
     this.footer,
     required this.children,
     this.separatorIndent = 16,
-    this.cardColor,
   });
 
   final String? header;
   final String? footer;
   final List<Widget> children;
   final double separatorIndent;
-
-  /// Card fill. Defaults to the grouped-background cell color; pass
-  /// [CupertinoColors.systemGrey6] when the section sits on a plain
-  /// (non-grouped) background, e.g. inside native scaffold bodies.
-  final Color? cardColor;
 
   @override
   Widget build(BuildContext context) {
@@ -284,8 +129,9 @@ class SettingsSection extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: CupertinoDynamicColor.resolve(
-                cardColor ?? CupertinoColors.secondarySystemGroupedBackground,
-                context),
+              CupertinoColors.secondarySystemGroupedBackground,
+              context,
+            ),
             borderRadius: BorderRadius.circular(kCardCornerRadius),
           ),
           child: Column(
@@ -314,6 +160,7 @@ class SettingsRow extends StatefulWidget {
   const SettingsRow({
     super.key,
     required this.title,
+    this.icon,
     this.subtitle,
     this.value,
     this.trailing,
@@ -323,6 +170,10 @@ class SettingsRow extends StatefulWidget {
   });
 
   final String title;
+
+  /// The rounded colored tile at the row's start (see [SettingsIcon]).
+  final Widget? icon;
+
   final String? subtitle;
   final String? value;
   final Widget? trailing;
@@ -343,17 +194,22 @@ class _SettingsRowState extends State<SettingsRow> {
       constraints: const BoxConstraints(minHeight: 46),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: _pressed
-          ? CupertinoColors.systemGrey4.resolveFrom(context).withValues(alpha: 0.5)
+          ? CupertinoColors.systemGrey4
+                .resolveFrom(context)
+                .withValues(alpha: 0.5)
           : const Color(0x00000000),
       child: Row(
         children: [
+          if (widget.icon != null) ...[widget.icon!, const SizedBox(width: 12)],
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.title,
-                    style: rowTitleStyle(context, color: widget.titleColor)),
+                Text(
+                  widget.title,
+                  style: rowTitleStyle(context, color: widget.titleColor),
+                ),
                 if (widget.subtitle != null) ...[
                   const SizedBox(height: 2),
                   Text(widget.subtitle!, style: footnoteStyle(context)),
@@ -383,6 +239,26 @@ class _SettingsRowState extends State<SettingsRow> {
       onTapUp: (_) => setState(() => _pressed = false),
       onTap: widget.onTap,
       child: row,
+    );
+  }
+}
+
+/// A row's leading SF Symbol, tinted — the same thing the native list drew
+/// (`IconView` at the SwiftUI body size, no container). It goes through
+/// [CupertinoSymbolImage] so it lands in Flutter's own layer tree: a platform
+/// view here would leave an unblurred hole in the app bar's scroll edge effect
+/// as the row passes under it.
+class SettingsIcon extends StatelessWidget {
+  const SettingsIcon(this.symbol, {super.key, required this.color});
+
+  final String symbol;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoSymbolImage(
+      symbol,
+      color: CupertinoDynamicColor.resolve(color, context),
     );
   }
 }
@@ -532,17 +408,16 @@ class DisclosureChevron extends StatelessWidget {
 }
 
 class _ChevronPainter extends CustomPainter {
-  const _ChevronPainter({required this.color, this.strokeWidth = 2});
+  const _ChevronPainter({required this.color});
 
   final Color color;
-  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
+      ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final path = Path()
@@ -553,29 +428,28 @@ class _ChevronPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ChevronPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+  bool shouldRepaint(_ChevronPainter oldDelegate) => oldDelegate.color != color;
 }
 
 // All styles pin `decoration: none`: outside a Material ancestor, an inherited
 // decoration would otherwise fall back to MaterialApp's yellow debug underline.
 TextStyle rowTitleStyle(BuildContext context, {Color? color}) => TextStyle(
-      fontSize: 17,
-      letterSpacing: -0.43,
-      decoration: TextDecoration.none,
-      color: color ?? CupertinoColors.label.resolveFrom(context),
-    );
+  fontSize: 17,
+  letterSpacing: -0.43,
+  decoration: TextDecoration.none,
+  color: color ?? CupertinoColors.label.resolveFrom(context),
+);
 
 TextStyle rowValueStyle(BuildContext context) => TextStyle(
-      fontSize: 17,
-      letterSpacing: -0.43,
-      decoration: TextDecoration.none,
-      color: CupertinoColors.secondaryLabel.resolveFrom(context),
-    );
+  fontSize: 17,
+  letterSpacing: -0.43,
+  decoration: TextDecoration.none,
+  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+);
 
 TextStyle footnoteStyle(BuildContext context) => TextStyle(
-      fontSize: 13,
-      letterSpacing: -0.08,
-      decoration: TextDecoration.none,
-      color: CupertinoColors.secondaryLabel.resolveFrom(context),
-    );
+  fontSize: 13,
+  letterSpacing: -0.08,
+  decoration: TextDecoration.none,
+  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+);

@@ -43,7 +43,8 @@ class CupertinoScrollEdgeEffect extends StatelessWidget {
     this.edge = CupertinoScrollEdgeEffectEdge.top,
     this.style = CupertinoScrollEdgeEffectStyle.soft,
     this.color,
-  });
+    this.intensity = 1,
+  }) : assert(intensity >= 0 && intensity <= 1);
 
   final CupertinoScrollEdgeEffectEdge edge;
 
@@ -55,6 +56,11 @@ class CupertinoScrollEdgeEffect extends StatelessWidget {
   /// Tint override. Defaults to the resolved system background.
   final Color? color;
 
+  /// Scales the whole effect, 0 (nothing) to 1 (full). Both the blur and the
+  /// scrim ramp together — the system's effect is not always on, it comes up
+  /// from zero as the header takes the content under it.
+  final double intensity;
+
   @override
   Widget build(BuildContext context) {
     final hard = style == CupertinoScrollEdgeEffectStyle.hard;
@@ -63,13 +69,13 @@ class CupertinoScrollEdgeEffect extends StatelessWidget {
         edge: edge == CupertinoScrollEdgeEffectEdge.top
             ? HazeEdge.top
             : HazeEdge.bottom,
-        sigma: 12,
-        falloff: 3,
+        sigma: 3 * intensity,
+        falloff: 1.1,
         tint: CupertinoDynamicColor.resolve(
           color ?? CupertinoColors.systemBackground,
           context,
         ),
-        tintOpacity: hard ? 0.85 : 0.7,
+        tintOpacity: (hard ? 1 : 0.9) * intensity,
       ),
     );
   }

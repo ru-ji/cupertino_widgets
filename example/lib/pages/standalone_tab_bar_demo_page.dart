@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoColors;
 import 'package:flutter/widgets.dart';
 import 'package:cupertino_widgets/cupertino_widgets.dart';
 
@@ -29,7 +28,7 @@ class _StandaloneTabBarDemoPageState extends State<StandaloneTabBarDemoPage> {
   Widget build(BuildContext context) {
     return DemoScaffold(
       title: 'Tab Bar',
-      backgroundColor: CupertinoColors.systemBackground,
+      largeTitle: false,
       bottomBar: CupertinoNativeTabBar(
         value: _selectedTab,
         scrollEdgeEffect: CupertinoScrollEdgeEffectStyle.soft,

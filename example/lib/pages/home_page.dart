@@ -1,9 +1,10 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Theme, ThemeMode;
-import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:cupertino_widgets/cupertino_widgets.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Scaffold, Theme, ThemeMode;
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 
 import '../app.dart';
+import '../widgets/settings_ui.dart';
 import 'alert_demo_page.dart';
 import 'app_bar_demo_page.dart';
 import 'button_demo_page.dart';
@@ -23,242 +24,230 @@ import 'standalone_tab_bar_demo_page.dart';
 import 'switch_demo_page.dart';
 import 'text_field_demo_page.dart';
 
-/// The demo catalog. The catalog itself is a [CupertinoNativeList] — a real
-/// SwiftUI inset-grouped list — so the very first screen already shows native
-/// rows, SF Symbol icons and iOS-correct section corners.
+/// The demo catalog — Flutter-drawn inset-grouped sections, like every other
+/// page outside the native scaffold and searchable demos. Only the demos
+/// themselves host platform views: page chrome stays Flutter so the app bar's
+/// scroll edge effect has real content to blur (a `BackdropFilter` can't
+/// sample a UIKit view, which is why the effect never showed here before).
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  static final Map<String, WidgetBuilder> _routes = {
-    'slider': (_) => const SliderDemoPage(),
-    'switch': (_) => const SwitchDemoPage(),
-    'segmented': (_) => const SegmentedControlDemoPage(),
-    'button': (_) => const ButtonDemoPage(),
-    'menu': (_) => const MenuDemoPage(),
-    'contextmenu': (_) => const ContextMenuDemoPage(),
-    'textfield': (_) => const TextFieldDemoPage(),
-    'tabbar': (_) => const StandaloneTabBarDemoPage(),
-    'scaffold': (_) => const NativeScaffoldDemoPage(),
-    'searchable': (_) => const NativeSearchableDemoPage(),
-    'listform': (_) => const NativeListFormDemoPage(),
-    'liquidglass': (_) => const LiquidGlassDemoPage(),
-    'effects': (_) => const EffectsDemoPage(),
-    'sheet': (_) => const SheetDemoPage(),
-    'datepicker': (_) => const DatePickerDemoPage(),
-    'appbar': (_) => const AppBarDemoPage(),
-    'alert': (_) => const AlertDemoPage(),
-    'progress': (_) => const ProgressDemoPage(),
-  };
-
   @override
   Widget build(BuildContext context) {
-    final background = CupertinoColors.systemGroupedBackground.resolveFrom(
-      context,
-    );
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      child: ColoredBox(
-        color: background,
-        child: CustomScrollView(
-          slivers: [
-            // The package's own iOS 26 app bar heads the catalog itself; the
-            // trailing glass action toggles the whole app's brightness.
-            CupertinoSliverAppBar(
-              largeTitle: 'Cupertino Widgets',
-              trailing: [
-                CupertinoAppBarAction(
-                  icon: CupertinoNativeIcon.named(isDark ? 'sun.max' : 'moon'),
-                  onPressed: () => MyApp.themeMode.value = isDark
-                      ? ThemeMode.light
-                      : ThemeMode.dark,
+      // A plain Flutter scaffold under the package's own bar: it owns the page
+      // background and the safe areas, the bar rides above it as a sliver.
+      child: Scaffold(
+        backgroundColor: CupertinoColors.systemGroupedBackground.resolveFrom(
+          context,
+        ),
+        body: DefaultTextStyle(
+          style: rowTitleStyle(context),
+          child: CustomScrollView(
+            slivers: [
+              // The package's own iOS 26 app bar heads the catalog itself; the
+              // trailing glass action toggles the whole app's brightness.
+              CupertinoSliverAppBar(
+                largeTitle: 'Cupertino Widgets',
+                trailing: [
+                  CupertinoAppBarAction(
+                    icon: CupertinoNativeIcon.named(
+                      isDark ? 'sun.max' : 'moon',
+                    ),
+                    onPressed: () => MyApp.themeMode.value = isDark
+                        ? ThemeMode.light
+                        : ThemeMode.dark,
+                  ),
+                ],
+                // Edge effect tinted like the page background.
+                tintColor: CupertinoColors.systemGroupedBackground,
+              ),
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + 40,
                 ),
-              ],
-              // Edge effect tinted like the grouped page background.
-              tintColor: CupertinoColors.systemGroupedBackground,
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.only(top: 8, bottom: 40),
-              sliver: SliverToBoxAdapter(
-                child: CupertinoNativeList(
-                  style: CupertinoNativeListStyle.insetGrouped,
-                  onRowTap: (id) {
-                    final builder = _routes[id];
-                    if (builder != null) {
-                      Navigator.of(context).push(
-                        CupertinoPageRoute(builder: builder, title: 'Back'),
-                      );
-                    }
-                  },
-                  sections: [
-                    CupertinoNativeListSection(
+                sliver: SliverList.list(
+                  children: [
+                    SettingsSection(
+                      separatorIndent: 56,
                       header: 'Controls',
-                      rows: [
+                      children: [
                         _row(
-                          'slider',
+                          context,
                           'Slider',
-                          CupertinoSymbols.slider,
+                          const SliderDemoPage(),
+                          'slider.horizontal.3',
                           CupertinoColors.systemBlue,
                         ),
                         _row(
-                          'switch',
+                          context,
                           'Switch',
-                          null,
+                          const SwitchDemoPage(),
+                          'switch.2',
                           CupertinoColors.systemGreen,
-                          rawSymbol: 'switch.2',
                         ),
                         _row(
-                          'segmented',
+                          context,
                           'Segmented Control',
-                          null,
+                          const SegmentedControlDemoPage(),
+                          'rectangle.split.3x1',
                           CupertinoColors.systemOrange,
-                          rawSymbol: 'rectangle.split.3x1',
                         ),
                         _row(
-                          'button',
+                          context,
                           'Button',
-                          null,
+                          const ButtonDemoPage(),
+                          'hand.tap',
                           CupertinoColors.systemPurple,
-                          rawSymbol: 'hand.tap',
                         ),
                         _row(
-                          'menu',
+                          context,
                           'Popup Menu',
-                          CupertinoSymbols.ellipsisCircle,
+                          const MenuDemoPage(),
+                          'ellipsis.circle',
                           CupertinoColors.systemIndigo,
                         ),
                         _row(
-                          'contextmenu',
+                          context,
                           'Context Menu',
-                          null,
+                          const ContextMenuDemoPage(),
+                          'hand.point.up.left',
                           CupertinoColors.systemBrown,
-                          rawSymbol: 'hand.point.up.left',
                         ),
                         _row(
-                          'textfield',
+                          context,
                           'Text Field',
-                          null,
+                          const TextFieldDemoPage(),
+                          'character.cursor.ibeam',
                           CupertinoColors.systemTeal,
-                          rawSymbol: 'character.cursor.ibeam',
                         ),
                         _row(
-                          'datepicker',
+                          context,
                           'Date Picker',
-                          CupertinoSymbols.calendar,
+                          const DatePickerDemoPage(),
+                          'calendar',
                           CupertinoColors.systemRed,
                         ),
                       ],
                     ),
-                    CupertinoNativeListSection(
+                    SettingsSection(
+                      separatorIndent: 56,
                       header: 'Navigation',
-                      rows: [
+                      children: [
                         _row(
-                          'tabbar',
+                          context,
                           'Tab Bar',
-                          CupertinoSymbols.squareGrid2x2,
+                          const StandaloneTabBarDemoPage(),
+                          'square.grid.2x2',
                           CupertinoColors.systemPink,
                         ),
                         _row(
-                          'scaffold',
+                          context,
                           'Native Scaffold',
-                          null,
+                          const NativeScaffoldDemoPage(),
+                          'iphone',
                           CupertinoColors.systemBlue,
-                          rawSymbol: 'iphone',
                         ),
                         _row(
-                          'searchable',
+                          context,
                           'Searchable',
-                          CupertinoSymbols.magnifyingglass,
+                          const NativeSearchableDemoPage(),
+                          'magnifyingglass',
                           CupertinoColors.systemGrey,
                         ),
                         _row(
-                          'sheet',
+                          context,
                           'Sheet',
-                          null,
+                          const SheetDemoPage(),
+                          'rectangle.portrait.bottomhalf.inset.filled',
                           CupertinoColors.systemGreen,
-                          rawSymbol:
-                              'rectangle.portrait.bottomhalf.inset.filled',
                         ),
                         _row(
-                          'appbar',
+                          context,
                           'App Bar & Edge Effect',
-                          null,
+                          const AppBarDemoPage(),
+                          'rectangle.topthird.inset.filled',
                           CupertinoColors.systemIndigo,
-                          rawSymbol: 'rectangle.topthird.inset.filled',
                         ),
                       ],
                     ),
-                    CupertinoNativeListSection(
+                    SettingsSection(
+                      separatorIndent: 56,
                       header: 'Views',
-                      rows: [
+                      children: [
                         _row(
-                          'listform',
+                          context,
                           'List & Form',
-                          CupertinoSymbols.listBullet,
+                          const NativeListFormDemoPage(),
+                          'list.bullet',
                           CupertinoColors.systemYellow,
                         ),
                         _row(
-                          'liquidglass',
+                          context,
                           'Liquid Glass',
-                          null,
+                          const LiquidGlassDemoPage(),
+                          'sparkles',
                           CupertinoColors.systemCyan,
-                          rawSymbol: 'sparkles',
                         ),
                         _row(
-                          'effects',
+                          context,
                           'Widget Effects',
-                          null,
+                          const EffectsDemoPage(),
+                          'wand.and.stars',
                           CupertinoColors.systemPurple,
-                          rawSymbol: 'wand.and.stars',
                         ),
                       ],
                     ),
-                    CupertinoNativeListSection(
+                    SettingsSection(
+                      separatorIndent: 56,
                       header: 'Feedback',
                       footer:
                           'Every control on these pages is a real UIKit/SwiftUI '
                           'view rendered inside Flutter.',
-                      rows: [
+                      children: [
                         _row(
-                          'alert',
+                          context,
                           'Alert',
-                          CupertinoSymbols.exclamationmarkTriangle,
+                          const AlertDemoPage(),
+                          'exclamationmark.triangle',
                           CupertinoColors.systemRed,
                         ),
                         _row(
-                          'progress',
+                          context,
                           'Progress',
-                          null,
+                          const ProgressDemoPage(),
+                          'chart.bar.xaxis',
                           CupertinoColors.systemCyan,
-                          rawSymbol: 'chart.bar.xaxis',
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  static CupertinoNativeListRow _row(
-    String id,
+  static Widget _row(
+    BuildContext context,
     String title,
-    CupertinoSymbols? symbol,
-    Color color, {
-    String? rawSymbol,
-  }) {
-    return CupertinoNativeListRow(
-      id: id,
+    Widget page,
+    String symbol,
+    Color color,
+  ) {
+    return SettingsRow(
       title: title,
-      icon: symbol != null
-          ? CupertinoNativeIcon.symbol(symbol, color: color)
-          : CupertinoNativeIcon.named(rawSymbol!, color: color),
+      icon: SettingsIcon(symbol, color: color),
       showChevron: true,
+      onTap: () => Navigator.of(
+        context,
+      ).push(CupertinoPageRoute(builder: (_) => page, title: 'Back')),
     );
   }
 }

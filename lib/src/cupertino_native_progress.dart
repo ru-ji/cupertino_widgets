@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'internal/native_platform_view_mixin.dart';
+import 'internal/platform_view_transition_guard.dart';
 
 enum CupertinoNativeProgressStyle { automatic, linear, circular }
 
@@ -90,13 +91,15 @@ class _CupertinoNativeProgressIndicatorState
           return SizedBox(
             width: width ?? effectiveWidth,
             height: height,
-            child: UiKitView(
-              viewType:
-                  'com.example.cupertino_widgets/cupertino_native_progress',
-              layoutDirection: TextDirection.ltr,
-              creationParams: _toMap(),
-              creationParamsCodec: const StandardMessageCodec(),
-              onPlatformViewCreated: _onPlatformViewCreated,
+            child: PlatformViewTransitionGuard(
+              child: UiKitView(
+                viewType:
+                    'com.example.cupertino_widgets/cupertino_native_progress',
+                layoutDirection: TextDirection.ltr,
+                creationParams: _toMap(),
+                creationParamsCodec: const StandardMessageCodec(),
+                onPlatformViewCreated: _onPlatformViewCreated,
+              ),
             ),
           );
         },

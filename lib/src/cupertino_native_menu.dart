@@ -7,6 +7,7 @@ import 'callbacks.dart';
 import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_menu_item.dart';
 import 'models/cupertino_native_button_style.dart';
+import 'internal/platform_view_transition_guard.dart';
 
 class CupertinoNativeMenu extends StatefulWidget {
   final String title;
@@ -102,12 +103,14 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final platformView = UiKitView(
-        viewType: 'com.example.cupertino_widgets/cupertino_native_menu',
-        layoutDirection: TextDirection.ltr,
-        creationParams: _toMap(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onPlatformViewCreated,
+      final platformView = PlatformViewTransitionGuard(
+        child: UiKitView(
+          viewType: 'com.example.cupertino_widgets/cupertino_native_menu',
+          layoutDirection: TextDirection.ltr,
+          creationParams: _toMap(),
+          creationParamsCodec: const StandardMessageCodec(),
+          onPlatformViewCreated: _onPlatformViewCreated,
+        ),
       );
 
       // If explicit width/height provided, use them

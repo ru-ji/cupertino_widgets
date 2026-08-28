@@ -30,3 +30,4 @@ export 'src/models/cupertino_native_tab.dart';
 export 'src/models/cupertino_native_list_row.dart';
 export 'src/models/cupertino_native_list_section.dart';
 export 'src/legacy_names.dart';
+export 'src/cupertino_symbol_image.dart';

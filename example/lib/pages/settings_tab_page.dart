@@ -13,7 +13,6 @@ class SettingsTabPage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           header: 'Preferences',
           children: [
             SettingsRow(title: 'Notifications', value: 'On', showChevron: true),
@@ -22,7 +21,6 @@ class SettingsTabPage extends StatelessWidget {
           ],
         ),
         SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           header: 'Privacy',
           children: [
             SettingsRow(title: 'Location Services', value: 'While Using',
@@ -31,7 +29,6 @@ class SettingsTabPage extends StatelessWidget {
           ],
         ),
         SettingsSection(
-          cardColor: CupertinoColors.systemGrey6,
           footer: 'Cupertino Widgets 1.0.0',
           children: [
             SettingsRow(title: 'About', showChevron: true),
