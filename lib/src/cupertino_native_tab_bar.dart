@@ -369,7 +369,9 @@ class _CupertinoNativeTabBarState extends State<CupertinoNativeTabBar> {
           Positioned(
             left: 0,
             right: 0,
-            top: -28,
+            // Same 64pt fade extension the top edge uses, mirrored: the
+            // effect reaches this far above the floating bar before it dies.
+            top: -64,
             bottom: -bottomInset,
             child: CupertinoScrollEdgeEffect(
               edge: CupertinoScrollEdgeEffectEdge.bottom,

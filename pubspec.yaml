@@ -14,6 +14,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  haze: ^0.1.1
 
 dev_dependencies:
   flutter_test:
@@ -26,11 +27,6 @@ flutter:
     platforms:
       ios:
         pluginClass: FlutterCupertinoPlugin
-
-  # Variable-radius Gaussian for CupertinoScrollEdgeEffect (two separable
-  # BackdropFilter passes via ui.ImageFilter.shader).
-  shaders:
-    - shaders/cupertino_edge_blur.frag
 
   # To add assets to your package, add an assets section, like this:
   # assets:

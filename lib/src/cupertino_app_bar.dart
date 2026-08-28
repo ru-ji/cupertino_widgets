@@ -553,8 +553,9 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   /// How far the scroll-edge effect reaches BELOW the header. The system
   /// effect fades out past the bar; ending it at the header's own edge is
-  /// what reads as an abrupt stop.
-  static const double _effectOverhang = 24;
+  /// what reads as an abrupt stop. 64pt is the fade extension used by the
+  /// common recreation of the system header effect (ProgressiveBlurHeader).
+  static const double _effectOverhang = 64;
 
   static double _searchRowHeight(double fieldHeight) =>
       fieldHeight + _bottomPadding + 6;

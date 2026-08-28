@@ -193,7 +193,10 @@ class NativeTextFieldView: NSObject, FlutterPlatformView, UITextFieldDelegate {
         let imageView = UIImageView(image: UIImage(systemName: symbolName, withConfiguration: config))
         imageView.tintColor = icon.color.map { UIColor(argb: $0) } ?? .secondaryLabel
         imageView.contentMode = .center
-        imageView.frame = CGRect(x: 0, y: 0, width: pointSize + 12, height: pointSize + 6)
+        // 8pt of clearance on each side, so the placeholder sits the same
+        // distance from the symbol as it does in SwiftUI's `.searchable` field
+        // (UITextField butts the text straight up against the left view).
+        imageView.frame = CGRect(x: 0, y: 0, width: pointSize + 16, height: pointSize)
         return imageView
     }
 
