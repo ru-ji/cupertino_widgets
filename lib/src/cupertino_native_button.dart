@@ -5,7 +5,6 @@ import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_button_style.dart';
 import 'models/cupertino_native_button_extra_options.dart';
 import 'models/cupertino_native_icon.dart';
-import 'internal/platform_view_transition_guard.dart';
 
 // The deprecated [CupertinoNativeButton.systemImage] has to keep working until
 // it is removed, so this file necessarily reads it.
@@ -123,14 +122,12 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final platformView = PlatformViewTransitionGuard(
-        child: UiKitView(
-          viewType: 'com.example.cupertino_widgets/cupertino_native_button',
-          layoutDirection: TextDirection.ltr,
-          creationParams: _toMap(),
-          creationParamsCodec: const StandardMessageCodec(),
-          onPlatformViewCreated: _onPlatformViewCreated,
-        ),
+      final platformView = UiKitView(
+        viewType: 'com.example.cupertino_widgets/cupertino_native_button',
+        layoutDirection: TextDirection.ltr,
+        creationParams: _toMap(),
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onPlatformViewCreated,
       );
 
       // If explicit width/height provided, use them directly

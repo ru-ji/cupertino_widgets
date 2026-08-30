@@ -9,7 +9,6 @@ import '../callbacks.dart';
 import '../models/cupertino_native_list_row.dart';
 import '../models/cupertino_native_list_section.dart';
 import 'native_platform_view_mixin.dart';
-import 'platform_view_transition_guard.dart';
 
 /// Shared platform-view implementation behind `CupertinoNativeList` and
 /// `CupertinoNativeForm`. Both render a native SwiftUI `List`/`Form` of
@@ -152,14 +151,12 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
       return _fallback(context);
     }
 
-    final platformView = PlatformViewTransitionGuard(
-      child: UiKitView(
-        viewType: 'com.example.cupertino_widgets/cupertino_native_list',
-        layoutDirection: TextDirection.ltr,
-        creationParams: _toMap(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onPlatformViewCreated,
-      ),
+    final platformView = UiKitView(
+      viewType: 'com.example.cupertino_widgets/cupertino_native_list',
+      layoutDirection: TextDirection.ltr,
+      creationParams: _toMap(),
+      creationParamsCodec: const StandardMessageCodec(),
+      onPlatformViewCreated: _onPlatformViewCreated,
     );
 
     // Width fills the parent; height is fixed (given) or the measured content

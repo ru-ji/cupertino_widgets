@@ -4,7 +4,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'internal/native_platform_view_mixin.dart';
-import 'internal/platform_view_transition_guard.dart';
 
 class CupertinoNativeSegmentedControl extends StatefulWidget {
   final List<String> children;
@@ -70,22 +69,18 @@ class _CupertinoNativeSegmentedControlState
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final platformView = PlatformViewTransitionGuard(
-        child: UiKitView(
-          viewType: 'com.example.cupertino_widgets/cupertino_native_segmented',
-          layoutDirection: TextDirection.ltr,
-          creationParams: _toMap(),
-          creationParamsCodec: const StandardMessageCodec(),
-          onPlatformViewCreated: _onPlatformViewCreated,
-          // Claim drags immediately so press-and-slide across segments reaches
-          // the native control instead of being taken by Flutter's gesture arena.
-          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-          gestureRecognizers: {
-            Factory<OneSequenceGestureRecognizer>(
-              () => EagerGestureRecognizer(),
-            ),
-          },
-        ),
+      final platformView = UiKitView(
+        viewType: 'com.example.cupertino_widgets/cupertino_native_segmented',
+        layoutDirection: TextDirection.ltr,
+        creationParams: _toMap(),
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onPlatformViewCreated,
+        // Claim drags immediately so press-and-slide across segments reaches
+        // the native control instead of being taken by Flutter's gesture arena.
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
       );
 
       // If explicit width/height provided, use them

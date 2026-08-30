@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 
 import 'internal/native_platform_view_mixin.dart';
 import 'models/cupertino_native_icon.dart';
-import 'internal/platform_view_transition_guard.dart';
 
 /// The shape of a [CupertinoNativeGlassContainer].
 enum CupertinoGlassShape { capsule, circle, roundedRect }
@@ -205,28 +204,26 @@ class _CupertinoNativeGlassContainerState
         alignment: Alignment.center,
         children: [
           Positioned.fill(
-            child: PlatformViewTransitionGuard(
-              child: UiKitView(
-                viewType:
-                    'com.example.cupertino_widgets/cupertino_native_liquid_glass',
-                layoutDirection: TextDirection.ltr,
-                creationParams: _toMap(),
-                creationParamsCodec: const StandardMessageCodec(),
-                hitTestBehavior: wantsTouches
-                    ? PlatformViewHitTestBehavior.opaque
-                    : PlatformViewHitTestBehavior.transparent,
-                gestureRecognizers: wantsTouches
-                    ? {
-                        Factory<OneSequenceGestureRecognizer>(
-                          () => EagerGestureRecognizer(),
-                        ),
-                      }
-                    : const {},
-                onPlatformViewCreated: (id) => setUpChannel(
-                  id,
-                  'cupertino_widgets/liquid_glass_$id',
-                  onMethodCall: _handleMethodCall,
-                ),
+            child: UiKitView(
+              viewType:
+                  'com.example.cupertino_widgets/cupertino_native_liquid_glass',
+              layoutDirection: TextDirection.ltr,
+              creationParams: _toMap(),
+              creationParamsCodec: const StandardMessageCodec(),
+              hitTestBehavior: wantsTouches
+                  ? PlatformViewHitTestBehavior.opaque
+                  : PlatformViewHitTestBehavior.transparent,
+              gestureRecognizers: wantsTouches
+                  ? {
+                      Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer(),
+                      ),
+                    }
+                  : const {},
+              onPlatformViewCreated: (id) => setUpChannel(
+                id,
+                'cupertino_widgets/liquid_glass_$id',
+                onMethodCall: _handleMethodCall,
               ),
             ),
           ),

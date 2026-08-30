@@ -13,7 +13,6 @@ import 'internal/native_platform_view_mixin.dart';
 import 'internal/text_field_wire.dart';
 import 'search_row_visibility.dart';
 import 'models/cupertino_native_icon.dart';
-import 'internal/platform_view_transition_guard.dart';
 
 /// Disambiguates a quick drag (scroll the ancestor `Scrollable`, like a plain
 /// Flutter `TextField` allows) from a press-and-hold (enter native text
@@ -527,15 +526,13 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final platformView = PlatformViewTransitionGuard(
-        child: UiKitView(
-          viewType: 'com.example.cupertino_widgets/cupertino_native_text_field',
-          layoutDirection: TextDirection.ltr,
-          creationParams: _toMap(),
-          creationParamsCodec: const StandardMessageCodec(),
-          gestureRecognizers: _gestureRecognizers,
-          onPlatformViewCreated: _onPlatformViewCreated,
-        ),
+      final platformView = UiKitView(
+        viewType: 'com.example.cupertino_widgets/cupertino_native_text_field',
+        layoutDirection: TextDirection.ltr,
+        creationParams: _toMap(),
+        creationParamsCodec: const StandardMessageCodec(),
+        gestureRecognizers: _gestureRecognizers,
+        onPlatformViewCreated: _onPlatformViewCreated,
       );
 
       final Widget sized;

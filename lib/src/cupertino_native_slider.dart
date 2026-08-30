@@ -4,7 +4,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'internal/native_platform_view_mixin.dart';
-import 'internal/platform_view_transition_guard.dart';
 
 class CupertinoNativeSlider extends StatefulWidget {
   const CupertinoNativeSlider({
@@ -57,20 +56,18 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider>
         return SizedBox(
           width: effectiveWidth,
           height: 44, // Standard height
-          child: PlatformViewTransitionGuard(
-            child: UiKitView(
-              viewType: viewType,
-              layoutDirection: TextDirection.ltr,
-              creationParams: creationParams,
-              creationParamsCodec: const StandardMessageCodec(),
-              onPlatformViewCreated: _onPlatformViewCreated,
-              hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-              gestureRecognizers: {
-                Factory<OneSequenceGestureRecognizer>(
-                  () => EagerGestureRecognizer(),
-                ),
-              },
-            ),
+          child: UiKitView(
+            viewType: viewType,
+            layoutDirection: TextDirection.ltr,
+            creationParams: creationParams,
+            creationParamsCodec: const StandardMessageCodec(),
+            onPlatformViewCreated: _onPlatformViewCreated,
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+            gestureRecognizers: {
+              Factory<OneSequenceGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
+            },
           ),
         );
       },

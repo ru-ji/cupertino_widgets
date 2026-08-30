@@ -4,7 +4,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'internal/native_platform_view_mixin.dart';
-import 'internal/platform_view_transition_guard.dart';
 
 class CupertinoNativeSwitch extends StatefulWidget {
   final bool value;
@@ -74,25 +73,21 @@ class _CupertinoNativeSwitchState extends State<CupertinoNativeSwitch>
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final platformView = PlatformViewTransitionGuard(
-        child: UiKitView(
-          // Must match FlutterCupertinoPlugin.swift's registration. The widget
-          // was renamed Toggle -> Switch on the Dart side only; this id is the
-          // native contract and deliberately keeps the old spelling.
-          viewType: 'com.example.cupertino_widgets/cupertino_native_toggle',
-          layoutDirection: TextDirection.ltr,
-          creationParams: _toMap(),
-          creationParamsCodec: const StandardMessageCodec(),
-          onPlatformViewCreated: _onPlatformViewCreated,
-          // Claim drags immediately so press-and-slide reaches the native
-          // switch instead of being taken by Flutter's gesture arena.
-          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-          gestureRecognizers: {
-            Factory<OneSequenceGestureRecognizer>(
-              () => EagerGestureRecognizer(),
-            ),
-          },
-        ),
+      final platformView = UiKitView(
+        // Must match FlutterCupertinoPlugin.swift's registration. The widget
+        // was renamed Toggle -> Switch on the Dart side only; this id is the
+        // native contract and deliberately keeps the old spelling.
+        viewType: 'com.example.cupertino_widgets/cupertino_native_toggle',
+        layoutDirection: TextDirection.ltr,
+        creationParams: _toMap(),
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onPlatformViewCreated,
+        // Claim drags immediately so press-and-slide reaches the native
+        // switch instead of being taken by Flutter's gesture arena.
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
       );
 
       // If explicit width/height provided, use them

@@ -797,13 +797,10 @@ and their overlay layers are repositioned out of step. Native controls hang at
 the wrong offset for the length of the animation, and a control from the
 outgoing page can end up sitting over the incoming one.
 
-**Mitigation, applied by this package:** every platform view is wrapped in an
-internal `PlatformViewTransitionGuard`, which drops the native view from the
-frame while the enclosing route animates (watching both `animation` and
-`secondaryAnimation`) and restores it the frame the route settles.
-`Visibility.maintain` keeps the layout, so nothing reflows and the native view
-is never destroyed and recreated. The trade is visible: native controls are
-absent for the duration of the slide, then appear.
+Left as is: the transition stays the system's own. Dropping the native views
+for the length of the animation would hide the artifact, but it trades a
+misplaced control for no control at all, and a page that fills in only once it
+has finished arriving.
 
 Related: [flutter#163498](https://github.com/flutter/flutter/issues/163498)
 (open) — animations cause Flutter UI to flicker and platform views to be
