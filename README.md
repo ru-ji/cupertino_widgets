@@ -741,6 +741,16 @@ separable fragment shader (`ui.ImageFilter.shader`), not a plain Gaussian blur,
 with sampling bounded to the widget's own rectangle so nothing outside it
 smears in.
 
+**Not the system effect.** `UIScrollEdgeEffect` is a property of a scroll view
+and blurs *that scroll view's own content*. A Flutter page has no `UIScrollView`
+in it, so a native effect hosted over one finds nothing to blur and draws
+nothing at all — measured, not assumed. (`glassEffect` is the exception that
+makes this worth checking: it samples its backdrop, which is why the glass
+container refracts Flutter content behind it.) The system's adaptive tint —
+which thins over bright, busy content — is therefore out of reach here, and
+available only inside `CupertinoNativeScaffold`, where a real SwiftUI
+`ScrollView` owns the content.
+
 ## Symbol Image
 
 An SF Symbol rasterized natively and handed back as an image, so it draws in

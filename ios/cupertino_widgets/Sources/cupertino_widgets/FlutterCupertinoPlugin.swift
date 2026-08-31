@@ -72,12 +72,6 @@ public class FlutterCupertinoPlugin: NSObject, FlutterPlugin {
             liquidGlassFactory,
             withId: "com.example.cupertino_widgets/cupertino_native_liquid_glass")
 
-        let scrollEdgeEffectFactory = NativeScrollEdgeEffectFactory(
-            messenger: registrar.messenger())
-        registrar.register(
-            scrollEdgeEffectFactory,
-            withId: "com.example.cupertino_widgets/cupertino_native_scroll_edge_effect")
-
         let datePickerFactory = NativeDatePickerFactory(messenger: registrar.messenger())
         registrar.register(
             datePickerFactory,

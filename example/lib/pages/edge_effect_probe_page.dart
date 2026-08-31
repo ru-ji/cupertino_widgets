@@ -1,26 +1,22 @@
 import 'package:flutter/cupertino.dart';
 import 'package:cupertino_widgets/cupertino_widgets.dart';
+import 'package:haze/haze.dart';
 
 import '../widgets/settings_ui.dart';
 
-/// Side-by-side probe for the scroll edge effect: the system's own, and our
-/// Haze recreation, over identical content.
+/// The scroll edge effect in its two hosting models, over identical content.
 ///
 /// What to look for is the **tint**, not the blur. iOS derives a mix-in colour
-/// from whatever the scroll view is showing under the bar, so the scrim
-/// recedes over a bright, busy band and comes back over a flat one — the blur
-/// stays put throughout. [CupertinoScrollEdgeEffect] takes a fixed colour, so
-/// its scrim holds the same weight over every band.
+/// from what passes under the bar, so the system's scrim recedes over a
+/// bright, busy band and comes back over a flat one, while the blur holds.
+/// [CupertinoScrollEdgeEffect] takes a fixed colour and cannot do that.
 ///
-/// The two screens are not two settings of one thing; they are two hosting
-/// models, which is the whole point:
-///
-/// * **Native** runs in a [CupertinoNativeScaffold] — a real SwiftUI
-///   `ScrollView`, so `.scrollEdgeEffectStyle` has a scroll view to attach to
-///   and the system draws the effect itself.
-/// * **Flutter** runs in a [CupertinoSliverAppBar] over a `CustomScrollView`.
-///   There is no `UIScrollView` anywhere in that page, so no native effect can
-///   apply to it and the bar draws its own.
+/// * **Native** runs in a [CupertinoNativeScaffold]: a real SwiftUI
+///   `ScrollView` owns the content, so the system draws its own effect on it,
+///   adaptation included.
+/// * **Flutter page** has no scroll view for a native effect to attach to —
+///   one hosted over it draws nothing at all — so the bar draws the
+///   recreation.
 class EdgeEffectProbePage extends StatelessWidget {
   const EdgeEffectProbePage({super.key});
 
@@ -34,8 +30,8 @@ class EdgeEffectProbePage extends StatelessWidget {
           header: 'Compare',
           footer:
               'Scroll each one slowly with a bright band under the bar, then '
-              'a dark one. The system effect thins its tint over bright, busy '
-              'content and keeps the blur; the Haze version holds one tint '
+              'a dark one. The native screen thins its tint over the bright '
+              'band and keeps the blur; the Flutter one holds a single tint '
               'throughout. Same content in both.',
           children: [
             SettingsRow(
@@ -49,8 +45,8 @@ class EdgeEffectProbePage extends StatelessWidget {
               ),
             ),
             SettingsRow(
-              title: 'Flutter (Haze recreation)',
-              subtitle: 'Fixed tint, progressive blur',
+              title: 'Flutter page (Haze)',
+              subtitle: 'The recreation, fixed tint',
               onTap: () => Navigator.of(context).push(
                 CupertinoPageRoute<void>(
                   builder: (_) => const _HazeProbe(),
@@ -59,11 +55,11 @@ class EdgeEffectProbePage extends StatelessWidget {
               ),
             ),
             SettingsRow(
-              title: 'Flutter + native effect',
-              subtitle: 'The system effect imported over Flutter content',
+              title: 'Isolate the layers',
+              subtitle: 'Blur alone, tint alone, and neither',
               onTap: () => Navigator.of(context).push(
                 CupertinoPageRoute<void>(
-                  builder: (_) => const _NativeOverFlutterProbe(),
+                  builder: (_) => const _LayerIsolationProbe(),
                   title: 'Back',
                 ),
               ),
@@ -95,52 +91,16 @@ class _NativeProbe extends StatelessWidget {
   }
 }
 
-/// The Haze recreation, over the same bands.
+/// The recreation, over the same bands: a Flutter scrollable with
+/// [CupertinoScrollEdgeEffect] stacked over its top edge.
+///
+/// Its tint is fixed, and that is not a shortcut — it is the only thing
+/// available. The system effect hosted over this same page draws nothing at
+/// all: `UIScrollEdgeEffect` blurs the content of the scroll view it belongs
+/// to, and a Flutter page has no scroll view for it to belong to. Tested, not
+/// assumed.
 class _HazeProbe extends StatelessWidget {
   const _HazeProbe();
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      child: CustomScrollView(
-        slivers: [
-          CupertinoSliverAppBar(
-            largeTitle: 'Haze',
-            leading: CupertinoNativeButton(
-              icon: CupertinoNativeIcon.symbol(
-                CupertinoSymbols.chevronBackward,
-                size: 20,
-              ),
-              style: CupertinoNativeButtonStyle.glass,
-              borderShape: CupertinoNativeButtonBorderShape.circle,
-              labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-          const SliverToBoxAdapter(child: EdgeEffectProbeBody()),
-        ],
-      ),
-    );
-  }
-}
-
-/// The one that answers the question: a plain Flutter scrollable with the
-/// SYSTEM effect hosted over its top edge, no native scroll view anywhere in
-/// the page.
-///
-/// Three things to look for, in order:
-///
-/// 1. Does anything appear at all? If the strip stays perfectly clear as the
-///    bands pass under it, the effect only ever sees the (empty) content of
-///    the scroll view it belongs to, and a Flutter page can never have more
-///    than a recreation.
-/// 2. If something appears — is the blur sampling the bands behind it, or is
-///    it a static wash?
-/// 3. If it blurs — does the tint thin out over the bright bands and come back
-///    over the flat ones? That is the adaptation, and the only reason to
-///    consider replacing Haze.
-class _NativeOverFlutterProbe extends StatelessWidget {
-  const _NativeOverFlutterProbe();
 
   @override
   Widget build(BuildContext context) {
@@ -151,14 +111,20 @@ class _NativeOverFlutterProbe extends StatelessWidget {
           const Positioned.fill(
             child: SingleChildScrollView(child: EdgeEffectProbeBody()),
           ),
-          // The system effect, over Flutter pixels. Sized to the region a bar
-          // would occupy, so it has somewhere to melt into.
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: top + 44,
-            child: const CupertinoSystemScrollEdgeEffect(),
+            // Roughly what the native probe's effect spans: its region is the
+            // bar's safe area (status bar + large title) and the fade runs
+            // past it. A box only as tall as the inline bar squeezes the
+            // whole profile — plateau and fade — into half the distance, and
+            // no tuning can look right compressed.
+            //
+            // It is also the effect's cost: every pixel in here runs the
+            // kernel twice. Doubling the height doubles the GPU work.
+            height: top + 44 + 110,
+            child: const CupertinoScrollEdgeEffect(),
           ),
           Positioned(
             top: top,
@@ -180,12 +146,108 @@ class _NativeOverFlutterProbe extends StatelessWidget {
                 ),
                 const Spacer(),
                 const Text(
-                  'Native effect',
+                  'Haze',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
                     decoration: TextDecoration.none,
                     color: CupertinoColors.white,
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Runs each layer of the effect on its own, so an artefact can be attributed
+/// instead of guessed at. Tap the title to cycle.
+///
+/// * **Both** — the effect as shipped.
+/// * **Blur only** — no tint. A line still there is the blur's, or the
+///   filter's own boundary.
+/// * **Tint only** — no blur, so no `BackdropFilter` is pushed at all. A line
+///   still there cannot be a filter artefact; it is the gradient, or it is
+///   not ours.
+/// * **Neither** — nothing is drawn. A line still there is coming from the
+///   page, not from the effect.
+class _LayerIsolationProbe extends StatefulWidget {
+  const _LayerIsolationProbe();
+
+  @override
+  State<_LayerIsolationProbe> createState() => _LayerIsolationProbeState();
+}
+
+class _LayerIsolationProbeState extends State<_LayerIsolationProbe> {
+  static const _modes = ['Both', 'Blur only', 'Tint only', 'Neither'];
+  int _mode = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    final blur = _mode == 0 || _mode == 1;
+    final tint = _mode == 0 || _mode == 2;
+    return CupertinoPageScaffold(
+      child: Stack(
+        children: [
+          const Positioned.fill(
+            child: SingleChildScrollView(child: EdgeEffectProbeBody()),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: top + 44 + 110,
+            child: IgnorePointer(
+              child: Haze(
+                sigma: blur ? 12 : 0,
+                falloff: 1,
+                plateau: 0.3,
+                tint: tint
+                    ? CupertinoDynamicColor.resolve(
+                        CupertinoColors.systemBackground,
+                        context,
+                      )
+                    : null,
+                tintOpacity: 0.55,
+              ),
+            ),
+          ),
+          Positioned(
+            top: top,
+            left: 0,
+            right: 0,
+            height: 44,
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                CupertinoNativeButton(
+                  icon: CupertinoNativeIcon.symbol(
+                    CupertinoSymbols.chevronBackward,
+                    size: 20,
+                  ),
+                  style: CupertinoNativeButtonStyle.glass,
+                  borderShape: CupertinoNativeButtonBorderShape.circle,
+                  labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () =>
+                      setState(() => _mode = (_mode + 1) % _modes.length),
+                  child: Text(
+                    _modes[_mode],
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.none,
+                      color: CupertinoColors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
