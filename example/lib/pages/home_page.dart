@@ -22,6 +22,8 @@ import 'sheet_demo_page.dart';
 import 'slider_demo_page.dart';
 import 'standalone_tab_bar_demo_page.dart';
 import 'switch_demo_page.dart';
+import 'native_zoo_probe_page.dart';
+import 'transition_probe_page.dart';
 import 'text_field_demo_page.dart';
 
 /// The demo catalog — Flutter-drawn inset-grouped sections, like every other
@@ -53,10 +55,13 @@ class HomePage extends StatelessWidget {
               CupertinoSliverAppBar(
                 largeTitle: 'Cupertino Widgets',
                 trailing: [
-                  CupertinoAppBarAction(
+                  CupertinoNativeButton(
                     icon: CupertinoNativeIcon.named(
                       isDark ? 'sun.max' : 'moon',
                     ),
+                    style: CupertinoNativeButtonStyle.glass,
+                    borderShape: CupertinoNativeButtonBorderShape.circle,
+                    labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
                     onPressed: () => MyApp.themeMode.value = isDark
                         ? ThemeMode.light
                         : ThemeMode.dark,
@@ -198,6 +203,26 @@ class HomePage extends StatelessWidget {
                           const EffectsDemoPage(),
                           'wand.and.stars',
                           CupertinoColors.systemPurple,
+                        ),
+                      ],
+                    ),
+                    SettingsSection(
+                      separatorIndent: 56,
+                      header: 'Diagnostics',
+                      children: [
+                        _row(
+                          context,
+                          'Transition Probe',
+                          const TransitionProbePage(),
+                          'scope',
+                          CupertinoColors.systemGrey,
+                        ),
+                        _row(
+                          context,
+                          'Native Zoo',
+                          const NativeZooProbePage(),
+                          'square.grid.3x3',
+                          CupertinoColors.systemGrey,
                         ),
                       ],
                     ),

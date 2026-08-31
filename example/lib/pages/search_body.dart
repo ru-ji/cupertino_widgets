@@ -80,8 +80,7 @@ class _SearchBodyState extends State<SearchBody> {
         if (!mounted) return;
         final q = state.query.toLowerCase();
         setState(() {
-          _results =
-              _all.where((e) => e.$1.toLowerCase().contains(q)).toList();
+          _results = _all.where((e) => e.$1.toLowerCase().contains(q)).toList();
           _loading = false;
         });
       });
@@ -160,8 +159,7 @@ class _SearchBodyState extends State<SearchBody> {
         ),
         SettingsSection(
           children: [
-            for (final s in _suggestions)
-              SettingsRow(title: s, onTap: () {}),
+            for (final s in _suggestions) SettingsRow(title: s, onTap: () {}),
           ],
         ),
         const SizedBox(height: 24),

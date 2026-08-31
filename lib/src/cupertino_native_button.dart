@@ -30,6 +30,11 @@ class CupertinoNativeButton extends StatefulWidget {
   final CupertinoNativeButtonLabelStyle labelStyle;
   final bool expand;
   final VoidCallback? onPressed;
+
+  /// Explicit point size, sizing the SwiftUI control itself and not just the
+  /// Flutter box around it. Left null the control is sized by [controlSize] —
+  /// except that a button with no title to lay out falls back to the standard
+  /// 44pt square, which is what a bar button is.
   final double? width;
   final double? height;
   final Color? activeColor;
@@ -81,7 +86,9 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
         oldWidget.labelStyle != widget.labelStyle ||
         oldWidget.expand != widget.expand ||
         oldWidget.activeColor != widget.activeColor ||
-        oldWidget.textStyle != widget.textStyle) {
+        oldWidget.textStyle != widget.textStyle ||
+        oldWidget.width != widget.width ||
+        oldWidget.height != widget.height) {
       updateNativeView('updateButton', _toMap());
     }
   }
@@ -99,6 +106,11 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.value,
       'textColor': widget.textStyle?.color?.toARGB32(),
+      // Sized natively too, not just boxed: a SwiftUI button is `fixedSize`,
+      // so a Flutter SizedBox alone leaves it drawing at its own metrics and
+      // spilling out of (or rattling inside) the box.
+      'width': _width,
+      'height': _height,
     };
   }
 
@@ -109,7 +121,6 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
       onMethodCall: _handleMethodCall,
     );
     // Request intrinsic size after a short delay to let the view settle
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
   }
 
@@ -118,6 +129,46 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
       widget.onPressed?.call();
     }
   }
+
+  /// Apple's control heights per `ControlSize`, on iOS. Used only until the
+  /// native measurement lands — SwiftUI is the authority on the real metrics,
+  /// this is what the box measures for the frame or two before it answers.
+  /// A default that under-shoots clips the button, so these are the real
+  /// numbers rather than the one-size-fits-all 34 that used to stand here.
+  static const _heights = <CupertinoNativeControlSize, double>{
+    CupertinoNativeControlSize.mini: 28,
+    CupertinoNativeControlSize.small: 32,
+    CupertinoNativeControlSize.regular: 34,
+    CupertinoNativeControlSize.large: 44,
+    CupertinoNativeControlSize.extraLarge: 50,
+  };
+
+  /// No title to draw: the button is a square glyph target, the way a bar
+  /// button is.
+  bool get _isIconOnly =>
+      widget.labelStyle == CupertinoNativeButtonLabelStyle.iconOnly ||
+      (widget.title.isEmpty && _effectiveIcon != null);
+
+  /// The standard iOS touch target, and the size of a navigation-bar button.
+  static const double _standardExtent = 44;
+
+  /// What the control is actually sized to. An explicit value wins; failing
+  /// that an icon-only button is a 44pt square — the one case where there is
+  /// no text whose length has to decide the width, so a number can. A button
+  /// with a title is left to [controlSize]: forcing 44 on it would clip the
+  /// title, which no default should do.
+  double? get _width =>
+      widget.width ?? (_isIconOnly && !widget.expand ? _standardExtent : null);
+  double? get _height =>
+      widget.height ?? (_isIconOnly && !widget.expand ? _standardExtent : null);
+
+  double get _defaultHeight {
+    final height = _heights[widget.controlSize]!;
+    return _isIconOnly && height < 44 ? 44 : height;
+  }
+
+  /// Square when icon-only; a title's worth of width otherwise.
+  double get _defaultWidth => _isIconOnly ? _defaultHeight : 80;
 
   @override
   Widget build(BuildContext context) {
@@ -130,37 +181,22 @@ class _CupertinoNativeButtonState extends State<CupertinoNativeButton>
         onPlatformViewCreated: _onPlatformViewCreated,
       );
 
-      // If explicit width/height provided, use them directly
-      if (widget.width != null || widget.height != null) {
+      if (_width != null || _height != null) {
+        return SizedBox(width: _width, height: _height, child: platformView);
+      }
+
+      // expand: true — the native button already fills the box, so only the
+      // height needs stating; the width constraint passes straight through.
+      if (widget.expand) {
         return SizedBox(
-          width: widget.width,
-          height: widget.height,
+          height: intrinsicHeight ?? _defaultHeight,
           child: platformView,
         );
       }
 
-      // Handle expand: true
-      if (widget.expand) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            // Use actual available width from constraints
-            final width = constraints.maxWidth.isInfinite
-                ? 200.0
-                : constraints.maxWidth;
-            return SizedBox(
-              width: width,
-              height: intrinsicHeight ?? 34,
-              child: platformView,
-            );
-          },
-        );
-      }
-
-      // Use intrinsic size from native view, with defaults until size is received
-      // Default: 80x34 (reasonable button size)
       return SizedBox(
-        width: intrinsicWidth ?? 80,
-        height: intrinsicHeight ?? 34,
+        width: intrinsicWidth ?? _defaultWidth,
+        height: intrinsicHeight ?? _defaultHeight,
         child: platformView,
       );
     }

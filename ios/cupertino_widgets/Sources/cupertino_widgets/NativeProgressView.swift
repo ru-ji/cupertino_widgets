@@ -33,6 +33,11 @@ class NativeProgressFactory: NSObject, FlutterPlatformViewFactory {
 class NativeProgressView: NativeHostingView {
     private var channel: FlutterMethodChannel?
 
+    /// The style the hosted view was attached with. Circular and linear are laid
+    /// out by different constraints, and constraints are installed at attach
+    /// time — so a style change is the one edit a root-view swap cannot deliver.
+    private var shownStyle = 0
+
     init(
         frame: CGRect,
         viewIdentifier viewId: Int64,
@@ -54,20 +59,32 @@ class NativeProgressView: NativeHostingView {
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        if call.method == "updateProgress" {
+        switch call.method {
+        case "getIntrinsicSize":
+            result(intrinsicSize())
+        case "updateProgress":
             if let args = call.arguments as? [String: Any] {
-                update(AnyView(makeContent(with: args)))
+                if args["style"] as? Int ?? 0 == shownStyle {
+                    // Value, total or label only: swapping the root view keeps
+                    // a determinate bar's progress animating instead of
+                    // restarting it on every tick.
+                    update(AnyView(makeContent(with: args)))
+                } else {
+                    setupSwiftUI(with: args)
+                }
                 result(nil)
             } else {
-                result(FlutterMethodNotImplemented)
+                result(
+                    FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             }
-        } else {
+        default:
             result(FlutterMethodNotImplemented)
         }
     }
 
     private func setupSwiftUI(with args: [String: Any]) {
         let style = args["style"] as? Int ?? 0
+        shownStyle = style
         attach(
             AnyView(makeContent(with: args)),
             configureConstraints: { host, container in

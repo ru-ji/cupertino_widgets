@@ -15,8 +15,9 @@ class NewEventSheetBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background =
-        CupertinoColors.systemGroupedBackground.resolveFrom(context);
+    final background = CupertinoColors.systemGroupedBackground.resolveFrom(
+      context,
+    );
     final blue = CupertinoColors.activeBlue.resolveFrom(context);
 
     return ColoredBox(
@@ -36,8 +37,11 @@ class NewEventSheetBody extends StatelessWidget {
               SettingsRow(title: 'All-day', value: 'Off'),
               SettingsRow(title: 'Starts', value: 'Jul 12, 9:41 AM'),
               SettingsRow(title: 'Ends', value: 'Jul 12, 10:00 AM'),
-              SettingsRow(title: 'Travel Time', value: 'None',
-                  showChevron: true),
+              SettingsRow(
+                title: 'Travel Time',
+                value: 'None',
+                showChevron: true,
+              ),
             ],
           ),
           const SettingsSection(
@@ -49,22 +53,32 @@ class NewEventSheetBody extends StatelessWidget {
           ),
           const SettingsSection(
             children: [
-              SettingsRow(title: 'Alert', value: '10 min before',
-                  showChevron: true),
-              SettingsRow(title: 'Second Alert', value: 'None',
-                  showChevron: true),
+              SettingsRow(
+                title: 'Alert',
+                value: '10 min before',
+                showChevron: true,
+              ),
+              SettingsRow(
+                title: 'Second Alert',
+                value: 'None',
+                showChevron: true,
+              ),
               SettingsRow(title: 'Show As', value: 'Busy', showChevron: true),
             ],
           ),
           const SettingsSection(
-            footer: 'This whole form is Flutter inside a real UIKit sheet: '
+            footer:
+                'This whole form is Flutter inside a real UIKit sheet: '
                 'the bar stays pinned while you scroll, and pulling down at '
                 'the top drags the sheet itself.',
             children: [
               SettingsRow(title: 'URL', value: 'None'),
               SettingsRow(title: 'Notes', value: 'None'),
-              SettingsRow(title: 'Attachments', value: 'None',
-                  showChevron: true),
+              SettingsRow(
+                title: 'Attachments',
+                value: 'None',
+                showChevron: true,
+              ),
             ],
           ),
           SettingsSection(

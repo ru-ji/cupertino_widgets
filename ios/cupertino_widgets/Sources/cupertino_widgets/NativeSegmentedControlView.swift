@@ -33,6 +33,14 @@ class NativeSegmentedControlFactory: NSObject, FlutterPlatformViewFactory {
 class NativeSegmentedControlView: NativeHostingView {
     private var channel: FlutterMethodChannel?
 
+    /// The segment the hosted picker is actually showing. Same trap as the
+    /// switch: `AdaptiveSegmentedControlView` seeds its `@State` from the
+    /// config once, so swapping the root view later leaves the selection where
+    /// the user last put it and a selection pushed from Dart never lands.
+    /// Rebuilding the hosting controller applies it; the echo of a tap the user
+    /// just made takes the cheap path.
+    private var shownIndex = 0
+
     init(
         frame: CGRect,
         viewIdentifier viewId: Int64,
@@ -51,12 +59,17 @@ class NativeSegmentedControlView: NativeHostingView {
         if let argsMap = args as? [String: Any],
             let config = decodeConfig(SegmentedControlConfig.self, from: argsMap)
         {
-            createSwiftUIView(config: config)
-        } else {
-            let defaultConfig = SegmentedControlConfig(
-                items: ["One", "Two"], selectedIndex: 0, color: nil)
-            createSwiftUIView(config: defaultConfig)
+            setupSwiftUI(with: config)
         }
+    }
+
+    /// The control fills the box Flutter built for it — the branch the button
+    /// takes for `expand: true`. A segmented picker has no size worth hugging:
+    /// it is a full-width control, and `getIntrinsicSize` reports what SwiftUI
+    /// measures so Dart can build the box around it.
+    private func setupSwiftUI(with config: SegmentedControlConfig) {
+        shownIndex = config.selectedIndex
+        attach(AnyView(makeContent(config: config)))
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -67,28 +80,28 @@ class NativeSegmentedControlView: NativeHostingView {
             if let argsMap = call.arguments as? [String: Any],
                 let config = decodeConfig(SegmentedControlConfig.self, from: argsMap)
             {
-                updateSwiftUIView(config: config)
+                if config.selectedIndex == shownIndex {
+                    // Items or tint only: swapping the root view is enough, and
+                    // leaves the selection indicator's animation alone.
+                    update(AnyView(makeContent(config: config)))
+                } else {
+                    setupSwiftUI(with: config)
+                }
                 result(nil)
             } else {
-                result(FlutterMethodNotImplemented)
+                result(
+                    FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             }
         default:
             result(FlutterMethodNotImplemented)
         }
     }
 
-    private func createSwiftUIView(config: SegmentedControlConfig) {
-        attach(AnyView(makeContent(config: config)))
-    }
-
-    private func updateSwiftUIView(config: SegmentedControlConfig) {
-        update(AnyView(makeContent(config: config)))
-    }
-
     private func makeContent(config: SegmentedControlConfig) -> AdaptiveSegmentedControlView {
         AdaptiveSegmentedControlView(
             config: config,
             onAction: { [weak self] newValue in
+                self?.shownIndex = newValue
                 self?.channel?.invokeMethod("onValueChanged", arguments: newValue)
             }
         )

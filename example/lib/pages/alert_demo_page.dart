@@ -35,8 +35,7 @@ class _AlertDemoPageState extends State<AlertDemoPage> {
               onTap: () => CupertinoNativeAlert.show(
                 context: context,
                 title: 'Mobile Data is Off',
-                message:
-                    'Turn on mobile data or use Wi-Fi to access data.',
+                message: 'Turn on mobile data or use Wi-Fi to access data.',
                 actions: [
                   CupertinoNativeAlertAction(
                     title: 'Settings',
@@ -55,7 +54,8 @@ class _AlertDemoPageState extends State<AlertDemoPage> {
               onTap: () => CupertinoNativeAlert.show(
                 context: context,
                 title: 'Erase All Content and Settings?',
-                message: 'This cannot be undone. All media, data and settings '
+                message:
+                    'This cannot be undone. All media, data and settings '
                     'will be erased.',
                 actions: [
                   CupertinoNativeAlertAction(
@@ -74,7 +74,8 @@ class _AlertDemoPageState extends State<AlertDemoPage> {
         ),
         const SettingsSection(
           header: 'About',
-          footer: 'These are real UIAlertControllers — system blur, button '
+          footer:
+              'These are real UIAlertControllers — system blur, button '
               'order, and destructive styling included. Each action reports '
               'back to Flutter.',
           children: [

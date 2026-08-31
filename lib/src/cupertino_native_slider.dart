@@ -46,36 +46,28 @@ class _CupertinoNativeSliderState extends State<CupertinoNativeSlider>
       'isEnabled': widget.onChanged != null,
     };
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Use available width or default to 200 if unbounded
-        final effectiveWidth = constraints.maxWidth.isInfinite
-            ? 200.0
-            : constraints.maxWidth;
-
-        return SizedBox(
-          width: effectiveWidth,
-          height: 44, // Standard height
-          child: UiKitView(
-            viewType: viewType,
-            layoutDirection: TextDirection.ltr,
-            creationParams: creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-            onPlatformViewCreated: _onPlatformViewCreated,
-            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-            gestureRecognizers: {
-              Factory<OneSequenceGestureRecognizer>(
-                () => EagerGestureRecognizer(),
-              ),
-            },
-          ),
-        );
-      },
+    // The slider fills the width offered, so only its height needs stating:
+    // SwiftUI's own, through the same `getIntrinsicSize` round trip the button
+    // makes. 44 is the standard control height and stands in until that lands.
+    return SizedBox(
+      height: intrinsicHeight ?? 44,
+      child: UiKitView(
+        viewType: viewType,
+        layoutDirection: TextDirection.ltr,
+        creationParams: creationParams,
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onPlatformViewCreated,
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+        },
+      ),
     );
   }
 
-  void _onPlatformViewCreated(int id) {
+  Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(id, 'adaptive_slider_$id', onMethodCall: _handleMethodCall);
+    requestIntrinsicSize();
   }
 
   Future<void> _handleMethodCall(MethodCall call) async {

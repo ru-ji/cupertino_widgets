@@ -53,6 +53,19 @@ class NativeHostingView: NSObject, FlutterPlatformView {
                 host.safeAreaRegions = []
             }
         }
+        if #available(iOS 16.0, *) {
+            // Keep `host.view.intrinsicContentSize` in step with the SwiftUI
+            // content. Without it a hosting controller's view does not
+            // republish its size as the content settles, and the content
+            // hugging / compression resistance that the hug-and-center
+            // widgets (button, switch) size themselves with has nothing to
+            // read — the host resolves to an ambiguous size while the SwiftUI
+            // control, which is `fixedSize`, keeps drawing at its own. That is
+            // how a switch ends up painting past its box and off the screen
+            // edge. Harmless where the host's edges are pinned: a required
+            // pin outranks an intrinsic size every time.
+            host.sizingOptions = .intrinsicContentSize
+        }
         host.view.backgroundColor = .clear
         host.view.translatesAutoresizingMaskIntoConstraints = false
         _view.addSubview(host.view)
@@ -70,13 +83,47 @@ class NativeHostingView: NSObject, FlutterPlatformView {
     }
 
     /// Measures the hosted SwiftUI content's natural size, for `getIntrinsicSize` handlers.
+    ///
+    /// Measured against an unbounded proposal, which is the size SwiftUI gives
+    /// a view left to itself. A control that does not expand — a button, a
+    /// switch — answers with exactly the size UIKit draws it at, so the box
+    /// Flutter builds around it matches the pixels and nothing has to be
+    /// clipped or padded to fit.
+    ///
+    /// A view that *fills*, though — a text field, a labeled switch, a button
+    /// with `expand` — answers an unbounded proposal with the proposal
+    /// itself: `.greatestFiniteMagnitude` in both axes, a number Flutter would
+    /// happily build a box out of. Those are re-measured against the width
+    /// Flutter has already given this view and a compressed height, which is
+    /// the size they will really be laid out at.
+    ///
+    /// A degenerate answer (either axis at zero, which happens when the view
+    /// has not been laid out yet) is reported as zero on both axes: the Dart
+    /// side ignores non-positive sizes and keeps its default until a later
+    /// measurement lands, rather than sizing the box to a bad number.
     func intrinsicSize() -> [String: Double] {
         guard let host = hostingController else { return ["width": 0.0, "height": 0.0] }
         host.view.setNeedsLayout()
         host.view.layoutIfNeeded()
-        let fittingSize = host.sizeThatFits(
-            in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude))
-        return ["width": Double(fittingSize.width), "height": Double(fittingSize.height)]
+        var fitting = host.sizeThatFits(
+            in: CGSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude))
+        if !Self.isUsable(fitting), _view.bounds.width > 0 {
+            fitting = host.sizeThatFits(in: CGSize(width: _view.bounds.width, height: 0))
+        }
+        guard Self.isUsable(fitting) else { return ["width": 0.0, "height": 0.0] }
+        return ["width": Double(fitting.width), "height": Double(fitting.height)]
+    }
+
+    /// A measurement Flutter can size a box with: laid out (non-zero) and not
+    /// the unbounded proposal handed straight back. No control here is
+    /// anywhere near this tall or wide, so the bound only ever rejects the
+    /// "I fill whatever you give me" answer.
+    private static func isUsable(_ size: CGSize) -> Bool {
+        let maxSensible: CGFloat = 100_000
+        return size.width > 0 && size.height > 0
+            && size.width < maxSensible && size.height < maxSensible
     }
 }
 

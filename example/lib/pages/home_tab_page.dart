@@ -16,33 +16,38 @@ class HomeTabPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Good Morning',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.36,
-                color: CupertinoColors.label.resolveFrom(context),
-              )),
+          Text(
+            'Good Morning',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.36,
+              color: CupertinoColors.label.resolveFrom(context),
+            ),
+          ),
           const SizedBox(height: 4),
           Text('Thursday, July 10', style: footnoteStyle(context)),
           const SizedBox(height: 16),
           const _HomeCard(
             title: 'Native everywhere',
-            subtitle: 'This Flutter page sits behind a real UIKit tab bar — '
+            subtitle:
+                'This Flutter page sits behind a real UIKit tab bar — '
                 'Liquid Glass, split search tab and all.',
             color: CupertinoColors.systemBlue,
           ),
           const SizedBox(height: 12),
           const _HomeCard(
             title: 'Switch tabs below',
-            subtitle: 'Selection changes are reported back to Flutter, which '
+            subtitle:
+                'Selection changes are reported back to Flutter, which '
                 'swaps this body.',
             color: CupertinoColors.systemPurple,
           ),
           const SizedBox(height: 12),
           const _HomeCard(
             title: 'Try the search tab',
-            subtitle: 'The trailing tab has the native search role and floats '
+            subtitle:
+                'The trailing tab has the native search role and floats '
                 'in its own glass capsule.',
             color: CupertinoColors.systemTeal,
           ),
@@ -76,12 +81,14 @@ class _HomeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: resolved,
-              )),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: resolved,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(subtitle, style: rowTitleStyle(context)),
         ],

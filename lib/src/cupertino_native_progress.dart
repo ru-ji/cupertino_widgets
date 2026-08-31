@@ -50,8 +50,9 @@ class _CupertinoNativeProgressIndicatorState
     };
   }
 
-  void _onPlatformViewCreated(int id) {
+  Future<void> _onPlatformViewCreated(int id) async {
     setUpChannel(id, 'cupertino_widgets/progress_$id');
+    requestIntrinsicSize();
   }
 
   @override
@@ -62,44 +63,34 @@ class _CupertinoNativeProgressIndicatorState
         widget.label != oldWidget.label ||
         widget.style != oldWidget.style ||
         widget.activeColor != oldWidget.activeColor) {
-      updateNativeView('updateProgress', _toMap(), refreshIntrinsicSize: false);
+      updateNativeView('updateProgress', _toMap());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      // Circular progress: fixed 20x20
-      // Linear progress: stretch width, 4 height (or 44 with label)
-      final double? width =
-          widget.style == CupertinoNativeProgressStyle.circular ? 20 : null;
-      final double height = widget.style == CupertinoNativeProgressStyle.linear
-          ? (widget.label != null ? 44 : 4)
-          : 20;
-
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          // For linear style, use available width or default to 200
-          final effectiveWidth =
-              widget.style == CupertinoNativeProgressStyle.circular
-              ? 20.0
-              : (constraints.maxWidth.isInfinite
-                    ? 200.0
-                    : constraints.maxWidth);
-
-          return SizedBox(
-            width: width ?? effectiveWidth,
-            height: height,
-            child: UiKitView(
-              viewType:
-                  'com.example.cupertino_widgets/cupertino_native_progress',
-              layoutDirection: TextDirection.ltr,
-              creationParams: _toMap(),
-              creationParamsCodec: const StandardMessageCodec(),
-              onPlatformViewCreated: _onPlatformViewCreated,
-            ),
-          );
-        },
+      // Circular: SwiftUI's own size, ~20x20. Linear: stretches across the
+      // width offered and reports its height (4pt of track, more with a
+      // label). Both come from `getIntrinsicSize` like the button's; the
+      // numbers below stand in only until that measurement lands.
+      // Circular states both axes; linear fills the width offered and states
+      // only its height. Either way the numbers are SwiftUI's, through the
+      // same `getIntrinsicSize` round trip the button makes — the constants
+      // stand in until the measurement lands.
+      final circular = widget.style == CupertinoNativeProgressStyle.circular;
+      return SizedBox(
+        width: circular ? (intrinsicWidth ?? 20) : null,
+        height: circular
+            ? (intrinsicHeight ?? 20)
+            : (intrinsicHeight ?? (widget.label != null ? 44 : 4)),
+        child: UiKitView(
+          viewType: 'com.example.cupertino_widgets/cupertino_native_progress',
+          layoutDirection: TextDirection.ltr,
+          creationParams: _toMap(),
+          creationParamsCodec: const StandardMessageCodec(),
+          onPlatformViewCreated: _onPlatformViewCreated,
+        ),
       );
     }
 

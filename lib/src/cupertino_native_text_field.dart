@@ -480,7 +480,6 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
       'cupertino_widgets/textfield_$id',
       onMethodCall: _handleMethodCall,
     );
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
     // The view may be created mid-collapse (or already collapsed); align the
     // native content opacity with the current row visibility right away.
@@ -537,23 +536,11 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
 
       final Widget sized;
       if (widget.fillHeight) {
-        // Track the parent's (possibly animating) height so the native view
-        // really resizes — e.g. the app bar's collapsing search slot.
-        sized = LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : 200.0;
-            final height = constraints.maxHeight.isFinite
-                ? constraints.maxHeight
-                : (widget.height ?? intrinsicHeight ?? 52);
-            return SizedBox(
-              width: widget.width ?? width,
-              height: height,
-              child: platformView,
-            );
-          },
-        );
+        // Adopt the parent's (possibly animating) box outright — the app bar's
+        // collapsing search slot — so the native view really resizes with it.
+        sized = widget.width == null
+            ? platformView
+            : SizedBox(width: widget.width, child: platformView);
       } else if (widget.width != null || widget.height != null) {
         sized = SizedBox(
           width: widget.width,
@@ -561,19 +548,8 @@ class _CupertinoNativeTextFieldState extends State<CupertinoNativeTextField>
           child: platformView,
         );
       } else {
-        // Fill available width (like Flutter's TextField); intrinsic height.
-        sized = LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : 200.0;
-            return SizedBox(
-              width: width,
-              height: intrinsicHeight ?? 52,
-              child: platformView,
-            );
-          },
-        );
+        // Fills the width offered, like Flutter's TextField; intrinsic height.
+        sized = SizedBox(height: intrinsicHeight ?? 52, child: platformView);
       }
 
       Widget content = sized;

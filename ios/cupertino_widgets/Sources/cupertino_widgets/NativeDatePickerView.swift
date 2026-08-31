@@ -104,22 +104,34 @@ class NativeDatePickerView: NativeHostingView {
                 "onChanged", arguments: Int(date.timeIntervalSince1970 * 1000))
         }
 
+        setupSwiftUI(isDark: argsMap["isDark"] as? Bool)
+    }
+
+    /// The picker fills the box Flutter built for it — the branch the button
+    /// takes for `expand: true`. Its own size comes back through
+    /// `getIntrinsicSize`, same round trip as the button's.
+    private func setupSwiftUI(isDark: Bool?) {
         attach(AnyView(AdaptiveDatePickerView(model: model)))
         // Follows the app's own (possibly forced) theme, not the device's
         // system appearance — the popped-open calendar/wheel otherwise reads
         // the window's actual interface style.
-        if let isDark = argsMap["isDark"] as? Bool {
+        if let isDark = isDark {
             hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
         }
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "getIntrinsicSize":
+            result(intrinsicSize())
         case "updateDatePicker":
             guard let args = call.arguments as? [String: Any] else {
-                result(FlutterMethodNotImplemented)
+                result(
+                    FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
                 return
             }
+            // No re-attach: the picker's state lives in an `ObservableObject`
+            // this bridge owns, so assigning to it already reaches the view.
             model.suppressCallback = true
             if let date = Self.date(from: args["value"]) { model.date = date }
             if let mode = args["mode"] as? String { model.mode = mode }
@@ -131,8 +143,6 @@ class NativeDatePickerView: NativeHostingView {
                 hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
             }
             result(nil)
-        case "getIntrinsicSize":
-            result(intrinsicSize())
         default:
             result(FlutterMethodNotImplemented)
         }

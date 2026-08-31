@@ -12,4 +12,8 @@ struct ButtonConfig: Codable {
     let fontSize: Double?
     let fontWeight: Int?
     let textColor: Int?
+    /// Explicit point size from Dart. Sizes the SwiftUI control itself, not
+    /// just the Flutter box around it.
+    let width: Double?
+    let height: Double?
 }

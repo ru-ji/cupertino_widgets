@@ -48,7 +48,13 @@ class DemoScaffold extends StatelessWidget {
           largeTitle: title,
           expandedTitle: largeTitle,
           leading: Navigator.canPop(context)
-              ? CupertinoAppBarAction.back(
+              ? CupertinoNativeButton(
+                  icon: CupertinoNativeIcon.symbol(
+                    CupertinoSymbols.chevronBackward,
+                  ),
+                  style: CupertinoNativeButtonStyle.glass,
+                  borderShape: CupertinoNativeButtonBorderShape.circle,
+                  labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
                   onPressed: () => Navigator.pop(context),
                 )
               : null,

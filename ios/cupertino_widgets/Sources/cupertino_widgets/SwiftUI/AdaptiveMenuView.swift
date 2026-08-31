@@ -19,7 +19,13 @@ struct AdaptiveMenuView: View {
             }
         }
 
-        applyMenuButtonStyle(menu)
+        // Same three the button uses: the label style decides what the anchor
+        // shows, the button style draws the material, the border shape decides
+        // its outline. A circle needs `iconOnly` — a label with text is laid
+        // out as a capsule whatever shape is asked for.
+        applyMenuButtonStyle(menu.applyLabelStyle(config.labelStyle))
+            .applyButtonShape(config.borderShape)
+            .applyControlSize(config.controlSize)
     }
 
     @ViewBuilder

@@ -36,6 +36,14 @@ class NativeListFactory: NSObject, FlutterPlatformViewFactory {
 class NativeListView: NativeHostingView {
     private var channel: FlutterMethodChannel?
 
+    /// The toggle-row values the hosted list is actually showing. Same trap as
+    /// the switch and the segmented control: `AdaptiveListView` seeds its
+    /// `@State` from the config once, so a row's value changed from Dart never
+    /// reaches the screen through a root-view swap. Rebuilding the hosting
+    /// controller applies it; every other edit — labels, sections, tint — takes
+    /// the cheap path, which is the common one for a list.
+    private var shownToggles: [String: Bool] = [:]
+
     init(
         frame: CGRect,
         viewIdentifier viewId: Int64,
@@ -51,30 +59,32 @@ class NativeListView: NativeHostingView {
         }
 
         let argsMap = args as? [String: Any]
-        let isDark = (argsMap?["isDark"] as? NSNumber)?.boolValue
         if let argsMap = argsMap, let config = decodeConfig(ListConfig.self, from: argsMap) {
-            createView(config: config, isDark: isDark)
-        } else {
-            createView(
-                config: ListConfig(
-                    variant: "list", style: "insetGrouped", scrollable: false,
-                    isDark: nil, cornerRadius: nil, tint: nil, sections: []),
-                isDark: isDark)
+            setupSwiftUI(with: config, isDark: (argsMap["isDark"] as? NSNumber)?.boolValue)
         }
     }
 
-    private func createView(config: ListConfig, isDark: Bool?) {
+    /// The list fills the box Flutter built for it — the branch the button
+    /// takes for `expand: true`. Its height still travels the same round trip
+    /// as the button's, through the `intrinsicSize()` override below.
+    private func setupSwiftUI(with config: ListConfig, isDark: Bool?) {
+        shownToggles = Self.toggleValues(in: config)
         attach(AnyView(makeContent(config)))
         _view.backgroundColor = .clear
-        // Give the hosting view a content-based intrinsic size so a
-        // scroll-disabled List/Form reports its full height (iOS 16+).
-        if #available(iOS 16.0, *) {
-            hostingController?.sizingOptions = .intrinsicContentSize
-        }
         if let isDark = isDark {
             hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
         }
         scheduleSizeReports()
+    }
+
+    private static func toggleValues(in config: ListConfig) -> [String: Bool] {
+        var values: [String: Bool] = [:]
+        for section in config.sections {
+            for row in section.rows where row.type == "toggle" {
+                values[row.id] = row.toggleValue ?? false
+            }
+        }
+        return values
     }
 
     private func makeContent(_ config: ListConfig) -> AnyView {
@@ -86,6 +96,7 @@ class NativeListView: NativeHostingView {
                         self?.channel?.invokeMethod("onRowTap", arguments: ["id": id])
                     },
                     onToggle: { [weak self] id, value in
+                        self?.shownToggles[id] = value
                         self?.channel?.invokeMethod(
                             "onToggle", arguments: ["id": id, "value": value])
                     }
@@ -103,14 +114,20 @@ class NativeListView: NativeHostingView {
             if let argsMap = call.arguments as? [String: Any],
                 let config = decodeConfig(ListConfig.self, from: argsMap)
             {
-                update(AnyView(makeContent(config)))
-                if let isDark = (argsMap["isDark"] as? NSNumber)?.boolValue {
-                    hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
+                let isDark = (argsMap["isDark"] as? NSNumber)?.boolValue
+                if Self.toggleValues(in: config) == shownToggles {
+                    update(AnyView(makeContent(config)))
+                    if let isDark = isDark {
+                        hostingController?.overrideUserInterfaceStyle = isDark ? .dark : .light
+                    }
+                    scheduleSizeReports()
+                } else {
+                    setupSwiftUI(with: config, isDark: isDark)
                 }
-                scheduleSizeReports()
                 result(nil)
             } else {
-                result(FlutterMethodNotImplemented)
+                result(
+                    FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
             }
         default:
             result(FlutterMethodNotImplemented)

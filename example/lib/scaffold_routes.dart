@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'pages/glass_body.dart';
 import 'pages/new_event_sheet_body.dart';
 import 'pages/profile_tab_page.dart';
 import 'pages/scaffold_bodies.dart';
@@ -19,5 +20,7 @@ Map<String, Widget Function()> scaffoldRoutes() {
     'details': () => const ScaffoldDetailsBody(),
     'searchBody': () => const SearchBody(),
     'newEvent': () => const NewEventSheetBody(),
+    // Hosted inside a glass container (see LiquidGlassDemoPage).
+    'glassNowPlaying': () => const GlassNowPlayingBody(),
   };
 }

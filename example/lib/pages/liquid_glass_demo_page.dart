@@ -67,6 +67,10 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   width: 260,
                   height: 116,
                   padding: const EdgeInsets.all(20),
+                  // `child`: Flutter content composited OVER the glass. It is
+                  // therefore backdrop as far as the material is concerned —
+                  // the clear variant lenses it at the edges. Compare with
+                  // the capsule below.
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -89,7 +93,13 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   ),
                 ),
               ),
-              // Glass capsule pinned to the bottom, like a mini player.
+              // Glass capsule pinned to the bottom, like a mini player —
+              // and the other content mode: `route` instead of `child`, so
+              // the text is hosted INSIDE the glass (SwiftUI applies
+              // `glassEffect` to the hosted Flutter view) rather than
+              // composited over it. Switch the clear variant on and compare
+              // with the card above: this one stays crisp, the card's text is
+              // refracted at the edges because it sits behind the material.
               Positioned(
                 left: 24,
                 right: 24,
@@ -100,14 +110,7 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   tint: _tint,
                   interactive: _interactive,
                   height: 52,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Now Playing — Deep Focus',
-                      style: rowTitleStyle(context),
-                    ),
-                  ),
+                  route: 'glassNowPlaying',
                 ),
               ),
               // A pressable glass circle — onPressed makes the container a

@@ -23,10 +23,17 @@ struct AdaptiveToggleView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
+                // fixedSize keeps the switch at the size UIKit gives it (51x31)
+                // instead of stretching to whatever box Flutter hands the
+                // hosting view. Stretched, the control drew past that box —
+                // unclipped, so the strip spilled onto neighbouring content and
+                // off the screen edge, and showed over the incoming page during
+                // a route transition.
                 Toggle(isOn: binding) {
                     EmptyView()
                 }
                 .labelsHidden()
+                .fixedSize()
             }
         }
         .applyToggleStyle(tintColor)

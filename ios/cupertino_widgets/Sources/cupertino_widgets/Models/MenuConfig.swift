@@ -25,6 +25,12 @@ struct MenuConfiguration: Codable {
     let systemImage: String?
     let items: [MenuItemConfig]
     let style: String?
+    /// "automatic" | "capsule" | "circle" | "roundedRectangle"
+    let borderShape: String?
+    /// "titleAndIcon" | "titleOnly" | "iconOnly"
+    let labelStyle: String?
+    /// "mini" | "small" | "regular" | "large" | "extraLarge"
+    let controlSize: String?
     let color: Int?
     let fontSize: Double?
     let fontWeight: Int?

@@ -1,0 +1,28 @@
+import Foundation
+
+/// Liquid Glass container configuration, decoded from Dart the same way every
+/// other control's config is (`decodeConfig` over the creation params /
+/// update arguments) — see `ButtonConfig`.
+struct GlassConfig: Codable {
+    let shape: String  // "capsule" | "circle" | "roundedRect"
+    let cornerRadius: Double?
+    let variant: String?  // "regular" | "clear"
+    let tint: Int?  // ARGB
+    let interactive: Bool?
+    let pressable: Bool?
+    let icon: IconConfig?
+    /// Explicit point size from Dart, applied as `.frame(width:height:)`.
+    let width: Double?
+    let height: Double?
+    /// Inset between the glass edge and its content, in points.
+    let paddingLeft: Double?
+    let paddingTop: Double?
+    let paddingRight: Double?
+    let paddingBottom: Double?
+    /// A scaffold-style body route. When set, the container hosts a Flutter
+    /// engine on that route as a SwiftUI view and applies `glassEffect` to
+    /// *it* — the content is inside the glass rather than stacked over it.
+    let route: String?
+    /// Fill the box Flutter built rather than hug a native icon.
+    let expand: Bool?
+}

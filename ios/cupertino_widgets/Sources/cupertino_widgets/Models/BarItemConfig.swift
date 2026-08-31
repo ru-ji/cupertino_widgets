@@ -5,6 +5,9 @@ struct BarItemConfig: Codable, Hashable {
     let title: String?
     let icon: IconConfig?
     let actionId: String
+    /// `.buttonStyle(.glass)`. Only meaningful outside the shared background,
+    /// where a bare button would read as plain text.
+    let glass: Bool?
 }
 
 /// One leading/trailing entry: `type == "item"` is a single button (fields
@@ -16,11 +19,18 @@ struct BarEntryConfig: Codable, Hashable {
     let icon: IconConfig?
     let actionId: String?
     let items: [BarItemConfig]?
+    /// `.sharedBackgroundVisibility(.hidden)` on this entry's `ToolbarItem`
+    /// (iOS 26+): the entry leaves the toolbar's shared capsule and carries
+    /// its own background.
+    let sharedBackgroundVisibility: Bool?
+    let glass: Bool?
 
     var asItem: BarItemConfig? {
         guard type == "item", let actionId = actionId else { return nil }
-        return BarItemConfig(title: title, icon: icon, actionId: actionId)
+        return BarItemConfig(title: title, icon: icon, actionId: actionId, glass: glass)
     }
+
+    var hidesSharedBackground: Bool { sharedBackgroundVisibility == true }
 
     var groupItems: [BarItemConfig] {
         if type == "group" { return items ?? [] }

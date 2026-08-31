@@ -55,7 +55,6 @@ class _CupertinoNativeSegmentedControlState
       'cupertino_widgets/segmented_$id',
       onMethodCall: _handleMethodCall,
     );
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
   }
 
@@ -79,7 +78,7 @@ class _CupertinoNativeSegmentedControlState
         // the native control instead of being taken by Flutter's gesture arena.
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         gestureRecognizers: {
-          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+          Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
         },
       );
 

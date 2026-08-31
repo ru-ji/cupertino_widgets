@@ -104,7 +104,7 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CupertinoColors.white,
+      backgroundColor: CupertinoColors.systemBackground.resolveFrom(context),
       body: DefaultTextStyle(
         style: rowTitleStyle(context),
         child: CustomScrollView(
@@ -113,19 +113,39 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
               largeTitle: 'Library',
               subtitle: '128 albums',
               centerTitle: true,
-              leading: CupertinoAppBarAction.back(
+              leading: CupertinoNativeButton(
+                icon: CupertinoNativeIcon.symbol(
+                  CupertinoSymbols.chevronBackward,
+                ),
+                style: CupertinoNativeButtonStyle.glass,
+                borderShape: CupertinoNativeButtonBorderShape.circle,
+                labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
                 onPressed: () => Navigator.pop(context),
               ),
               trailing: [
-                CupertinoAppBarAction(
+                CupertinoNativeButton(
                   icon: CupertinoNativeIcon.symbol(
                     CupertinoSymbols.arrowUpArrowDown,
                   ),
+                  style: CupertinoNativeButtonStyle.glass,
+                  borderShape: CupertinoNativeButtonBorderShape.circle,
+                  labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
                   onPressed: () {},
                 ),
-                CupertinoAppBarAction(label: 'Edit', onPressed: () {}),
+                // A label action is now whatever you want it to be — here the
+                // glass capsule the bar used to build for you.
+                CupertinoNativeGlassContainer(
+                  shape: CupertinoGlassShape.capsule,
+                  interactive: true,
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  onPressed: () {},
+                  child: const Text(
+                    'Edit',
+                    style: TextStyle(decoration: TextDecoration.none),
+                  ),
+                ),
               ],
-              separateTrailing: true,
               searchPlaceholder: 'Artists, Songs, Albums',
               // Kept on screen while the page scrolls: on iOS 26 the row lifts
               // off the content as the title collapses, and turns to glass.

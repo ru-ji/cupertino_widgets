@@ -118,7 +118,6 @@ class _NativeCollectionViewState extends State<NativeCollectionView>
       onMethodCall: _handleMethodCall,
     );
     // Give the native view a layout pass so it can measure content height.
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
   }
 

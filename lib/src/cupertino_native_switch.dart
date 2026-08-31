@@ -59,7 +59,6 @@ class _CupertinoNativeSwitchState extends State<CupertinoNativeSwitch>
       'cupertino_widgets/toggle_$id',
       onMethodCall: _handleMethodCall,
     );
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
   }
 
@@ -86,7 +85,7 @@ class _CupertinoNativeSwitchState extends State<CupertinoNativeSwitch>
         // switch instead of being taken by Flutter's gesture arena.
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         gestureRecognizers: {
-          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+          Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
         },
       );
 
@@ -99,20 +98,10 @@ class _CupertinoNativeSwitchState extends State<CupertinoNativeSwitch>
         );
       }
 
-      // If label is present, fill available width (typical iOS list row behavior)
+      // A labeled switch is a full-width list row: the native side already
+      // fills the box, so only the height needs stating.
       if (widget.label != null) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final double width = constraints.maxWidth.isInfinite
-                ? (intrinsicWidth ?? 200.0)
-                : constraints.maxWidth;
-            return SizedBox(
-              width: width,
-              height: intrinsicHeight ?? 44.0,
-              child: platformView,
-            );
-          },
-        );
+        return SizedBox(height: intrinsicHeight ?? 44.0, child: platformView);
       }
 
       // Use intrinsic size from native view, with defaults until size is received

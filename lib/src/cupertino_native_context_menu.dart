@@ -245,22 +245,24 @@ class _CupertinoNativeContextMenuState extends State<CupertinoNativeContextMenu>
       fit: StackFit.passthrough,
       children: [
         Positioned.fill(
-          child: UiKitView(
-            viewType:
-                'com.example.cupertino_widgets/cupertino_native_context_menu',
-            layoutDirection: TextDirection.ltr,
-            creationParams: _toMap(),
-            creationParamsCodec: const StandardMessageCodec(),
-            // The long-press must reach the native interaction immediately;
-            // inside scrollables Flutter's gesture arena would otherwise
-            // delay and cancel it (same pattern as the glass container).
-            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-            gestureRecognizers: {
-              Factory<OneSequenceGestureRecognizer>(
-                () => EagerGestureRecognizer(),
-              ),
-            },
-            onPlatformViewCreated: _onPlatformViewCreated,
+          child: RepaintBoundary(
+            child: UiKitView(
+              viewType:
+                  'com.example.cupertino_widgets/cupertino_native_context_menu',
+              layoutDirection: TextDirection.ltr,
+              creationParams: _toMap(),
+              creationParamsCodec: const StandardMessageCodec(),
+              // The long-press must reach the native interaction immediately;
+              // inside scrollables Flutter's gesture arena would otherwise
+              // delay and cancel it (same pattern as the glass container).
+              hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+              gestureRecognizers: {
+                Factory<OneSequenceGestureRecognizer>(
+                  () => EagerGestureRecognizer(),
+                ),
+              },
+              onPlatformViewCreated: _onPlatformViewCreated,
+            ),
           ),
         ),
         IgnorePointer(

@@ -23,8 +23,11 @@ class SettingsTabPage extends StatelessWidget {
         SettingsSection(
           header: 'Privacy',
           children: [
-            SettingsRow(title: 'Location Services', value: 'While Using',
-                showChevron: true),
+            SettingsRow(
+              title: 'Location Services',
+              value: 'While Using',
+              showChevron: true,
+            ),
             SettingsRow(title: 'Tracking', showChevron: true),
           ],
         ),

@@ -424,7 +424,7 @@ class NativeScaffoldView: NativeHostingView {
                 }
                 result(nil)
             } else {
-                result(FlutterError(code: "bad_args", message: "Missing isDark", details: nil))
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing isDark", details: nil))
             }
         default:
             result(FlutterMethodNotImplemented)

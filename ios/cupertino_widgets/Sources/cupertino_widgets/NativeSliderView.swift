@@ -54,6 +54,13 @@ class NativeSliderView: NativeHostingView {
             updateViewModel(with: args)
         }
 
+        setupSwiftUI()
+    }
+
+    /// The slider fills the box Flutter built for it — the branch the button
+    /// takes for `expand: true`; a slider has no natural width to hug. Its
+    /// height still comes back through `getIntrinsicSize`, same as the button's.
+    private func setupSwiftUI() {
         let sliderView = AdaptiveSliderView(viewModel: viewModel) { [weak self] value in
             self?.channel.invokeMethod("onChanged", arguments: value)
         }
@@ -65,9 +72,15 @@ class NativeSliderView: NativeHostingView {
         case "getIntrinsicSize":
             result(intrinsicSize())
         case "updateProps":
-            if let args = call.arguments as? [String: Any] {
-                updateViewModel(with: args)
+            guard let args = call.arguments as? [String: Any] else {
+                result(
+                    FlutterError(code: "INVALID_ARGS", message: "Invalid arguments", details: nil))
+                return
             }
+            // No re-attach: the slider's state lives in an `ObservableObject`
+            // this bridge owns, so an assignment already reaches the view —
+            // and rebuilding mid-drag would drop the gesture.
+            updateViewModel(with: args)
             result(nil)
         default:
             result(FlutterMethodNotImplemented)

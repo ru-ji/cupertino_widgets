@@ -29,8 +29,7 @@ class NativeSearchableDemoPage extends StatelessWidget {
           titleDisplayMode: CupertinoNativeToolbarTitleDisplayMode.large,
           search: CupertinoNativeSearchField(
             placeholder: 'Search languages',
-            placement:
-                CupertinoNativeSearchPlacement.navigationBarDrawerAlways,
+            placement: CupertinoNativeSearchPlacement.navigationBarDrawerAlways,
           ),
         ),
         onSearchChanged: (route, query) =>

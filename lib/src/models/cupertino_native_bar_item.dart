@@ -18,11 +18,28 @@ class CupertinoNativeBarItem extends CupertinoNativeBarEntry {
   final CupertinoNativeIcon? icon;
   final String actionId;
 
-  const CupertinoNativeBarItem({required this.actionId, this.title, this.icon})
-    : assert(
-        title != null || icon != null,
-        'Provide a title, an icon, or both',
-      );
+  /// Whether this item opts out of the toolbar's shared background and
+  /// carries its own — SwiftUI's `.sharedBackgroundVisibility(.hidden)` on
+  /// the `ToolbarItem`, iOS 26+. False (the default) leaves it in the shared
+  /// capsule the system draws behind the whole toolbar.
+  final bool sharedBackgroundVisibility;
+
+  /// Whether the button takes the `.glass` style. Only applies with
+  /// [sharedBackgroundVisibility]: outside the shared background an unstyled
+  /// button reads as plain text, so it is on by default — turn it off for
+  /// exactly that plain look. Ignored below iOS 26.
+  final bool glass;
+
+  const CupertinoNativeBarItem({
+    required this.actionId,
+    this.title,
+    this.icon,
+    this.sharedBackgroundVisibility = false,
+    this.glass = true,
+  }) : assert(
+         title != null || icon != null,
+         'Provide a title, an icon, or both',
+       );
 
   @override
   Map<String, dynamic> toMap() {
@@ -31,6 +48,8 @@ class CupertinoNativeBarItem extends CupertinoNativeBarEntry {
       'title': title,
       'icon': icon?.toMap(),
       'actionId': actionId,
+      'sharedBackgroundVisibility': sharedBackgroundVisibility,
+      'glass': glass,
     };
   }
 
@@ -40,11 +59,14 @@ class CupertinoNativeBarItem extends CupertinoNativeBarEntry {
     return other is CupertinoNativeBarItem &&
         other.title == title &&
         other.icon == icon &&
-        other.actionId == actionId;
+        other.actionId == actionId &&
+        other.sharedBackgroundVisibility == sharedBackgroundVisibility &&
+        other.glass == glass;
   }
 
   @override
-  int get hashCode => Object.hash(title, icon, actionId);
+  int get hashCode =>
+      Object.hash(title, icon, actionId, sharedBackgroundVisibility, glass);
 }
 
 /// Several buttons rendered inside ONE shared glass capsule (like the
@@ -54,10 +76,26 @@ class CupertinoNativeBarItem extends CupertinoNativeBarEntry {
 class CupertinoNativeBarItemGroup extends CupertinoNativeBarEntry {
   final List<CupertinoNativeBarItem> items;
 
-  const CupertinoNativeBarItemGroup({required this.items});
+  /// As [CupertinoNativeBarItem.sharedBackgroundVisibility], applied to the
+  /// whole group's toolbar item.
+  final bool sharedBackgroundVisibility;
+
+  const CupertinoNativeBarItemGroup({
+    required this.items,
+    this.sharedBackgroundVisibility = false,
+  });
 
   @override
   Map<String, dynamic> toMap() {
-    return {'type': 'group', 'items': items.map((e) => e.toMap()).toList()};
+    return {
+      'type': 'group',
+      'items': items.map((e) => e.toMap()).toList(),
+      'sharedBackgroundVisibility': sharedBackgroundVisibility,
+    };
   }
 }
+
+/// A navigation-bar action of a [CupertinoNativeAppBar] — the same thing as
+/// [CupertinoNativeBarItem], under the name the native scaffold's bar is
+/// usually described with.
+typedef CupertinoNativeAppBarAction = CupertinoNativeBarItem;

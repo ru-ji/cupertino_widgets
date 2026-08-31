@@ -38,12 +38,14 @@ class ProfileTabPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Text('Casey Rivera',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: CupertinoColors.label.resolveFrom(context),
-            )),
+        Text(
+          'Casey Rivera',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: CupertinoColors.label.resolveFrom(context),
+          ),
+        ),
         Text('casey@example.com', style: footnoteStyle(context)),
         const SizedBox(height: 8),
         const SettingsSection(

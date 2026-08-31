@@ -107,7 +107,6 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
       'cupertino_widgets/date_picker_$id',
       onMethodCall: _handleMethodCall,
     );
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
   }
 
@@ -142,7 +141,7 @@ class _CupertinoNativeDatePickerState extends State<CupertinoNativeDatePicker>
       // opens on first touch, even inside scrollables.
       hitTestBehavior: PlatformViewHitTestBehavior.opaque,
       gestureRecognizers: {
-        Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
       },
     );
 

@@ -138,7 +138,7 @@ CupertinoNativeButton(
 | `icon` | `CupertinoNativeIcon?` | — | SF Symbol or Flutter glyph. Takes precedence over `systemImage`. |
 | `systemImage` | `String?` | — | **Deprecated** — raw SF Symbol name. Use `icon`. |
 | `style` | `CupertinoNativeButtonStyle` | `.automatic` | `automatic`, `filled`, `tinted`, `plain`, `glass`, `glassProminent`. |
-| `controlSize` | `CupertinoNativeControlSize` | `.regular` | `mini`, `small`, `regular`, `large`, `extraLarge`. |
+| `controlSize` | `CupertinoNativeControlSize` | `.regular` | SwiftUI metrics — height, padding, font — not an explicit size. `mini` for tight spaces, `small` for secondary toolbar options, `regular` for everyday controls, `large` for call-to-action, `extraLarge` for full-width or prominent ones (falls back to `large` below iOS 17). |
 | `borderShape` | `CupertinoNativeButtonBorderShape` | `.automatic` | `automatic`, `capsule`, `circle`, `roundedRectangle`. |
 | `labelStyle` | `CupertinoNativeButtonLabelStyle` | `.titleAndIcon` | `titleAndIcon`, `titleOnly`, `iconOnly`. |
 | `expand` | `bool` | `false` | Stretch to the available width. |
@@ -172,6 +172,9 @@ CupertinoNativeMenu(
 | `title` | `String` | `'Options'` | Label of the button that opens the menu. |
 | `systemImage` | `String?` | — | SF Symbol on that button. |
 | `style` | `CupertinoNativeButtonStyle` | `.automatic` | Style of the anchor button. |
+| `borderShape` | `CupertinoNativeButtonBorderShape` | `.automatic` | Outline of the anchor. A `circle` needs `labelStyle: .iconOnly` — an anchor still carrying its title is laid out as a capsule whatever shape is asked for. |
+| `labelStyle` | `CupertinoNativeButtonLabelStyle` | `.titleAndIcon` | Which halves of the anchor show. |
+| `controlSize` | `CupertinoNativeControlSize` | `.regular` | The anchor's metrics. |
 | `activeColor` | `Color?` | — | Tint. |
 | `textStyle` | `TextStyle?` | — | Style of the anchor label. |
 | `width` / `height` | `double?` | — | Explicit size; intrinsic when null. |
@@ -344,9 +347,39 @@ CupertinoNativeGlassContainer(
 
 Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26.
 
+**Content on the glass, or in it.** `child` is composited *over* the native
+view, so the glass treats it as backdrop: with the clear variant you see it
+lensed and doubled at the edges, which is what Liquid Glass does to whatever is
+behind it. `route` puts the content inside instead — the container hosts a
+Flutter engine on that route as a SwiftUI view and applies `glassEffect` to it,
+the arrangement Apple documents:
+
+```dart
+CupertinoNativeGlassContainer(
+  shape: CupertinoGlassShape.capsule,
+  variant: CupertinoGlassVariant.clear,
+  route: 'glass_label',   // registered like a scaffold body
+)
+```
+
+```dart
+void main() {
+  if (CupertinoNativeScaffold.maybeRun({
+    'glass_label': () => const Text('Now Playing'),
+  })) return;
+  runApp(const MyApp());
+}
+```
+
+The route runs in its own isolate, like every scaffold body: it cannot read the
+surrounding widget tree, so pass it what it needs over a channel. `child` stays
+the escape hatch for arbitrary inline content, with the compositing that comes
+with it.
+
 | Parameter | Type | Default | |
 | --- | --- | --- | --- |
 | `child` | `Widget?` | — | Flutter content drawn on top. The glass sizes to it plus `padding`. |
+| `route` | `String?` | — | Body route hosted *inside* the glass. Registered like a scaffold body. |
 | `shape` | `CupertinoGlassShape` | `.roundedRect` | `capsule`, `circle`, `roundedRect`. |
 | `cornerRadius` | `double` | `26` | For `roundedRect`; continuous corners. |
 | `variant` | `CupertinoGlassVariant` | `.regular` | `regular` or the more transparent `clear`. |
@@ -356,7 +389,7 @@ Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26.
 | `icon` | `CupertinoNativeIcon?` | — | Symbol centered in the glass — icon-only button without a child. |
 | `childInteractive` | `bool` | `false` | Let `child` hit-test. Keep false so touches reach the glass. |
 | `padding` | `EdgeInsetsGeometry` | `.zero` | Inset between glass bounds and `child`. |
-| `width` / `height` | `double?` | — | |
+| `width` / `height` | `double?` | — | Explicit size. Left null the glass finds its own: a `child` sizes it (plus `padding`), failing that a native `icon` does — measured by SwiftUI — and with neither it fills the space offered, the way a `Container` with no child does. An empty glass in an unbounded space has nothing to measure, so give it one of the three. |
 
 `CupertinoGlass` — the settings object taken by `CupertinoNativeTextField.glass`:
 `cornerRadius` (`16`), `variant` (`.regular`), `interactive` (`true`), `tint`.
@@ -581,12 +614,29 @@ CustomScrollView(
     CupertinoSliverAppBar.search(
       largeTitle: 'Library',
       subtitle: '128 albums',
-      leading: CupertinoAppBarAction.back(onPressed: () => Navigator.pop(context)),
+      leading: CupertinoNativeButton(
+        icon: CupertinoNativeIcon.symbol(CupertinoSymbols.chevronBackward),
+        style: CupertinoNativeButtonStyle.glass,
+        borderShape: CupertinoNativeButtonBorderShape.circle,
+        labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
+        onPressed: () => Navigator.pop(context),
+      ),
       trailing: [
-        CupertinoAppBarAction(
+        CupertinoNativeButton(
           icon: CupertinoNativeIcon.symbol(CupertinoSymbols.arrowUpArrowDown),
-          onPressed: () {}),
-        CupertinoAppBarAction(label: 'Edit', onPressed: () {}),
+          style: CupertinoNativeButtonStyle.glass,
+          borderShape: CupertinoNativeButtonBorderShape.circle,
+          labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
+          onPressed: () {},
+        ),
+        CupertinoNativeGlassContainer(
+          shape: CupertinoGlassShape.capsule,
+          interactive: true,
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          onPressed: () {},
+          child: const Text('Edit'),
+        ),
       ],
       searchPlaceholder: 'Artists, Songs, Albums',
       bottomMode: NavigationBarBottomMode.always,
@@ -612,12 +662,16 @@ CustomScrollView(
 
 | Parameter | Type | Default | |
 | --- | --- | --- | --- |
-| `leading` | `CupertinoAppBarAction?` | — | `CupertinoAppBarAction.back(onPressed:)` for the iOS 26 back circle. |
-| `trailing` | `List<CupertinoAppBarAction>` | `[]` | Icon-only actions get their own glass circle; label/child actions share one capsule. |
-| `separateTrailing` | `bool` | `false` | Give every trailing action its own capsule. |
+| `leading` | `Widget?` | — | Anything. |
+| `trailing` | `List<Widget>` | `[]` | Anything, laid out in a row with 10pt between entries. |
 
-`CupertinoAppBarAction({icon, label, child, onPressed})` — exactly one of
-`icon` (glass circle), `label` or `child` (glass capsule).
+There is no action type: the bar positions whatever you give it and stays out
+of its way. The iOS 26 bar button is a `CupertinoNativeButton` in the system's
+`.glass` style with the `circle` border shape and the `iconOnly` label style —
+44×44 by default, `controlSize` to shift the metrics, `width`/`height` or an
+enclosing `SizedBox` to override them outright. A glass capsule with text in it
+is a `CupertinoNativeGlassContainer`; several of them in one capsule is one
+container holding a `Row`.
 
 **Bottom slot** — default constructor
 
@@ -648,8 +702,8 @@ CustomScrollView(
 | `tintColor` | `Color?` | — | Tint of the edge effect. Pass your page background when it is not `systemBackground`. |
 
 `CupertinoAppBar` is the non-sliver version, for pages that do not scroll:
-`title`, `subtitle`, `centerTitle`, `leading`, `trailing`, `separateTrailing`,
-`scrollEdgeEffect`, `tintColor`.
+`title`, `subtitle`, `centerTitle`, `leading`, `trailing`, `scrollEdgeEffect`,
+`tintColor`.
 
 ## Scroll Edge Effect
 
@@ -751,8 +805,19 @@ For `CupertinoNativeAppBar.leading` / `.trailing`.
 
 | Type | Fields |
 | --- | --- |
-| `CupertinoNativeBarItem` | `actionId`, `title`, `icon` — renders its own glass capsule |
-| `CupertinoNativeBarItemGroup` | `items` — several buttons sharing one capsule |
+| `CupertinoNativeBarItem` | `actionId`, `title`, `icon`, `sharedBackgroundVisibility` (`false`), `glass` (`true`) |
+| `CupertinoNativeBarItemGroup` | `items`, `sharedBackgroundVisibility` (`false`) — several buttons in one toolbar item |
+
+`CupertinoNativeAppBarAction` is an alias of `CupertinoNativeBarItem`.
+
+`sharedBackgroundVisibility: true` maps to SwiftUI's
+`.sharedBackgroundVisibility(.hidden)` on the entry's `ToolbarItem` (iOS 26+):
+the entry leaves the capsule the system draws behind the whole toolbar and
+carries its own background. `.buttonStyle(.glass)` comes with it — alone
+outside the shared capsule a bare button reads as plain text — so set
+`glass: false` when that plain look is what you want. Left `false`, the entry
+stays in the shared background, unstyled, and both flags are ignored (as they
+are below iOS 26).
 
 ## Tabs
 

@@ -11,8 +11,9 @@ class MyApp extends StatelessWidget {
 
   /// App-wide theme mode — toggled by the home app bar's brightness action.
   /// Starts on the device setting.
-  static final ValueNotifier<ThemeMode> themeMode =
-      ValueNotifier<ThemeMode>(ThemeMode.system);
+  static final ValueNotifier<ThemeMode> themeMode = ValueNotifier<ThemeMode>(
+    ThemeMode.system,
+  );
 
   @override
   Widget build(BuildContext context) {

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import 'callbacks.dart';
 import 'internal/native_platform_view_mixin.dart';
+import 'models/cupertino_native_button_extra_options.dart';
 import 'models/cupertino_native_menu_item.dart';
 import 'models/cupertino_native_button_style.dart';
 
@@ -12,6 +13,20 @@ class CupertinoNativeMenu extends StatefulWidget {
   final String title;
   final String? systemImage;
   final CupertinoNativeButtonStyle style;
+
+  /// Outline of the button that opens the menu. With a glass [style] this is
+  /// all that separates a capsule from a circle.
+  final CupertinoNativeButtonBorderShape borderShape;
+
+  /// Which halves of the anchor the button shows. A circular
+  /// [borderShape] needs [CupertinoNativeButtonLabelStyle.iconOnly] — an anchor
+  /// still carrying its title is laid out as a capsule whatever shape is asked
+  /// for — so pair the two for the icon-only glass circle the bar uses.
+  final CupertinoNativeButtonLabelStyle labelStyle;
+
+  /// The anchor's metrics — height, padding and font — rather than an explicit
+  /// size.
+  final CupertinoNativeControlSize controlSize;
   final Color? activeColor;
   final TextStyle? textStyle;
   final List<CupertinoNativeMenuItem> items;
@@ -25,6 +40,9 @@ class CupertinoNativeMenu extends StatefulWidget {
     this.title = 'Options',
     this.systemImage,
     this.style = CupertinoNativeButtonStyle.automatic,
+    this.borderShape = CupertinoNativeButtonBorderShape.automatic,
+    this.labelStyle = CupertinoNativeButtonLabelStyle.titleAndIcon,
+    this.controlSize = CupertinoNativeControlSize.regular,
     this.activeColor,
     this.textStyle,
     this.onAction,
@@ -73,6 +91,9 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
       'systemImage': widget.systemImage,
       'items': widget.items.map((e) => e.toMap()).toList(),
       'style': widget.style.name,
+      'borderShape': widget.borderShape.name,
+      'labelStyle': widget.labelStyle.name,
+      'controlSize': widget.controlSize.name,
       'color': widget.activeColor?.toARGB32(),
       'fontSize': widget.textStyle?.fontSize,
       'fontWeight': widget.textStyle?.fontWeight?.value,
@@ -87,7 +108,6 @@ class _CupertinoNativeMenuState extends State<CupertinoNativeMenu>
       'cupertino_widgets/menu_$id',
       onMethodCall: _handleMethodCall,
     );
-    await Future.delayed(const Duration(milliseconds: 50));
     requestIntrinsicSize();
   }
 

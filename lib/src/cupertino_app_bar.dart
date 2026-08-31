@@ -2,6 +2,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 
+import 'cupertino_native_button.dart';
+import 'models/cupertino_native_button_style.dart';
+import 'models/cupertino_native_button_extra_options.dart';
 import 'cupertino_native_glass_container.dart';
 import 'cupertino_native_tab_bar.dart' show CupertinoScrollEdgeEffectStyle;
 import 'cupertino_native_text_field.dart';
@@ -13,50 +16,14 @@ import 'search_row_visibility.dart';
 
 export 'search_row_visibility.dart' show CupertinoSearchRowVisibility;
 
-/// A bar button of [CupertinoSliverAppBar]/[CupertinoAppBar], rendered as a
-/// Liquid Glass control on iOS 26 — an **icon** becomes a 44pt glass circle
-/// (like the iOS 26 back button / Photos "…"), a **label** becomes a glass
-/// capsule (like Photos "Select"), and [child] embeds any drawn widget in a
-/// capsule.
-class CupertinoAppBarAction {
-  const CupertinoAppBarAction({
-    this.icon,
-    this.label,
-    this.child,
-    required this.onPressed,
-  }) : assert(
-         icon != null || label != null || child != null,
-         'Provide an icon, a label, or a child',
-       );
-
-  /// The iOS 26 back button: a glass circle with just the back chevron.
-  factory CupertinoAppBarAction.back({required VoidCallback onPressed}) =>
-      CupertinoAppBarAction(
-        icon: CupertinoNativeIcon.symbol(CupertinoSymbols.chevronBackward),
-        onPressed: onPressed,
-      );
-
-  /// SF Symbol — rendered natively, centered in a glass circle.
-  final CupertinoNativeIcon? icon;
-
-  /// Text — rendered in a glass capsule.
-  final String? label;
-
-  /// Arbitrary drawn content — rendered in a glass capsule.
-  final Widget? child;
-
-  final VoidCallback onPressed;
-
-  bool get _isIconOnly => icon != null && label == null && child == null;
-}
-
 /// An iOS 26-style navigation bar drawn in Flutter.
 ///
 /// SwiftUI's navigation title can't be hosted standalone in Flutter, so these
 /// widgets recreate the iOS 26 look: no solid background or hairline — the
 /// bar floats on a [CupertinoScrollEdgeEffect]; the large title collapses
-/// with the system blur-morph; [leading]/[trailing] are Liquid Glass buttons
-/// ([CupertinoAppBarAction]); the title sits centered ([centerTitle], the
+/// with the system blur-morph; [leading]/[trailing] take any widget — a
+/// `.glass` [CupertinoNativeButton] is the iOS 26 bar button, but a [Text] or
+/// anything else works; the title sits centered ([centerTitle], the
 /// default) or right after [leading], with an optional [subtitle].
 ///
 /// The default constructor takes an optional [bottom] widget under the large
@@ -82,7 +49,6 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.collapseTitle = true,
     this.leading,
     this.trailing = const [],
-    this.separateTrailing = false,
     this.bottom,
     this.bottomHeight = 44,
     this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.soft,
@@ -112,7 +78,6 @@ class CupertinoSliverAppBar extends StatefulWidget {
     this.collapseTitle = true,
     this.leading,
     this.trailing = const [],
-    this.separateTrailing = false,
     this.searchPlaceholder,
     this.searchStyle,
     this.searchPrefixIcon,
@@ -150,14 +115,16 @@ class CupertinoSliverAppBar extends StatefulWidget {
   /// (true, the default) or right after [leading].
   final bool centerTitle;
 
-  final CupertinoAppBarAction? leading;
+  /// Leading bar content — anything. A [CupertinoNativeButton] with
+  /// `style: glass, borderShape: circle` is the iOS 26 bar button; a plain
+  /// [Text] or a [CupertinoNativeGlassContainer] works just as well. The bar
+  /// positions it and stays out of its way.
+  final Widget? leading;
 
-  /// Trailing actions. Icon-only actions always get their own glass circle;
-  /// label/child actions share one capsule (the `glassEffectUnion` look)
-  /// unless [separateTrailing] is true.
-  final List<CupertinoAppBarAction> trailing;
-
-  final bool separateTrailing;
+  /// Trailing bar content, laid out in a row with 10pt between entries. Group
+  /// several into one glass capsule by passing a single
+  /// [CupertinoNativeGlassContainer] holding them.
+  final List<Widget> trailing;
 
   /// Widget under the large title (default constructor only). Unlike the
   /// search row, it is **always visible** — when scrolling, the large title
@@ -490,13 +457,7 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
     if (!isIOS26OrLater) {
       final trailingRow = widget.trailing.isEmpty
           ? null
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final action in widget.trailing)
-                  _fallbackAction(context, action)!,
-              ],
-            );
+          : Row(mainAxisSize: MainAxisSize.min, children: widget.trailing);
       if (widget._searchable) {
         // Pre-iOS 26 look: Flutter's own search bar; the iOS 26-only glass
         // icon properties don't apply here and are ignored.
@@ -508,13 +469,13 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           ),
           bottomMode: widget.bottomMode,
           largeTitle: Text(widget.largeTitle),
-          leading: _fallbackAction(context, widget.leading),
+          leading: widget.leading,
           trailing: trailingRow,
         );
       }
       return CupertinoSliverNavigationBar(
         largeTitle: Text(widget.largeTitle),
-        leading: _fallbackAction(context, widget.leading),
+        leading: widget.leading,
         trailing: trailingRow,
         bottom: widget.bottom == null
             ? null
@@ -528,23 +489,22 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
       );
     }
     final theme = CupertinoTheme.of(context);
-    // Built once per build (not per animation tick): identical child
-    // instances let elements/render objects be reused across ticks.
-    final actionStyle = theme.textTheme.textStyle.copyWith(
-      decoration: TextDecoration.none,
-    );
-    final leading = widget.leading == null
+    final leading = widget.leading;
+    final trailing = widget.trailing.isEmpty
         ? null
-        : _GlassActionButton(action: widget.leading!, labelStyle: actionStyle);
-    final trailing = _buildTrailing(actionStyle);
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 10,
+            children: widget.trailing,
+          );
     final closeButton = !widget._searchable
         ? null
-        : CupertinoNativeGlassContainer(
-            shape: CupertinoGlassShape.circle,
-            interactive: true,
-            width: 44,
-            height: 44,
+        : CupertinoNativeButton(
             icon: CupertinoNativeIcon.symbol(CupertinoSymbols.xmark, size: 20),
+            style: CupertinoNativeButtonStyle.glass,
+            borderShape: CupertinoNativeButtonBorderShape.circle,
+            labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
+            controlSize: CupertinoNativeControlSize.large,
             onPressed: () => _setSearchActive(false),
           );
     // The bottom slot: the built-in search field (.search) or the user's
@@ -651,66 +611,6 @@ class _CupertinoSliverAppBarState extends State<CupertinoSliverAppBar>
           ),
         ),
       ),
-    );
-  }
-
-  /// Trailing row: icon-only actions get their own circle; label/child
-  /// actions share one capsule unless separated.
-  Widget? _buildTrailing(TextStyle labelStyle) {
-    if (widget.trailing.isEmpty) return null;
-    final children = <Widget>[];
-    final grouped = <CupertinoAppBarAction>[];
-
-    void flushGroup() {
-      if (grouped.isEmpty) return;
-      if (grouped.length == 1 || widget.separateTrailing) {
-        for (final action in grouped) {
-          children.add(
-            _GlassActionButton(action: action, labelStyle: labelStyle),
-          );
-        }
-      } else {
-        children.add(
-          _GlassActionUnion(actions: List.of(grouped), labelStyle: labelStyle),
-        );
-      }
-      grouped.clear();
-    }
-
-    for (final action in widget.trailing) {
-      if (action._isIconOnly || widget.separateTrailing) {
-        flushGroup();
-        children.add(
-          _GlassActionButton(action: action, labelStyle: labelStyle),
-        );
-      } else {
-        grouped.add(action);
-      }
-    }
-    flushGroup();
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          children[i],
-        ],
-      ],
-    );
-  }
-
-  Widget? _fallbackAction(BuildContext context, CupertinoAppBarAction? action) {
-    if (action == null) return null;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: action.onPressed,
-      child:
-          action.child ??
-          Text(
-            action.label ?? 'Back',
-            style: CupertinoTheme.of(context).textTheme.navActionTextStyle,
-          ),
     );
   }
 }
@@ -1110,7 +1010,15 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
                       : Stack(
                           alignment: Alignment.center,
                           children: [
-                            inlineTitleBlock,
+                            // Buttons first, collapsed title LAST — the
+                            // opposite of the large title below, and for the
+                            // opposite reason. The large title scrolls
+                            // *behind* the glass and has to be under it to be
+                            // refracted; the collapsed title sits between the
+                            // buttons and never passes behind them, so
+                            // nothing is lost by painting it on top — and on
+                            // top it stays in the Flutter surface above the
+                            // native views instead of the one under them.
                             if (leading != null)
                               Align(
                                 alignment: Alignment.centerLeft,
@@ -1127,6 +1035,7 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
                                   child: trailing!,
                                 ),
                               ),
+                            inlineTitleBlock,
                           ],
                         ),
                 ),
@@ -1223,72 +1132,6 @@ class _SearchSlot extends StatelessWidget {
 
 /// One action as its own glass control: circle for icon-only, capsule
 /// otherwise — sized like the iOS 26 system bars (44pt).
-class _GlassActionButton extends StatelessWidget {
-  const _GlassActionButton({required this.action, required this.labelStyle});
-
-  final CupertinoAppBarAction action;
-  final TextStyle labelStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    if (action._isIconOnly) {
-      return CupertinoNativeGlassContainer(
-        shape: CupertinoGlassShape.circle,
-        interactive: true,
-        width: 44,
-        height: 44,
-        // SwiftUI toolbar glyphs render ~20pt in the 44pt glass circle —
-        // the global 17pt default looks undersized here.
-        icon: action.icon!.withDefaultSize(20),
-        onPressed: action.onPressed,
-      );
-    }
-    return CupertinoNativeGlassContainer(
-      shape: CupertinoGlassShape.capsule,
-      interactive: true,
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      onPressed: action.onPressed,
-      child: action.child ?? Text(action.label!, style: labelStyle),
-    );
-  }
-}
-
-/// Adjacent label/child actions sharing one glass capsule — the
-/// `glassEffectUnion` look of native toolbars.
-class _GlassActionUnion extends StatelessWidget {
-  const _GlassActionUnion({required this.actions, required this.labelStyle});
-
-  final List<CupertinoAppBarAction> actions;
-  final TextStyle labelStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoNativeGlassContainer(
-      shape: CupertinoGlassShape.capsule,
-      interactive: true,
-      childInteractive: true,
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) const SizedBox(width: 18),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: actions[i].onPressed,
-              child:
-                  actions[i].child ??
-                  Text(actions[i].label!, style: labelStyle),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 /// The inline (non-collapsing) variant: a pinned 44pt bar floating on the
 /// scroll-edge effect, with the same glass actions, title alignment and
 /// subtitle. Place it in a `Stack` over your scrollable. Falls back to
@@ -1301,7 +1144,6 @@ class CupertinoAppBar extends StatelessWidget {
     this.centerTitle = true,
     this.leading,
     this.trailing = const [],
-    this.separateTrailing = false,
     this.scrollEdgeEffect = CupertinoScrollEdgeEffectStyle.soft,
     this.tintColor,
   });
@@ -1309,9 +1151,8 @@ class CupertinoAppBar extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool centerTitle;
-  final CupertinoAppBarAction? leading;
-  final List<CupertinoAppBarAction> trailing;
-  final bool separateTrailing;
+  final Widget? leading;
+  final List<Widget> trailing;
   final CupertinoScrollEdgeEffectStyle scrollEdgeEffect;
   final Color? tintColor;
 
@@ -1319,20 +1160,7 @@ class CupertinoAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = CupertinoTheme.of(context);
     if (!isIOS26OrLater) {
-      return CupertinoNavigationBar(
-        middle: Text(title),
-        leading: leading == null
-            ? null
-            : GestureDetector(
-                onTap: leading!.onPressed,
-                child:
-                    leading!.child ??
-                    Text(
-                      leading!.label ?? 'Back',
-                      style: theme.textTheme.navActionTextStyle,
-                    ),
-              ),
-      );
+      return CupertinoNavigationBar(middle: Text(title), leading: leading);
     }
     final topPadding = MediaQuery.paddingOf(context).top;
     final titleStyle = theme.textTheme.navTitleTextStyle.copyWith(
@@ -1343,10 +1171,6 @@ class CupertinoAppBar extends StatelessWidget {
       decoration: TextDecoration.none,
       color: CupertinoColors.secondaryLabel.resolveFrom(context),
     );
-    final actionStyle = theme.textTheme.textStyle.copyWith(
-      decoration: TextDecoration.none,
-    );
-
     final titleBlock = subtitle == null
         ? Text(title, style: titleStyle)
         : Column(
@@ -1359,15 +1183,12 @@ class CupertinoAppBar extends StatelessWidget {
               Text(subtitle!, style: subtitleStyle),
             ],
           );
-    final leadingWidget = leading == null
-        ? null
-        : _GlassActionButton(action: leading!, labelStyle: actionStyle);
-    final trailingWidgets = [
-      for (var i = 0; i < trailing.length; i++) ...[
-        if (i > 0) const SizedBox(width: 10),
-        _GlassActionButton(action: trailing[i], labelStyle: actionStyle),
-      ],
-    ];
+    final leadingWidget = leading;
+    final trailingRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 10,
+      children: trailing,
+    );
 
     return SizedBox(
       height: topPadding + 44,
@@ -1411,14 +1232,15 @@ class CupertinoAppBar extends StatelessWidget {
                             child: titleBlock,
                           ),
                         ),
-                        ...trailingWidgets,
+                        if (trailing.isNotEmpty) trailingRow,
                       ],
                     ),
                   )
                 : Stack(
                     alignment: Alignment.center,
+                    // Title painted last, over the native buttons — see the
+                    // collapsing bar's Stack for why.
                     children: [
-                      titleBlock,
                       if (leadingWidget != null)
                         Align(
                           alignment: Alignment.centerLeft,
@@ -1427,17 +1249,15 @@ class CupertinoAppBar extends StatelessWidget {
                             child: leadingWidget,
                           ),
                         ),
-                      if (trailingWidgets.isNotEmpty)
+                      if (trailing.isNotEmpty)
                         Align(
                           alignment: Alignment.centerRight,
                           child: Padding(
                             padding: const EdgeInsets.only(right: 16),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: trailingWidgets,
-                            ),
+                            child: trailingRow,
                           ),
                         ),
+                      titleBlock,
                     ],
                   ),
           ),

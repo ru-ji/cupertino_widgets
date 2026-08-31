@@ -25,7 +25,8 @@ class _SliderDemoPageState extends State<SliderDemoPage> {
       children: [
         SettingsSection(
           header: 'Ringtone and Alerts',
-          footer: 'The slider is a native UISlider — drag it and the value '
+          footer:
+              'The slider is a native UISlider — drag it and the value '
               'streams back to Flutter live.',
           children: [
             _SliderTile(

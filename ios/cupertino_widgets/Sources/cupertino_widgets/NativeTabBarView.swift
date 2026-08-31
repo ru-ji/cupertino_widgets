@@ -258,7 +258,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
                 rebuildBars(selectedIndex: selectedIndex)
                 result(nil)
             } else {
-                result(FlutterError(code: "bad_args", message: "Missing items", details: nil))
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing items", details: nil))
             }
         case "setLayout":
             if let args = call.arguments as? [String: Any] {
@@ -271,7 +271,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
                 rebuildBars(selectedIndex: selectedIndex)
                 result(nil)
             } else {
-                result(FlutterError(code: "bad_args", message: "Missing layout", details: nil))
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing layout", details: nil))
             }
         case "setSelectedIndex":
             if let args = call.arguments as? [String: Any],
@@ -280,7 +280,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
                 applySelection(idx)
                 result(nil)
             } else {
-                result(FlutterError(code: "bad_args", message: "Missing index", details: nil))
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing index", details: nil))
             }
         case "setStyle":
             if let args = call.arguments as? [String: Any] {
@@ -304,7 +304,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
                 }
                 result(nil)
             } else {
-                result(FlutterError(code: "bad_args", message: "Missing style", details: nil))
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing style", details: nil))
             }
         case "setBrightness":
             if let args = call.arguments as? [String: Any],
@@ -313,7 +313,7 @@ class NativeTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate {
                 container.overrideUserInterfaceStyle = isDark ? .dark : .light
                 result(nil)
             } else {
-                result(FlutterError(code: "bad_args", message: "Missing isDark", details: nil))
+                result(FlutterError(code: "INVALID_ARGS", message: "Missing isDark", details: nil))
             }
         default:
             result(FlutterMethodNotImplemented)
