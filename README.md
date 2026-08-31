@@ -341,55 +341,68 @@ CupertinoNativeGlassContainer(
   variant: CupertinoGlassVariant.clear,  // .regular (default) or .clear
   interactive: true,                     // system touch shimmer
   onPressed: () {},                      // makes it a glass button
-  child: Text('Now Playing'),            // Flutter content on top of the glass
+  route: 'now_playing',                  // Flutter content INSIDE the glass
 )
 ```
 
 Check `CupertinoNativeGlassContainer.isSupported` to branch below iOS 26.
 
-**Content on the glass, or in it.** `child` is composited *over* the native
-view, so the glass treats it as backdrop: with the clear variant you see it
-lensed and doubled at the edges, which is what Liquid Glass does to whatever is
-behind it. `route` puts the content inside instead — the container hosts a
-Flutter engine on that route as a SwiftUI view and applies `glassEffect` to it,
-the arrangement Apple documents:
+**Content goes inside the glass.** `route` hosts a Flutter engine as a SwiftUI
+view and applies `glassEffect` to it — the arrangement Apple documents
+(`content.glassEffect(...)`), so the content is drawn above the material rather
+than refracted through it. It is live Flutter: `setState`, Riverpod,
+animations, gestures, all of it runs in there as it does anywhere else.
 
 ```dart
-CupertinoNativeGlassContainer(
-  shape: CupertinoGlassShape.capsule,
-  variant: CupertinoGlassVariant.clear,
-  route: 'glass_label',   // registered like a scaffold body
-)
+CupertinoNativeGlassContainer(shape: CupertinoGlassShape.capsule, route: 'now_playing')
 ```
 
 ```dart
 void main() {
   if (CupertinoNativeScaffold.maybeRun({
-    'glass_label': () => const Text('Now Playing'),
+    'now_playing': () => const NowPlayingLabel(),
   })) return;
   runApp(const MyApp());
 }
 ```
 
 The route runs in its own isolate, like every scaffold body: it cannot read the
-surrounding widget tree, so pass it what it needs over a channel. `child` stays
-the escape hatch for arbitrary inline content, with the compositing that comes
-with it.
+surrounding widget tree, so pass it what it needs over a channel. Its engine is
+parked in the shared pool when the container goes away, so a container that
+scrolls out of view and back re-attaches instead of re-booting.
+
+With no `route` and no `icon`, the container is glass and nothing else — size
+it and stack whatever you like over it in Flutter. That is compositing: the
+material treats the widget as backdrop and refracts it at the edges, plainly
+visible with the clear variant.
+
+**Animating.** Two paths, and each is the cheap one for what it animates.
+
+`animateChanges` covers everything the native side owns — tint, variant, shape,
+corner radius. Dart sends the target once and CoreAnimation interpolates, so
+the transition costs a single message instead of one per frame and stays smooth
+while the Dart thread is busy.
+
+Size is the other path. Drive `width`/`height` from Flutter — a
+`TweenAnimationBuilder`, an `AnimatedBuilder`, anything — and the glass follows
+frame for frame at no cost: the platform view's frame *is* the box Flutter
+built, so the material fills it with nothing sent natively. The container
+compares what it last sent before touching the channel, so those rebuilds stop
+in Dart. Leave `animateChanges` off for that: the box is already animating.
 
 | Parameter | Type | Default | |
 | --- | --- | --- | --- |
-| `child` | `Widget?` | — | Flutter content drawn on top. The glass sizes to it plus `padding`. |
-| `route` | `String?` | — | Body route hosted *inside* the glass. Registered like a scaffold body. |
+| `route` | `String?` | — | Live Flutter content inside the glass, hosted as an engine. Registered like a scaffold body. |
 | `shape` | `CupertinoGlassShape` | `.roundedRect` | `capsule`, `circle`, `roundedRect`. |
 | `cornerRadius` | `double` | `26` | For `roundedRect`; continuous corners. |
 | `variant` | `CupertinoGlassVariant` | `.regular` | `regular` or the more transparent `clear`. |
 | `tint` | `Color?` | — | Tint mixed into the material. |
 | `interactive` | `bool` | `false` | System touch shimmer. |
+| `animateChanges` | `bool` | `false` | Interpolate tint/variant/shape changes on the SwiftUI side. |
 | `onPressed` | `VoidCallback?` | — | Makes the container a glass button. |
-| `icon` | `CupertinoNativeIcon?` | — | Symbol centered in the glass — icon-only button without a child. |
-| `childInteractive` | `bool` | `false` | Let `child` hit-test. Keep false so touches reach the glass. |
-| `padding` | `EdgeInsetsGeometry` | `.zero` | Inset between glass bounds and `child`. |
-| `width` / `height` | `double?` | — | Explicit size. Left null the glass finds its own: a `child` sizes it (plus `padding`), failing that a native `icon` does — measured by SwiftUI — and with neither it fills the space offered, the way a `Container` with no child does. An empty glass in an unbounded space has nothing to measure, so give it one of the three. |
+| `icon` | `CupertinoNativeIcon?` | — | Symbol rendered natively, centered in the glass. |
+| `padding` | `EdgeInsetsGeometry` | `.zero` | Inset between glass bounds and its content. |
+| `width` / `height` | `double?` | — | Explicit size, animatable from Dart. Left null a native `icon` or a `route` body is measured by SwiftUI; with neither the glass fills the space offered. |
 
 `CupertinoGlass` — the settings object taken by `CupertinoNativeTextField.glass`:
 `cornerRadius` (`16`), `variant` (`.regular`), `interactive` (`true`), `tint`.
@@ -629,13 +642,11 @@ CustomScrollView(
           labelStyle: CupertinoNativeButtonLabelStyle.iconOnly,
           onPressed: () {},
         ),
-        CupertinoNativeGlassContainer(
-          shape: CupertinoGlassShape.capsule,
-          interactive: true,
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+        CupertinoNativeButton(
+          title: 'Edit',
+          style: CupertinoNativeButtonStyle.glass,
+          borderShape: CupertinoNativeButtonBorderShape.capsule,
           onPressed: () {},
-          child: const Text('Edit'),
         ),
       ],
       searchPlaceholder: 'Artists, Songs, Albums',
@@ -670,8 +681,7 @@ of its way. The iOS 26 bar button is a `CupertinoNativeButton` in the system's
 `.glass` style with the `circle` border shape and the `iconOnly` label style —
 44×44 by default, `controlSize` to shift the metrics, `width`/`height` or an
 enclosing `SizedBox` to override them outright. A glass capsule with text in it
-is a `CupertinoNativeGlassContainer`; several of them in one capsule is one
-container holding a `Row`.
+is a `.glass` `CupertinoNativeButton` with the `capsule` border shape.
 
 **Bottom slot** — default constructor
 

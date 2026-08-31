@@ -133,17 +133,12 @@ class _AppBarDemoPageState extends State<AppBarDemoPage> {
                   onPressed: () {},
                 ),
                 // A label action is now whatever you want it to be — here the
-                // glass capsule the bar used to build for you.
-                CupertinoNativeGlassContainer(
-                  shape: CupertinoGlassShape.capsule,
-                  interactive: true,
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                // system's own glass capsule button, whose text is native.
+                CupertinoNativeButton(
+                  title: 'Edit',
+                  style: CupertinoNativeButtonStyle.glass,
+                  borderShape: CupertinoNativeButtonBorderShape.capsule,
                   onPressed: () {},
-                  child: const Text(
-                    'Edit',
-                    style: TextStyle(decoration: TextDecoration.none),
-                  ),
                 ),
               ],
               searchPlaceholder: 'Artists, Songs, Albums',

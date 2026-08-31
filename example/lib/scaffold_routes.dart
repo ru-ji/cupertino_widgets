@@ -22,5 +22,6 @@ Map<String, Widget Function()> scaffoldRoutes() {
     'newEvent': () => const NewEventSheetBody(),
     // Hosted inside a glass container (see LiquidGlassDemoPage).
     'glassNowPlaying': () => const GlassNowPlayingBody(),
+    'glassCard': () => const GlassCardBody(),
   };
 }

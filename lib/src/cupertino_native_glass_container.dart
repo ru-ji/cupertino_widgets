@@ -63,16 +63,21 @@ class CupertinoGlass {
 
 /// A container backed by the iOS 26 **Liquid Glass** material
 /// (SwiftUI's `.glassEffect`). The glass is a real native view that refracts
-/// whatever Flutter content is rendered behind it; [child] is ordinary Flutter
-/// content composited on top, so it stays fully interactive.
+/// whatever is rendered behind it.
+///
+/// Content goes *inside* the glass — a native [icon], or a Flutter [route]
+/// hosted as a SwiftUI view that `glassEffect` wraps. It is live Flutter:
+/// `setState`, Riverpod, animations, all of it runs normally in there.
 ///
 /// ```dart
 /// CupertinoNativeGlassContainer(
 ///   shape: CupertinoGlassShape.capsule,
-///   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-///   child: Text('Now Playing'),
+///   route: 'now_playing',
 /// )
 /// ```
+///
+/// With neither, it is glass and nothing else — size it and stack whatever you
+/// like over it in Flutter.
 ///
 /// **Availability:** the refractive effect requires iOS 26+. On iOS 15–25 the
 /// native side renders a static `ultraThinMaterial` approximation so layouts
@@ -81,7 +86,7 @@ class CupertinoGlass {
 class CupertinoNativeGlassContainer extends StatefulWidget {
   const CupertinoNativeGlassContainer({
     super.key,
-    this.child,
+    this.route,
     this.shape = CupertinoGlassShape.roundedRect,
     this.cornerRadius = 26,
     this.variant = CupertinoGlassVariant.regular,
@@ -89,32 +94,21 @@ class CupertinoNativeGlassContainer extends StatefulWidget {
     this.interactive = false,
     this.onPressed,
     this.icon,
-    this.childInteractive = false,
     this.padding = EdgeInsets.zero,
     this.width,
     this.height,
-    this.route,
+    this.animateChanges = false,
   });
-
-  /// Flutter content drawn on top of the glass. The glass sizes itself to the
-  /// child (plus [padding]) unless [width]/[height] are given.
-  ///
-  /// This content is composited *over* the native view, so the glass treats
-  /// it as backdrop and refracts it at the edges — visible with the clear
-  /// variant, where nothing veils it. Use [route] for content that belongs
-  /// inside the glass instead.
-  final Widget? child;
 
   /// A body route whose Flutter content is hosted *inside* the glass.
   ///
   /// The container spawns a Flutter engine on this route and applies
   /// `glassEffect` to the hosted view itself — the SwiftUI arrangement Apple
-  /// documents (`content.glassEffect(...)`), rather than a native surface
-  /// with Flutter stacked over it. The content is then real glass content:
-  /// drawn above the material, crisp, and never lensed at the edges.
+  /// documents (`content.glassEffect(...)`). The content is then real glass
+  /// content: drawn above the material, crisp, never lensed at the edges.
   ///
   /// The route is registered exactly like a [CupertinoNativeScaffold] body —
-  /// `CupertinoNativeScaffold.maybeRun({'glass_label': () => ...})` in
+  /// `CupertinoNativeScaffold.maybeRun({'now_playing': () => ...})` in
   /// `main()`. It runs in its own isolate, so it cannot read the surrounding
   /// widget tree's state; talk to it over a channel, as scaffold bodies do.
   final String? route;
@@ -141,24 +135,27 @@ class CupertinoNativeGlassContainer extends StatefulWidget {
   final VoidCallback? onPressed;
 
   /// SF Symbol (or Flutter glyph) rendered natively, centered in the glass —
-  /// the easy way to make an icon-only glass button without a Flutter child.
+  /// the easy way to make an icon-only glass button.
   final CupertinoNativeIcon? icon;
 
-  /// Whether [child] participates in hit testing. Defaults to false so every
-  /// touch falls through to the glass itself ([interactive] shimmer,
-  /// [onPressed]); set true when the child contains buttons, sliders or other
-  /// widgets that must receive their own touches.
-  final bool childInteractive;
-
-  /// Inset between the glass bounds and [child].
+  /// Inset between the glass bounds and its content.
   final EdgeInsetsGeometry padding;
 
-  /// Explicit size. Left null the glass finds its own, in this order: a
-  /// [child] sizes it (plus [padding]); failing that a native [icon] does,
-  /// measured by SwiftUI; and with neither it fills the space offered, the way
-  /// a `Container` with no child does. An empty glass in an unbounded space
-  /// has nothing to fill and falls back to a standard 44pt control, so it is
-  /// visible rather than collapsed — pass a size to mean anything else.
+  /// Whether config changes — tint, variant, shape, corner radius — animate
+  /// on the SwiftUI side instead of snapping.
+  ///
+  /// Dart sends the target once and CoreAnimation interpolates, so the
+  /// transition costs a single message rather than one per frame, and stays
+  /// smooth even while the Dart thread is busy. Size is not part of this:
+  /// [width]/[height] are the Flutter box, so animate them from Dart with a
+  /// `TweenAnimationBuilder` — that path already sends nothing natively.
+  final bool animateChanges;
+
+  /// Explicit size. Left null the glass finds its own: a native [icon] or a
+  /// [route] body is measured by SwiftUI, and with neither the glass fills the
+  /// space offered, the way a `Container` with no child does. An empty glass
+  /// in an unbounded space has nothing to fill and falls back to a standard
+  /// 44pt control, so it is visible rather than collapsed.
   final double? width;
   final double? height;
 
@@ -193,16 +190,18 @@ class _CupertinoNativeGlassContainerState
       'interactive': widget.interactive,
       'pressable': widget.onPressed != null,
       'icon': widget.icon?.toMap(),
-      // Sized and inset natively too, not just boxed by Flutter: the glass
-      // material is painted around the SwiftUI content, so a frame Flutter
-      // knows about and SwiftUI doesn't paints the wrong shape.
-      'width': widget.width,
-      'height': widget.height,
+      // No width/height here on purpose. The platform view's frame IS the
+      // box Flutter built, so the glass fills it and already has the size the
+      // caller asked for. Restating it natively would mean a channel round
+      // trip per frame of a size animation — and a stale native frame for
+      // every frame that has not landed yet, which is the shape fighting the
+      // box. Animate width/height from Dart and nothing is sent at all.
       'paddingLeft': _padding.left,
       'paddingTop': _padding.top,
       'paddingRight': _padding.right,
       'paddingBottom': _padding.bottom,
       'route': widget.route,
+      'animated': widget.animateChanges,
       'expand': !_hugsContent,
     };
   }
@@ -222,35 +221,29 @@ class _CupertinoNativeGlassContainerState
 
   /// Whether a native [icon] is the only thing sizing this container — the one
   /// case where the glass hugs its own content, exactly as the button does
-  /// without `expand`. A Flutter child, an explicit size, or nothing at all
-  /// means the glass fills the box Flutter builds instead; the native side has
-  /// no way to see a Flutter child, so hugging one paints a glass of no size.
+  /// without `expand`. An explicit size, or nothing at all, means the glass
+  /// fills the box Flutter builds instead.
   bool get _hugsContent =>
-      (widget.icon != null || widget.route != null) &&
-      widget.child == null &&
-      widget.width == null &&
-      widget.height == null;
+      _hasNativeContent && widget.width == null && widget.height == null;
 
   /// Content the native side can measure — a symbol or a hosted body.
   bool get _hasNativeContent => widget.icon != null || widget.route != null;
 
+  /// What the native side was last told, so a rebuild that changes nothing it
+  /// can see costs nothing. A `TweenAnimationBuilder` driving width/height
+  /// rebuilds this widget every frame and none of those frames reach here.
+  Map<String, dynamic>? _sentConfig;
+
   @override
   void didUpdateWidget(covariant CupertinoNativeGlassContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.shape != widget.shape ||
-        oldWidget.cornerRadius != widget.cornerRadius ||
-        oldWidget.variant != widget.variant ||
-        oldWidget.tint != widget.tint ||
-        oldWidget.interactive != widget.interactive ||
-        oldWidget.icon != widget.icon ||
-        oldWidget.route != widget.route ||
-        oldWidget.padding != widget.padding ||
-        (oldWidget.child == null) != (widget.child == null) ||
-        oldWidget.width != widget.width ||
-        oldWidget.height != widget.height ||
-        (oldWidget.onPressed != null) != (widget.onPressed != null)) {
-      updateNativeView('updateGlass', _toMap());
-    }
+    final config = _toMap();
+    if (mapEquals(_sentConfig, config)) return;
+    _sentConfig = config;
+    // The intrinsic-size round trip is only for a container that hugs its own
+    // content; asking for it on every update would put a retry loop behind
+    // every config change.
+    updateNativeView('updateGlass', config, refreshIntrinsicSize: _hugsContent);
   }
 
   Future<void> _onPlatformViewCreated(int id) async {
@@ -259,9 +252,10 @@ class _CupertinoNativeGlassContainerState
       'cupertino_widgets/liquid_glass_$id',
       onMethodCall: _handleMethodCall,
     );
-    // Only a native [icon] gives the hosted view something to measure. With a
-    // Flutter child, or with nothing, SwiftUI has no content and answers zero
-    // — six retried round trips for an answer this widget would discard.
+    // Only native content gives the hosted view something to measure; with
+    // nothing, SwiftUI answers zero — retried round trips for an answer this
+    // widget would discard.
+    _sentConfig = _toMap();
     if (_hugsContent) requestIntrinsicSize();
   }
 
@@ -302,21 +296,7 @@ class _CupertinoNativeGlassContainerState
             : const {},
         onPlatformViewCreated: _onPlatformViewCreated,
       );
-      final child = widget.child;
-      content = child == null
-          ? glass
-          : Stack(
-              // Center the child when the box is forced bigger than it (e.g. an
-              // explicit height with intrinsic width).
-              alignment: Alignment.center,
-              children: [
-                Positioned.fill(child: glass),
-                IgnorePointer(
-                  ignoring: !widget.childInteractive,
-                  child: Padding(padding: widget.padding, child: child),
-                ),
-              ],
-            );
+      content = glass;
     } else {
       // Non-iOS fallback: a translucent rounded box.
       Widget box = DecoratedBox(
@@ -335,10 +315,7 @@ class _CupertinoNativeGlassContainerState
               ? BoxShape.circle
               : BoxShape.rectangle,
         ),
-        child: Padding(
-          padding: widget.padding,
-          child: widget.child ?? const SizedBox.shrink(),
-        ),
+        child: Padding(padding: widget.padding, child: const SizedBox.shrink()),
       );
       if (widget.onPressed != null) {
         box = GestureDetector(
@@ -350,7 +327,7 @@ class _CupertinoNativeGlassContainerState
       content = box;
     }
 
-    // Four ways to a size, in order of authority.
+    // Three ways to a size, in order of authority.
     //
     // 1. What the caller asked for.
     if (widget.width != null || widget.height != null) {
@@ -360,12 +337,9 @@ class _CupertinoNativeGlassContainerState
         child: content,
       );
     }
-    // 2. A Flutter [child]: the glass wraps it, plus [padding] — the stack
-    //    already sizes to it.
-    if (widget.child != null) return content;
-    // 3. A native [icon] and nothing else: SwiftUI measured the glyph and the
-    //    material around it, so take that — the same `getIntrinsicSize` round
-    //    trip the button makes, with the same standing default until it lands.
+    // 2. Native content: SwiftUI measured the glyph (or the hosted body) and
+    //    the material around it, so take that — the same `getIntrinsicSize`
+    //    round trip the button makes, with the same default until it lands.
     if (_hasNativeContent) {
       return SizedBox(
         width: intrinsicWidth ?? _defaultExtent,
@@ -373,7 +347,7 @@ class _CupertinoNativeGlassContainerState
         child: content,
       );
     }
-    // 4. Empty. Fill the space offered, the way a `Container` with no child
+    // 3. Empty. Fill the space offered, the way a `Container` with no child
     //    does. Where the space is unbounded there is nothing to fill, and the
     //    zero this used to limit to is why an empty glass never appeared: a box
     //    of no height paints no material. It falls back to a standard control

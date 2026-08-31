@@ -168,16 +168,11 @@ class _NativeZooProbePageState extends State<NativeZooProbePage> {
           ),
           _row(
             'Glass capsule + label',
-            CupertinoNativeGlassContainer(
-              shape: CupertinoGlassShape.capsule,
-              interactive: true,
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            CupertinoNativeButton(
+              title: 'Edit',
+              style: CupertinoNativeButtonStyle.glass,
+              borderShape: CupertinoNativeButtonBorderShape.capsule,
               onPressed: () {},
-              child: Builder(
-                builder: (context) =>
-                    Text('Edit', style: rowTitleStyle(context)),
-              ),
             ),
           ),
           _row(

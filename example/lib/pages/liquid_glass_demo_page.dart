@@ -56,7 +56,11 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
           child: Stack(
             children: [
               const Positioned.fill(child: _Backdrop()),
-              // Glass card — Flutter text composited on top of native glass.
+              // Glass card — its content is hosted INSIDE the glass by
+              // `route`: SwiftUI applies `glassEffect` to the hosted Flutter
+              // view, so the text is drawn above the material rather than
+              // refracted through it. It is a live engine — state and
+              // animations work in there as anywhere else.
               Center(
                 child: CupertinoNativeGlassContainer(
                   shape: CupertinoGlassShape.roundedRect,
@@ -64,42 +68,15 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
+                  // Tint and variant changes are interpolated by SwiftUI:
+                  // one message, then CoreAnimation. Try the tint segments.
+                  animateChanges: true,
                   width: 260,
                   height: 116,
-                  padding: const EdgeInsets.all(20),
-                  // `child`: Flutter content composited OVER the glass. It is
-                  // therefore backdrop as far as the material is concerned —
-                  // the clear variant lenses it at the edges. Compare with
-                  // the capsule below.
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Liquid Glass',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.none,
-                          color: CupertinoColors.label.resolveFrom(context),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Native refraction · Flutter content',
-                        style: footnoteStyle(context),
-                      ),
-                    ],
-                  ),
+                  route: 'glassCard',
                 ),
               ),
-              // Glass capsule pinned to the bottom, like a mini player —
-              // and the other content mode: `route` instead of `child`, so
-              // the text is hosted INSIDE the glass (SwiftUI applies
-              // `glassEffect` to the hosted Flutter view) rather than
-              // composited over it. Switch the clear variant on and compare
-              // with the card above: this one stays crisp, the card's text is
-              // refracted at the edges because it sits behind the material.
+              // Glass capsule pinned to the bottom, like a mini player.
               Positioned(
                 left: 24,
                 right: 24,
@@ -109,7 +86,11 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
+                  // Tint and variant changes are interpolated by SwiftUI:
+                  // one message, then CoreAnimation. Try the tint segments.
+                  animateChanges: true,
                   height: 52,
+
                   route: 'glassNowPlaying',
                 ),
               ),
@@ -123,6 +104,9 @@ class _LiquidGlassDemoPageState extends State<LiquidGlassDemoPage> {
                   variant: _variant,
                   tint: _tint,
                   interactive: _interactive,
+                  // Tint and variant changes are interpolated by SwiftUI:
+                  // one message, then CoreAnimation. Try the tint segments.
+                  animateChanges: true,
                   width: 56,
                   height: 56,
                   icon: CupertinoNativeIcon.symbol(CupertinoSymbols.paintbrush),

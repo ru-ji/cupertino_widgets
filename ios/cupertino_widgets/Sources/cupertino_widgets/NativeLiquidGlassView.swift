@@ -42,6 +42,13 @@ class NativeLiquidGlassView: NativeHostingView {
     /// boot, and parked (not destroyed) if the same route comes back.
     private var bodyEngine: FlutterEngine?
     private var bodyRoute: String?
+    private var lastConfig: GlassConfig?
+    /// What the SwiftUI view observes. Owned here because the engine it
+    /// carries is this view's to spawn and to park.
+    private var model: GlassViewModel?
+    /// Layout mode the hosting controller was attached with. A config change
+    /// that does not cross this line only needs a new root view.
+    private var attachedExpanded: Bool?
 
     init(
         frame: CGRect,
@@ -74,18 +81,40 @@ class NativeLiquidGlassView: NativeHostingView {
     /// glass container's content is the Flutter child composited on top, which
     /// the native side never sees.
     private func setupSwiftUI(with config: GlassConfig) {
+        lastConfig = config
+        let expanded = config.expand == true
+        let engine = engine(for: config)
+
+        // The SwiftUI view is built ONCE and fed by an observable model from
+        // then on. Rebuilding the root view — never mind re-attaching, which
+        // tears down the UIHostingController — throws away the view identity
+        // SwiftUI needs to diff and to animate: a tint change would snap, and
+        // a hosted engine's view would be pulled out of the hierarchy and put
+        // back. Publishing the config instead lets SwiftUI redraw only what
+        // moved, and `withAnimation` gives CoreAnimation the transition for
+        // free.
+        if let model, attachedExpanded == expanded {
+            model.update(config, engine: engine, animated: config.animated == true)
+            return
+        }
+
+        let model = GlassViewModel(config: config, engine: engine)
+        self.model = model
+        attachedExpanded = expanded
         let content = AnyView(
-            AdaptiveLiquidGlassView(config: config, engine: engine(for: config)) {
-                [weak self] in
+            AdaptiveLiquidGlassView(model: model) { [weak self] in
                 self?.channel?.invokeMethod("pressed", arguments: nil)
             })
-        guard config.expand != true else {
+
+        // `expand` is what Dart sends when an explicit size — not a native
+        // icon — gives this container its size: fill the box Flutter built.
+        guard !expanded else {
             attach(content)
             return
         }
-        // No Flutter child and no explicit size: the glass is measured like a
-        // button, hugging the icon and the material around it, and
-        // `getIntrinsicSize` hands that back so Flutter can build the box.
+        // No explicit size: the glass is measured like a button, hugging its
+        // content, and `getIntrinsicSize` hands that back so Flutter can build
+        // the box.
         attach(content) { host, container in
             host.setContentHuggingPriority(.required, for: .horizontal)
             host.setContentHuggingPriority(.required, for: .vertical)
@@ -104,14 +133,29 @@ class NativeLiquidGlassView: NativeHostingView {
     private func engine(for config: GlassConfig) -> FlutterEngine? {
         guard let route = config.route else { return nil }
         if let bodyEngine, bodyRoute == route { return bodyEngine }
-        bodyEngine?.viewController = nil
-        let engine =
-            NativeScaffoldView.takePooledEngine(route: route)
-            ?? NativeScaffoldView.sharedEngineGroup.makeEngine(
+        if let bodyEngine, let bodyRoute {
+            NativeScaffoldView.parkEngine(bodyEngine, route: bodyRoute)
+        }
+        let engine: FlutterEngine
+        if let pooled = NativeScaffoldView.takePooledEngine(route: route) {
+            // Already booted AND already registered — asking for a registrar a
+            // second time is itself the failure ("Duplicate plugin key"), so
+            // registration belongs only on the freshly spawned branch.
+            engine = pooled
+        } else {
+            engine = NativeScaffoldView.sharedEngineGroup.makeEngine(
                 withEntrypoint: nil, libraryURI: nil,
                 initialRoute: "cn-scaffold://\(route)")
-        if let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin") {
-            FlutterCupertinoPlugin.register(with: registrar)
+            // Register this plugin's platform-view factories on the spawned
+            // engine so the hosted body can use package widgets of its own.
+            // Asked only once per engine: `registrar(forPlugin:)` asserts on a
+            // key it has already handed out, so the check is the guard, not
+            // the result.
+            if !engine.hasPlugin("FlutterCupertinoPlugin"),
+                let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin")
+            {
+                FlutterCupertinoPlugin.register(with: registrar)
+            }
         }
         bodyEngine = engine
         bodyRoute = route
@@ -119,7 +163,12 @@ class NativeLiquidGlassView: NativeHostingView {
     }
 
     deinit {
-        bodyEngine?.viewController = nil
+        // Park rather than drop: a glass container that scrolls out of a list
+        // and back, or lives on a page that is pushed and popped, would
+        // otherwise pay a full engine boot on every remount.
+        if let bodyEngine, let bodyRoute {
+            NativeScaffoldView.parkEngine(bodyEngine, route: bodyRoute)
+        }
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -142,17 +191,72 @@ class NativeLiquidGlassView: NativeHostingView {
     }
 }
 
+
+/// What the hosted SwiftUI view observes.
+///
+/// Config arrives from Dart as a value; publishing it — rather than rebuilding
+/// the view around a new one — is what keeps SwiftUI's view identity stable,
+/// which is the precondition for both minimal redraws and animated
+/// transitions.
+@available(iOS 15.0, *)
+final class GlassViewModel: ObservableObject {
+    @Published private(set) var config: GlassConfig
+    /// Engine rendering the `route` body, when there is one.
+    @Published private(set) var engine: FlutterEngine?
+
+    init(config: GlassConfig, engine: FlutterEngine?) {
+        self.config = config
+        self.engine = engine
+    }
+
+    /// Applies a new config, optionally as a spring transition. Identical
+    /// configs are dropped: `@Published` fires on every set, animated or not.
+    func update(_ config: GlassConfig, engine: FlutterEngine?, animated: Bool) {
+        guard config != self.config || engine !== self.engine else { return }
+        let apply = {
+            self.config = config
+            self.engine = engine
+        }
+        if animated {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.75), apply)
+        } else {
+            apply()
+        }
+    }
+}
+
 @available(iOS 15.0, *)
 struct AdaptiveLiquidGlassView: View {
-    let config: GlassConfig
-    /// Engine rendering the `route` body, when there is one.
-    let engine: FlutterEngine?
+    @ObservedObject var model: GlassViewModel
     let onPressed: () -> Void
 
+    private var config: GlassConfig { model.config }
     private var expand: Bool { config.expand ?? false }
     private var tint: Color? { config.tint.map { Color(argb: $0) } }
 
+    /// A container that fills the box Flutter built is drawn only once that
+    /// box is real. A platform view exists before Flutter has committed its
+    /// layout, and a first pass at a degenerate size paints a shape of that
+    /// size — a flash of wrong geometry on presentation and page transitions.
+    /// An empty frame for one pass is not noticeable; a mis-shaped one is.
+    ///
+    /// Only in that mode: a container that hugs its own content must be free
+    /// to state its size, and `GeometryReader` answers with the space offered
+    /// instead, which would collapse the measurement.
     var body: some View {
+        if expand {
+            GeometryReader { geometry in
+                if geometry.size.width > 0, geometry.size.height > 0 {
+                    glassBody
+                }
+            }
+        } else {
+            glassBody
+        }
+    }
+
+    @ViewBuilder
+    private var glassBody: some View {
         if #available(iOS 26.0, *) {
             // The shape Apple's "Applying Liquid Glass to custom views" asks
             // for, in its order: content, then the padding, then the frame,
@@ -189,7 +293,7 @@ struct AdaptiveLiquidGlassView: View {
     /// track, which is a container that renders but never responds.
     @ViewBuilder
     private var base: some View {
-        if let engine, #available(iOS 16.0, *) {
+        if let engine = model.engine, #available(iOS 16.0, *) {
             // The Flutter body as a SwiftUI view — so `glassEffect` captures
             // it the way it captures a `Text` or an `Image`, and the content
             // ends up *in* the material instead of composited over it. This
@@ -208,9 +312,10 @@ struct AdaptiveLiquidGlassView: View {
         }
     }
 
-    /// Sized, inset, ready for the material. An explicit `width`/`height` from
-    /// Dart wins; otherwise the glass either fills the box Flutter built
-    /// (`expand`) or hugs the icon so `getIntrinsicSize` can measure it.
+    /// Inset, sized, ready for the material: the glass either fills the box
+    /// Flutter built (`expand` — which is where an explicit width/height from
+    /// the caller lands, since that box *is* that size) or hugs its content so
+    /// `getIntrinsicSize` can measure it.
     @ViewBuilder
     private var content: some View {
         // Padding before the frame, not after: an inset applied last would
@@ -221,7 +326,7 @@ struct AdaptiveLiquidGlassView: View {
         // like a control instead of like a glyph.
         base
             .padding(insets)
-            .applySize(width: config.width, height: config.height, expand: expand)
+            .applyGlassExpand(expand)
     }
 
     private var insets: EdgeInsets {
@@ -280,22 +385,10 @@ struct AdaptiveLiquidGlassView: View {
 
 @available(iOS 15.0, *)
 extension View {
-    /// `.frame(width:height:)` when Dart sent a size, the full box when
-    /// Flutter owns it, and the view's own size otherwise (an icon-only
-    /// container, which is measured and reported back to Flutter).
-    @ViewBuilder
-    func applySize(width: Double?, height: Double?, expand: Bool) -> some View {
-        if width != nil || height != nil {
-            self.frame(width: width.map { CGFloat($0) }, height: height.map { CGFloat($0) })
-        } else if expand {
-            self.frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            self
-        }
-    }
-
-    /// Stretches the pre-26 material across the box Flutter built, in both
-    /// axes. (On iOS 26 the same job is done by `content`.)
+    /// Fills the box Flutter built, in both axes — which is where an explicit
+    /// width/height from the caller ends up. Left alone otherwise, so an
+    /// icon-only container keeps the size SwiftUI measures it at and reports
+    /// that back to Flutter.
     @ViewBuilder
     func applyGlassExpand(_ expand: Bool) -> some View {
         if expand {

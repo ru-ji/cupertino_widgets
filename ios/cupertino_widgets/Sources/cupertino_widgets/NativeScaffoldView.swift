@@ -128,7 +128,9 @@ class NativeScaffoldView: NativeHostingView {
             let engine = sharedEngineGroup.makeEngine(
                 withEntrypoint: nil, libraryURI: nil,
                 initialRoute: "cn-scaffold://\(route)?dark=\(isDark ? 1 : 0)")
-            if let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin") {
+            if !engine.hasPlugin("FlutterCupertinoPlugin"),
+                let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin")
+            {
                 FlutterCupertinoPlugin.register(with: registrar)
             }
             pooledEngines[route] = engine
@@ -138,6 +140,16 @@ class NativeScaffoldView: NativeHostingView {
     /// Hands over a prewarmed engine for `route`, if one is parked.
     static func takePooledEngine(route: String) -> FlutterEngine? {
         return pooledEngines.removeValue(forKey: route)
+    }
+
+    /// Parks a detached engine back in the pool, so the next view on the same
+    /// route re-attaches it instead of paying a fresh Dart boot. Dropped on
+    /// the floor if that route is already parked — one parked engine per
+    /// route, not one per view that ever existed.
+    static func parkEngine(_ engine: FlutterEngine, route: String) {
+        engine.viewController = nil
+        guard pooledEngines[route] == nil else { return }
+        pooledEngines[route] = engine
     }
 
     deinit {
@@ -301,8 +313,12 @@ class NativeScaffoldView: NativeHostingView {
                     initialRoute: "cn-scaffold://\(route)?dark=\(currentIsDark ? 1 : 0)")
             // Register this plugin's platform-view factories on the spawned
             // engine so package widgets (buttons, toggles, ...) work inside
-            // scaffold bodies too.
-            if let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin") {
+            // scaffold bodies too. Guarded: a pooled engine already carries
+            // the plugin, and `registrar(forPlugin:)` asserts on a duplicate
+            // key rather than returning nil.
+            if !engine.hasPlugin("FlutterCupertinoPlugin"),
+                let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin")
+            {
                 FlutterCupertinoPlugin.register(with: registrar)
             }
         }

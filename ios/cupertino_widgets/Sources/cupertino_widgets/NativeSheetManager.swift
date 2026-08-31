@@ -64,7 +64,9 @@ final class NativeSheetManager: NSObject, UIAdaptivePresentationControllerDelega
             engine = NativeScaffoldView.sharedEngineGroup.makeEngine(
                 withEntrypoint: nil, libraryURI: nil,
                 initialRoute: "cn-scaffold://\(route)?dark=\(isDark ? 1 : 0)")
-            if let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin") {
+            if !engine.hasPlugin("FlutterCupertinoPlugin"),
+                let registrar = engine.registrar(forPlugin: "FlutterCupertinoPlugin")
+            {
                 FlutterCupertinoPlugin.register(with: registrar)
             }
         }
