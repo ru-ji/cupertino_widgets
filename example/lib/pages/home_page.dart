@@ -14,6 +14,7 @@ import 'effects_demo_page.dart';
 import 'liquid_glass_demo_page.dart';
 import 'menu_demo_page.dart';
 import 'native_list_form_demo_page.dart';
+import 'edge_effect_probe_page.dart';
 import 'native_scaffold_demo_page.dart';
 import 'native_searchable_demo_page.dart';
 import 'progress_demo_page.dart';
@@ -148,6 +149,13 @@ class HomePage extends StatelessWidget {
                           const StandaloneTabBarDemoPage(),
                           'square.grid.2x2',
                           CupertinoColors.systemPink,
+                        ),
+                        _row(
+                          context,
+                          'Scroll Edge Effect',
+                          const EdgeEffectProbePage(),
+                          'square.stack.3d.down.right',
+                          CupertinoColors.systemTeal,
                         ),
                         _row(
                           context,
