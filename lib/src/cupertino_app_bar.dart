@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/rendering.dart'
+    show OverScrollHeaderStretchConfiguration;
 
 import 'cupertino_native_button.dart';
 import 'models/cupertino_native_button_style.dart';
@@ -765,13 +767,46 @@ class _IOS26SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     return value < minExtent ? minExtent : value;
   }
 
+  /// Lets the header grow into the over-scroll instead of staying pinned at
+  /// its own height.
+  ///
+  /// This is what makes the title and the search row travel with a pull-down,
+  /// the way they do in a SwiftUI `NavigationStack` — there the large title
+  /// and the `.searchable` field are part of the scrolled content, and only
+  /// the toolbar buttons are anchored. Without it the header holds still while
+  /// the list rubber-bands underneath it, which reads as the content coming
+  /// unstuck from its own title.
+  ///
+  /// Nothing else has to change for that: the bar row is pinned to the top of
+  /// the header, while the title and the search row are anchored to its
+  /// bottom, so they follow the growth on their own.
+  @override
+  OverScrollHeaderStretchConfiguration? get stretchConfiguration =>
+      _stretchConfiguration;
+
+  static final OverScrollHeaderStretchConfiguration _stretchConfiguration =
+      OverScrollHeaderStretchConfiguration();
+
   @override
   Widget build(
     BuildContext context,
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    final height = (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
+    // The real box, which a stretch makes taller than `maxExtent - shrink`.
+    // Read rather than computed, so the over-scroll growth reaches the
+    // measurements below (the search slot's position, the edge effect's
+    // reach) instead of only the widgets that happen to be bottom-anchored.
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _build(context, shrinkOffset, constraints.maxHeight),
+    );
+  }
+
+  Widget _build(BuildContext context, double shrinkOffset, double boxHeight) {
+    final height = boxHeight.isFinite
+        ? boxHeight
+        : (maxExtent - shrinkOffset).clamp(minExtent, maxExtent);
     // Scroll the header has absorbed beyond its own collapse (a pinned sliver
     // keeps reporting it; see [consumedBySearch]).
     final titleOvershoot = !collapseTitle
