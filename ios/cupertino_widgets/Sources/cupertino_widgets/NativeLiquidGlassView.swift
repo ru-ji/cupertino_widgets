@@ -60,6 +60,8 @@ class NativeLiquidGlassView: NativeHostingView {
 
         channel = FlutterMethodChannel(
             name: "cupertino_widgets/liquid_glass_\(viewId)", binaryMessenger: messenger)
+        // Push measurements instead of waiting to be polled.
+        sizeChannel = channel
         channel?.setMethodCallHandler({
             [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             self?.handle(call, result: result)
@@ -83,6 +85,10 @@ class NativeLiquidGlassView: NativeHostingView {
     private func setupSwiftUI(with config: GlassConfig) {
         lastConfig = config
         let expanded = config.expand == true
+        // Filling the box: nothing here has a size of its own to report, and
+        // measuring anyway produced the 10x10 that a glass circle was briefly
+        // sized to.
+        measuresIntrinsicSize = !expanded
         let engine = engine(for: config)
 
         // The SwiftUI view is built ONCE and fed by an observable model from

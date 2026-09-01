@@ -45,6 +45,8 @@ class NativeSliderView: NativeHostingView {
 
         super.init()
 
+        // Push measurements instead of waiting to be polled.
+        sizeChannel = channel
         channel.setMethodCallHandler({
             [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             self?.handle(call, result: result)

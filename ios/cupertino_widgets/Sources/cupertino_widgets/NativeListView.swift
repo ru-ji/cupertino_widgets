@@ -54,6 +54,8 @@ class NativeListView: NativeHostingView {
 
         channel = FlutterMethodChannel(
             name: "cupertino_widgets/list_\(viewId)", binaryMessenger: messenger)
+        // Push measurements instead of waiting to be polled.
+        sizeChannel = channel
         channel?.setMethodCallHandler { [weak self] call, result in
             self?.handle(call, result: result)
         }

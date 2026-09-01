@@ -1,6 +1,7 @@
 import 'package:cupertino_widgets/cupertino_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Scaffold;
+import 'package:haze/haze.dart';
 
 import '../widgets/settings_ui.dart';
 
@@ -42,6 +43,74 @@ class _NativeZooProbePageState extends State<NativeZooProbePage> {
               'painted over it. Only the right third of this page passes '
               'under the incoming one.',
           children: [_pushRow(context)],
+        ),
+        // Does the native content stay inside the box Flutter built for it?
+        // The zoo's rows are flush to the screen edge, so an overflow there is
+        // indistinguishable from the screen clipping it. These two are inset
+        // and sit on a tinted box that IS the Flutter box, so the answer is
+        // just "does the switch stick out of the colour".
+        //
+        //  * Sticks out of BOTH  -> SwiftUI draws past the frame it is given,
+        //    and the container needs to clip.
+        //  * Sticks out of the 51 only -> the Dart-side default is stale and
+        //    the box is simply too small until the measurement lands.
+        _header('Sizing'),
+        // The one that matters now. No outer box at all, so the colour IS the
+        // widget's own box — the size it asked for. Tight around the switch
+        // means the native measurement arrived and was applied; loose or
+        // overflowing means the widget is still on its Dart-side default.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Row(
+            children: [
+              const _BoxedSwitchLabel('Its own box (measured)'),
+              ColoredBox(
+                color: const Color(0x330000FF),
+                child: CupertinoNativeSwitch(
+                  value: _toggle,
+                  onChanged: (v) => setState(() => _toggle = v),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Row(
+            children: [
+              const _BoxedSwitchLabel('Default box (51)'),
+              ColoredBox(
+                color: const Color(0x3300FF00),
+                child: SizedBox(
+                  width: 51,
+                  height: 31,
+                  child: CupertinoNativeSwitch(
+                    value: _toggle,
+                    onChanged: (v) => setState(() => _toggle = v),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Row(
+            children: [
+              const _BoxedSwitchLabel('Roomy box (80)'),
+              ColoredBox(
+                color: const Color(0x33FF0000),
+                child: SizedBox(
+                  width: 80,
+                  height: 44,
+                  child: CupertinoNativeSwitch(
+                    value: _toggle,
+                    onChanged: (v) => setState(() => _toggle = v),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         _header('Controls'),
         ...[
@@ -193,6 +262,52 @@ class _NativeZooProbePageState extends State<NativeZooProbePage> {
               ),
             ),
           ),
+          SizedBox(
+            height: 300,
+            width: MediaQuery.of(context).size.width,
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: 100,
+                  child: CupertinoNativeButton(
+                    title: 'Glass',
+                    style: CupertinoNativeButtonStyle.glassProminent,
+                    borderShape: CupertinoNativeButtonBorderShape.capsule,
+                    onPressed: () {},
+                  ),
+                ),
+
+                Positioned(
+                  bottom: 0,
+                  left: 100,
+                  child: Container(
+                    height: 50,
+                    width: 100,
+                    color: CupertinoColors.activeBlue,
+                    child: Text(
+                      'Button',
+                      style: TextStyle(color: CupertinoColors.white),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  height: 300,
+                  width: 300,
+                  child: Haze(
+                    edge: HazeEdge.top,
+                    sigma: 50,
+                    falloff: 1,
+                    plateau: .3,
+                    tint: CupertinoDynamicColor.resolve(
+                      CupertinoColors.systemBackground,
+                      context,
+                    ),
+                    tintOpacity: .8,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
         // Full-width hosts: these cover the right third on their own.
         SettingsSection(
@@ -283,6 +398,16 @@ class _NativeZooProbePageState extends State<NativeZooProbePage> {
       ],
     ),
   );
+}
+
+class _BoxedSwitchLabel extends StatelessWidget {
+  const _BoxedSwitchLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Expanded(child: Text(text, style: rowTitleStyle(context)));
 }
 
 /// Blank: anything visible over it during the push came from the

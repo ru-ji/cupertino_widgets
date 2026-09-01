@@ -43,6 +43,8 @@ class NativeButtonView: NativeHostingView {
 
         channel = FlutterMethodChannel(
             name: "cupertino_widgets/button_\(viewId)", binaryMessenger: messenger)
+        // Push measurements instead of waiting to be polled.
+        sizeChannel = channel
         channel?.setMethodCallHandler({
             [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             self?.handle(call, result: result)

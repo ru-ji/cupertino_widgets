@@ -104,11 +104,17 @@ class _CupertinoNativeSwitchState extends State<CupertinoNativeSwitch>
         return SizedBox(height: intrinsicHeight ?? 44.0, child: platformView);
       }
 
-      // Use intrinsic size from native view, with defaults until size is received
-      // Default: 51x31 for bare toggle
+      // Native measurement, with a default for the frame or two before it
+      // lands. 65x32 is iOS 26's reported 61x28 plus the margin the native
+      // side adds for what the control paints outside its layout bounds (see
+      // NativeToggleView.paintOverflow) — not the 51x31 UIKit drew for years,
+      // which was 20% short in width. A box that under-shoots does not shrink
+      // the control, it lets it draw outside: the switch is centred in
+      // whatever box it is given, so the excess spilled, and on a row flush
+      // to the screen edge it spilled off-screen.
       return SizedBox(
-        width: intrinsicWidth ?? 51.0,
-        height: intrinsicHeight ?? 31.0,
+        width: intrinsicWidth ?? 65.0,
+        height: intrinsicHeight ?? 32.0,
         child: platformView,
       );
     }

@@ -22,29 +22,46 @@ mixin NativePlatformViewStateMixin<T extends StatefulWidget> on State<T> {
     Future<dynamic> Function(MethodCall call)? onMethodCall,
   }) {
     channel = MethodChannel(channelName);
-    if (onMethodCall != null) {
-      channel?.setMethodCallHandler(onMethodCall);
-    }
+    // Always handled here, whether or not the widget wants calls of its own:
+    // `intrinsicSize` is pushed by the native view the moment its container
+    // lays out, and every widget wants that.
+    channel?.setMethodCallHandler((call) async {
+      if (call.method == 'intrinsicSize') {
+        _adoptIntrinsicSize(call.arguments as Map?);
+        return null;
+      }
+      return onMethodCall?.call(call);
+    });
+  }
+
+  /// Takes a size the native side measured, ignoring anything degenerate —
+  /// a view that has not been laid out reports zero rather than a guess.
+  void _adoptIntrinsicSize(Map? size) {
+    final width = (size?['width'] as num?)?.toDouble();
+    final height = (size?['height'] as num?)?.toDouble();
+    if (width == null || height == null || width <= 0 || height <= 0) return;
+    if (width == intrinsicWidth && height == intrinsicHeight) return;
+    if (!mounted) return;
+    setState(() {
+      intrinsicWidth = width;
+      intrinsicHeight = height;
+    });
   }
 
   /// Asks the native view for its intrinsic content size and rebuilds with it
   /// once available. Safe to call before the channel is ready or after unmount.
   ///
-  /// Retried, because the first answer is often no answer: a hosted SwiftUI
-  /// view that has not been laid out yet measures as zero, and the native side
-  /// reports that rather than a made-up number. A single early call would leave
-  /// the widget on its Dart-side default forever — which is how a switch ended
-  /// up in a box smaller than the control UIKit actually draws, spilling past
-  /// its own bounds. Each attempt waits one more frame than the last, and the
-  /// loop stops the moment a real size lands.
+  /// Only for the window this cannot cover: the native view publishes its size
+  /// from its own layout pass, but a layout that happened before this channel
+  /// existed published into nothing. A couple of attempts close that race.
   ///
-  /// The default schedule spans about 1.2s. Six attempts (~340ms) looked like
-  /// plenty until a control was built *during* a route transition or inside a
-  /// lazily-built list: laid out late, past the last attempt, it kept the
-  /// Dart-side default for good — and a default that under-shoots is exactly
-  /// the spill above, permanently this time. Giving up early costs a broken
-  /// layout; retrying costs a few method calls on a view nobody sees yet.
-  Future<void> requestIntrinsicSize({int attempts = 12}) async {
+  /// It used to be the whole mechanism, and it was twelve attempts spread over
+  /// 1.2s — a dozen method calls per view because Dart had no way of knowing
+  /// when SwiftUI had settled, and a view laid out late (during a route
+  /// transition, inside a lazily-built list) could still finish past the last
+  /// attempt and keep a wrong size for good. The view knows when it settles;
+  /// asking it repeatedly was always the wrong way round.
+  Future<void> requestIntrinsicSize({int attempts = 3}) async {
     for (var attempt = 0; attempt < attempts; attempt++) {
       if (!mounted || channel == null) return;
       try {
@@ -66,8 +83,11 @@ mixin NativePlatformViewStateMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  /// Sends updated config to the native view via [method], then re-requests
-  /// the intrinsic size (most widgets resize when their config changes).
+  /// Sends updated config to the native view via [method].
+  ///
+  /// [refreshIntrinsicSize] is now only a safety net: a config change that
+  /// resizes the control makes it lay out again, and that layout publishes the
+  /// new size on its own.
   void updateNativeView(
     String method,
     Map<String, dynamic> args, {

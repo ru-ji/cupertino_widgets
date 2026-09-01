@@ -52,6 +52,8 @@ class NativeToggleView: NativeHostingView {
 
         channel = FlutterMethodChannel(
             name: "cupertino_widgets/toggle_\(viewId)", binaryMessenger: messenger)
+        // Push measurements instead of waiting to be polled.
+        sizeChannel = channel
         channel?.setMethodCallHandler({
             [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             self?.handle(call, result: result)
@@ -104,6 +106,35 @@ class NativeToggleView: NativeHostingView {
                 self?.channel?.invokeMethod("onChanged", arguments: newValue)
             }
         )
+    }
+
+    /// The switch PAINTS wider than it LAYS OUT, so the measured size has to
+    /// be padded before Flutter builds a box out of it.
+    ///
+    /// Both measurements agree: `sizeThatFits` and `systemLayoutSizeFitting`
+    /// each report 61x28 on iOS 26, while the control draws about 63 across.
+    /// They agree because they answer the same question — how much space does
+    /// this view CLAIM in a layout — and that is not the question we have.
+    /// UIKit controls routinely paint outside their layout bounds: shadows,
+    /// glows, the outer stroke iOS 26 gives the switch. No API reports the
+    /// drawing bounds, so there is nothing better to ask.
+    ///
+    /// Padding the box rather than clipping the view is deliberate. Clipping
+    /// would guarantee containment too, but by shaving whatever spills —
+    /// a shadow at best, the capsule's own edge at worst. A couple of points
+    /// of transparent margin around a centred control cannot be seen; a
+    /// trimmed switch can.
+    private static let paintOverflow: CGFloat = 4
+
+    override func intrinsicSize() -> [String: Double] {
+        let measured = super.intrinsicSize()
+        guard let width = measured["width"], let height = measured["height"],
+            width > 0, height > 0
+        else { return measured }
+        return [
+            "width": width + Double(Self.paintOverflow),
+            "height": height + Double(Self.paintOverflow),
+        ]
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

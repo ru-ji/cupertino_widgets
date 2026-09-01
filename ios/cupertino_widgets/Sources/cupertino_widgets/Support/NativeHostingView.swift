@@ -11,6 +11,32 @@ class NativeHostingView: NSObject, FlutterPlatformView {
     let _view = HostingContainerView()
     private(set) var hostingController: UIHostingController<AnyView>?
 
+    /// Where measured sizes are pushed. Subclasses assign their own channel
+    /// right after creating it; leaving it nil keeps the view pull-only.
+    ///
+    /// Pushing is the point: Dart used to *poll* for the size — a dozen
+    /// method calls per view, spread over more than a second, because there
+    /// was no way to know when SwiftUI had settled. The view knows exactly
+    /// when: its container just laid out. One message, at the right moment,
+    /// instead of twelve guesses.
+    var sizeChannel: FlutterMethodChannel?
+
+    /// Last size handed to Dart, so an unchanged layout pass sends nothing.
+    private var publishedSize: CGSize?
+    /// One pending measurement at a time; a layout pass can fire many times.
+    private var measurementScheduled = false
+
+    /// Whether this view's content has a size worth reporting.
+    ///
+    /// False for a view attached to FILL the box Flutter built. Measuring one
+    /// of those is meaningless — it answers an unbounded proposal with the
+    /// proposal, so `intrinsicSize()` falls back to re-measuring against the
+    /// current bounds and returns a number about the box, not the content.
+    /// Harmless while Dart only ever pulled (it pulled just for the widgets
+    /// that wanted an answer); actively wrong now that the view pushes on its
+    /// own, because it pushes to widgets that never asked.
+    var measuresIntrinsicSize = true
+
     func view() -> UIView {
         return _view
     }
@@ -75,6 +101,52 @@ class NativeHostingView: NSObject, FlutterPlatformView {
         // as long as our container is in a window (see HostingContainerView).
         _view.hostedController = host
         _view.updateHostParenting()
+        // A re-attach can change the content's size; let the next layout pass
+        // say so rather than assuming it did not.
+        publishedSize = nil
+        _view.onLayoutMeasure = { [weak self] in self?.scheduleMeasurement() }
+    }
+
+    /// Queues a measurement for just after the current layout pass.
+    ///
+    /// Never during it: `intrinsicSize()` lays the hosted view out to measure
+    /// it, and driving layout from inside `layoutSubviews` is how a layout
+    /// loop starts. Coalesced, because one pass can call back several times
+    /// and the answer cannot change in between.
+    private func scheduleMeasurement() {
+        guard sizeChannel != nil, measuresIntrinsicSize, !measurementScheduled else { return }
+        measurementScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.measurementScheduled = false
+            self.publishIntrinsicSize()
+        }
+    }
+
+    /// Hands Dart the content's measured size, if it has one and it moved.
+    ///
+    /// Driven by the container's layout pass, which is the moment SwiftUI has
+    /// actually settled — including the late settles (fonts, images, async
+    /// builds, a route transition finishing) that the old retry loop existed
+    /// to catch and often missed anyway.
+    func publishIntrinsicSize() {
+        guard let sizeChannel else { return }
+        let measured = intrinsicSize()
+        guard let width = measured["width"], let height = measured["height"],
+            width > 0, height > 0
+        else { return }
+        let size = CGSize(width: width, height: height)
+        guard size != publishedSize else { return }
+        publishedSize = size
+        #if DEBUG
+            // What the view actually reports, rather than what a screenshot
+            // suggests. Fires only when the size changes, so it is one line
+            // per control per layout that moved.
+            print(
+                "[cupertino_widgets] \(type(of: self)) measured "
+                    + "\(String(format: "%.2f", width)) x \(String(format: "%.2f", height))")
+        #endif
+        sizeChannel.invokeMethod("intrinsicSize", arguments: measured)
     }
 
     /// Replaces the currently hosted SwiftUI view's root without re-attaching.
@@ -151,6 +223,12 @@ final class HostingContainerView: UIView {
     /// re-assert here too (must not trigger another layout).
     var onLayout: (() -> Void)?
 
+    /// Also called on every layout pass, and kept separate from [onLayout] on
+    /// purpose: that one belongs to whoever owns this view (the scaffold sets
+    /// it), while this one belongs to `NativeHostingView` itself. One hook for
+    /// two owners would have them overwrite each other.
+    var onLayoutMeasure: (() -> Void)?
+
     override func didMoveToWindow() {
         super.didMoveToWindow()
         updateHostParenting()
@@ -159,6 +237,7 @@ final class HostingContainerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         onLayout?()
+        onLayoutMeasure?()
     }
 
     func updateHostParenting() {
